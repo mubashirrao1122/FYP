@@ -15,11 +15,14 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build"]
+init-if-needed = ["anchor-lang/init-if-needed"]
+
 
 
 [dependencies]
-anchor-lang = "0.31.1"
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
 anchor-spl = "0.31.1"
 spl-token = "~5"
-spl-associated-token-account = "~2"
+spl-associated-token-account = "~1"
+
 
