@@ -137,6 +137,19 @@ pub struct LiquidityRemoved {
     pub new_reserve_b: u64,
 }
 
+/// Event emitted when a swap is executed (Module 3.1)
+#[event]
+pub struct SwapExecuted {
+    pub user: Pubkey,
+    pub pool: Pubkey,
+    pub amount_in: u64,
+    pub amount_out: u64,
+    pub fee_amount: u64,
+    pub is_a_to_b: bool,
+    pub new_reserve_a: u64,
+    pub new_reserve_b: u64,
+}
+
 // ============================================================================
 // UTILITY FUNCTIONS (Module 2.1, 2.3, 2.4 Helpers)
 // ============================================================================
@@ -235,6 +248,68 @@ fn validate_ratio_imbalance(
 
     require!(diff <= tolerance, CustomError::RatioImbalance);
     Ok(())
+}
+
+/// Module 2.5 & 3.1: Calculate output amount for swaps with fee
+/// 
+/// Implements constant product formula: (x + amount_in) * (y - amount_out) = x * y
+/// With fee deduction applied before swap calculation
+/// 
+/// Parameters:
+/// - input_amount: Amount of input token to swap
+/// - input_reserve: Current reserve of input token in pool
+/// - output_reserve: Current reserve of output token in pool
+/// - fee_numerator: Fee numerator (e.g., 3 for 0.3% fee)
+/// - fee_denominator: Fee denominator (e.g., 1000 for 0.3% fee)
+/// 
+/// Returns: Amount of output tokens received
+fn calculate_output_amount(
+    input_amount: u64,
+    input_reserve: u64,
+    output_reserve: u64,
+    fee_numerator: u64,
+    fee_denominator: u64,
+) -> Result<u64> {
+    require!(input_amount > 0, CustomError::InvalidAmount);
+    require!(
+        input_reserve > 0 && output_reserve > 0,
+        CustomError::InsufficientLiquidity
+    );
+
+    // Calculate amount after fee deduction
+    // amount_with_fee = input_amount * (fee_denominator - fee_numerator) / fee_denominator
+    let fee_amount = (input_amount as u128)
+        .checked_mul(fee_numerator as u128)
+        .ok_or(error!(CustomError::CalculationOverflow))?
+        .checked_div(fee_denominator as u128)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+
+    let amount_with_fee = (input_amount as u128)
+        .checked_sub(fee_amount)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+
+    // Apply constant product formula
+    // k = input_reserve * output_reserve
+    // output = output_reserve - (k / (input_reserve + amount_with_fee))
+    let k = (input_reserve as u128)
+        .checked_mul(output_reserve as u128)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+
+    let new_input_reserve = (input_reserve as u128)
+        .checked_add(amount_with_fee)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+
+    let new_output_reserve = k
+        .checked_div(new_input_reserve)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+
+    let output_amount = (output_reserve as u128)
+        .checked_sub(new_output_reserve)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+
+    require!(output_amount > 0, CustomError::InsufficientLiquidity);
+
+    Ok(output_amount as u64)
 }
 
 /// Integer square root using Newton's method
@@ -680,6 +755,170 @@ pub mod solrush_dex {
 
         Ok(())
     }
+
+    // ========================================================================
+    // MODULE 3.1: SWAP
+    // ========================================================================
+
+    /// Execute a swap transaction with constant product formula
+    /// 
+    /// Parameters:
+    /// - amount_in: Amount of input token to swap
+    /// - minimum_amount_out: Minimum output amount (slippage protection)
+    /// - is_a_to_b: true = Token A to Token B (SOL→USDC), false = Token B to Token A (USDC→SOL)
+    /// 
+    /// Formula:
+    /// amount_in_with_fee = amount_in * 997 / 1000  (0.3% fee deduction)
+    /// numerator = amount_in_with_fee * output_reserve
+    /// denominator = (input_reserve * 1000) + amount_in_with_fee
+    /// amount_out = numerator / denominator
+    /// 
+    /// Requirements:
+    /// - amount_in > 0
+    /// - Pool must have sufficient output liquidity
+    /// - User must have sufficient input token balance
+    /// - amount_out >= minimum_amount_out (slippage protection)
+    pub fn swap(
+        ctx: Context<Swap>,
+        amount_in: u64,
+        minimum_amount_out: u64,
+        is_a_to_b: bool,
+    ) -> Result<()> {
+        // Validation: Input amount must be greater than 0
+        require!(amount_in > 0, CustomError::InvalidAmount);
+
+        let pool = &mut ctx.accounts.pool;
+
+        // Determine input/output reserves based on direction
+        let (input_reserve, output_reserve) = if is_a_to_b {
+            (pool.reserve_a, pool.reserve_b)
+        } else {
+            (pool.reserve_b, pool.reserve_a)
+        };
+
+        // Verify pool has sufficient liquidity
+        require!(
+            output_reserve > 0 && input_reserve > 0,
+            CustomError::InsufficientLiquidity
+        );
+
+        // Verify user has sufficient input token balance
+        require!(
+            ctx.accounts.user_token_in.amount >= amount_in,
+            CustomError::InsufficientBalance
+        );
+
+        // Calculate output using constant product formula with fee
+        let amount_out = calculate_output_amount(
+            amount_in,
+            input_reserve,
+            output_reserve,
+            pool.fee_numerator,
+            pool.fee_denominator,
+        )?;
+
+        // Slippage protection: verify output >= minimum_amount_out
+        require!(
+            amount_out >= minimum_amount_out,
+            CustomError::SlippageTooHigh
+        );
+
+        // Verify pool vault has sufficient output tokens
+        require!(
+            ctx.accounts.pool_vault_out.amount >= amount_out,
+            CustomError::InsufficientPoolReserves
+        );
+
+        // Calculate fee for tracking
+        let fee_amount = (amount_in as u128)
+            .checked_mul(pool.fee_numerator as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(pool.fee_denominator as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))? as u64;
+
+        // Transfer input tokens from user to pool vault
+        transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.user_token_in.to_account_info(),
+                    to: ctx.accounts.pool_vault_in.to_account_info(),
+                    authority: ctx.accounts.user.to_account_info(),
+                },
+            ),
+            amount_in,
+        )?;
+
+        // Update pool reserves (input increases, output decreases)
+        if is_a_to_b {
+            pool.reserve_a = pool
+                .reserve_a
+                .checked_add(amount_in)
+                .ok_or(error!(CustomError::CalculationOverflow))?;
+            pool.reserve_b = pool
+                .reserve_b
+                .checked_sub(amount_out)
+                .ok_or(error!(CustomError::InsufficientPoolReserves))?;
+        } else {
+            pool.reserve_b = pool
+                .reserve_b
+                .checked_add(amount_in)
+                .ok_or(error!(CustomError::CalculationOverflow))?;
+            pool.reserve_a = pool
+                .reserve_a
+                .checked_sub(amount_out)
+                .ok_or(error!(CustomError::InsufficientPoolReserves))?;
+        }
+
+        // Transfer output tokens from pool vault to user
+        let pool_key = pool.key();
+        let token_a_mint = pool.token_a_mint;
+        let token_b_mint = pool.token_b_mint;
+        let bump_seed = pool.bump;
+        let signer_seeds: &[&[&[u8]]] = &[&[
+            b"pool",
+            token_a_mint.as_ref(),
+            token_b_mint.as_ref(),
+            &[bump_seed],
+        ]];
+
+        transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.pool_vault_out.to_account_info(),
+                    to: ctx.accounts.user_token_out.to_account_info(),
+                    authority: pool.to_account_info(),
+                },
+                signer_seeds,
+            ),
+            amount_out,
+        )?;
+
+        // Emit swap event
+        emit!(SwapExecuted {
+            user: ctx.accounts.user.key(),
+            pool: pool_key,
+            amount_in,
+            amount_out,
+            fee_amount,
+            is_a_to_b,
+            new_reserve_a: pool.reserve_a,
+            new_reserve_b: pool.reserve_b,
+        });
+
+        msg!(
+            "✓ Swap executed: Direction={} | In={} | Out={} | Fee={} | New reserves: A={}, B={}",
+            if is_a_to_b { "A→B" } else { "B→A" },
+            amount_in,
+            amount_out,
+            fee_amount,
+            pool.reserve_a,
+            pool.reserve_b
+        );
+
+        Ok(())
+    }
 }
 
 // ============================================================================
@@ -849,6 +1088,36 @@ pub struct RemoveLiquidity<'info> {
         token::authority = user
     )]
     pub user_token_b: Account<'info, TokenAccount>,
+    
+    #[account(mut)]
+    pub user: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+}
+
+// ============================================================================
+// SWAP CONTEXT (Module 3.1)
+// ============================================================================
+
+#[derive(Accounts)]
+pub struct Swap<'info> {
+    #[account(mut)]
+    pub pool: Account<'info, LiquidityPool>,
+    
+    /// User's input token account (from token based on is_a_to_b)
+    #[account(mut)]
+    pub user_token_in: Account<'info, TokenAccount>,
+    
+    /// User's output token account (to token based on is_a_to_b)
+    #[account(mut)]
+    pub user_token_out: Account<'info, TokenAccount>,
+    
+    /// Pool's input token vault (receives input tokens)
+    #[account(mut)]
+    pub pool_vault_in: Account<'info, TokenAccount>,
+    
+    /// Pool's output token vault (sends output tokens)
+    #[account(mut)]
+    pub pool_vault_out: Account<'info, TokenAccount>,
     
     #[account(mut)]
     pub user: Signer<'info>,
