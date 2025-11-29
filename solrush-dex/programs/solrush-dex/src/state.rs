@@ -84,3 +84,51 @@ pub struct LimitOrder {
 impl LimitOrder {
     pub const SIZE: usize = 8 + 32*4 + 8*5 + 8*2 + 1 + 1;
 }
+
+// ============================================================================
+// RUSH TOKEN CONFIGURATION (Module 4)
+// ============================================================================
+
+/// RushConfig Account Structure
+/// Manages RUSH token configuration and rewards distribution settings
+///
+/// Space: 8 (discriminator) + 32*2 + 8*6 + 1 = 121 bytes
+///
+/// Module 4.1 - RUSH Token Configuration
+/// The RushConfig stores all settings for the RUSH token incentive mechanism.
+/// Key Properties:
+/// - Total Supply: 1,000,000 RUSH tokens (with 6 decimals = 1e12 base units)
+/// - Initial APY: 50% annually (50% of supply distributed in first year)
+/// - Yearly Rewards: 500,000 RUSH tokens
+/// - Reward Rate: ~15.85 RUSH per second (500,000 tokens / 31,536,000 seconds)
+/// - Distribution: Time-weighted rewards to liquidity providers (LPs)
+/// - Calculation: rewards_per_second = (total_supply * apy) / seconds_per_year
+///               = (1,000,000 * 50) / 100 / 31,536,000 = 15.85 RUSH/sec
+#[account]
+pub struct RushConfig {
+    pub mint: Pubkey,                // RUSH token mint address (32 bytes)
+    pub authority: Pubkey,           // Minting authority (Program PDA) (32 bytes)
+    pub total_supply: u64,           // Max supply: 1,000,000 * 10^6 (8 bytes)
+    pub minted_so_far: u64,          // Tokens already distributed (8 bytes)
+    pub rewards_per_second: u64,     // Base reward rate (RUSH/second) (8 bytes)
+    pub apy_numerator: u64,          // APY numerator: 50 for 50% (8 bytes)
+    pub apy_denominator: u64,        // APY denominator: 100 (8 bytes)
+    pub start_timestamp: i64,        // When rewards distribution starts (8 bytes)
+    pub bump: u8,                    // PDA bump seed (1 byte)
+}
+
+impl RushConfig {
+    pub const SIZE: usize = 8 + 32*2 + 8*6 + 1;
+    
+    /// Calculate total rewards available per year
+    /// Formula: (total_supply * apy_numerator) / apy_denominator
+    /// Example: (1_000_000 * 50) / 100 = 500,000 RUSH per year
+    pub fn yearly_rewards(&self) -> u64 {
+        (self.total_supply * self.apy_numerator) / self.apy_denominator
+    }
+    
+    /// Calculate remaining rewards available to distribute
+    pub fn remaining_rewards(&self) -> u64 {
+        self.total_supply.saturating_sub(self.minted_so_far)
+    }
+}

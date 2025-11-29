@@ -10,7 +10,7 @@ mod errors;
 mod utils;
 
 // Import state structures and types
-use state::{LiquidityPool, UserLiquidityPosition, LimitOrder, OrderStatus};
+use state::{LiquidityPool, UserLiquidityPosition, LimitOrder, OrderStatus, RushConfig};
 
 // Import error types
 use errors::CustomError;
@@ -116,8 +116,22 @@ pub struct LimitOrderCancelled {
 }
 
 // ============================================================================
-// UTILITY FUNCTIONS (Module 2.1, 2.3, 2.4 Helpers)
+// EVENTS (Module 4: RUSH Token & Rewards System)
 // ============================================================================
+
+/// Event emitted when RUSH token configuration is initialized (Module 4.2)
+#[event]
+pub struct RushTokenInitialized {
+    pub rush_mint: Pubkey,           // Address of RUSH token mint
+    pub rush_config: Pubkey,         // Address of RushConfig account
+    pub total_supply: u64,           // Max RUSH tokens (1,000,000 * 10^6)
+    pub rewards_per_second: u64,     // Reward rate (~15.85 RUSH/sec for 50% APY)
+    pub apy_numerator: u64,          // APY numerator (50 for 50%)
+    pub apy_denominator: u64,        // APY denominator (100)
+    pub start_timestamp: i64,        // When rewards distribution begins
+    pub authority: Pubkey,           // Minting authority
+}
+
 
 /// Calculate LP tokens using geometric mean formula
 /// LP tokens = sqrt(amount_a * amount_b)
@@ -1456,11 +1470,121 @@ pub mod solrush_dex {
 
         Ok(())
     }
-}
 
-// ============================================================================
-// CONTEXTS (Accounts structures)
-// ============================================================================
+    // ========================================================================
+    // MODULE 4.2: INITIALIZE RUSH TOKEN
+    // ========================================================================
+
+    /// Initialize RUSH token and rewards configuration
+    /// 
+    /// Creates a new SPL token mint for RUSH with 6 decimals and sets up the rewards system.
+    /// This instruction establishes the base configuration for distributing RUSH token rewards
+    /// to liquidity providers.
+    ///
+    /// Calculations:
+    /// - Total Supply: 1,000,000 RUSH tokens (1,000,000 * 10^6 = 1e12 base units)
+    /// - Initial APY: 50% annually
+    /// - Yearly Rewards: 500,000 RUSH tokens per year
+    /// - Reward Rate: rewards_per_second = (500,000 * 10^6) / 31,536,000 ≈ 15,853,375 base units/sec
+    ///              ≈ 15.85 RUSH tokens per second
+    ///
+    /// The APY is configurable via apy_numerator and apy_denominator:
+    /// - apy_numerator = 50 (represents 50%)
+    /// - apy_denominator = 100 (divisor)
+    /// - Actual APY = (50 / 100) * 100% = 50%
+    ///
+    /// Parameters: None (uses hardcoded values for security)
+    pub fn initialize_rush_token(
+        ctx: Context<InitializeRushToken>,
+    ) -> Result<()> {
+        // ====================================================================
+        // CONSTANTS
+        // ====================================================================
+        const RUSH_DECIMALS: u8 = 6;
+        const MAX_RUSH_SUPPLY: u64 = 1_000_000; // 1 million tokens
+        const MAX_RUSH_SUPPLY_BASE: u64 = 1_000_000 * 1_000_000; // With 6 decimals = 1e12
+        const APY_NUMERATOR: u64 = 50; // 50% APY
+        const APY_DENOMINATOR: u64 = 100; // /100 = 50%
+        const SECONDS_PER_YEAR: u64 = 365 * 24 * 60 * 60; // 31,536,000 seconds
+        
+        // ====================================================================
+        // CALCULATIONS
+        // ====================================================================
+        
+        // Calculate yearly rewards: (1,000,000 * 50) / 100 = 500,000 RUSH/year
+        let yearly_rewards = (MAX_RUSH_SUPPLY as u128 * APY_NUMERATOR as u128)
+            .checked_div(APY_DENOMINATOR as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))? as u64;
+        
+        // Verify yearly rewards doesn't exceed total supply
+        require!(
+            yearly_rewards <= MAX_RUSH_SUPPLY,
+            CustomError::InvalidAmount
+        );
+        
+        // Calculate rewards per second: (500,000 * 10^6) / 31,536,000
+        // In base units: 15,853,375 base units per second
+        let rewards_per_second_base = (yearly_rewards as u128)
+            .checked_mul(10u128.pow(RUSH_DECIMALS as u32))
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(SECONDS_PER_YEAR as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))? as u64;
+        
+        // ====================================================================
+        // INITIALIZE RUSH CONFIG
+        // ====================================================================
+        
+        let rush_config = &mut ctx.accounts.rush_config;
+        let rush_config_key = rush_config.key();
+        let rush_mint_key = ctx.accounts.rush_mint.key();
+        let authority_key = ctx.accounts.authority.key();
+        let bump_seed = ctx.bumps.rush_config;
+        let now_timestamp = Clock::get()?.unix_timestamp;
+        
+        rush_config.mint = rush_mint_key;
+        rush_config.authority = rush_config_key; // PDA is authority
+        rush_config.total_supply = MAX_RUSH_SUPPLY_BASE;
+        rush_config.minted_so_far = 0; // No tokens minted yet
+        rush_config.rewards_per_second = rewards_per_second_base;
+        rush_config.apy_numerator = APY_NUMERATOR;
+        rush_config.apy_denominator = APY_DENOMINATOR;
+        rush_config.start_timestamp = now_timestamp;
+        rush_config.bump = bump_seed;
+        
+        // ====================================================================
+        // EMIT EVENT
+        // ====================================================================
+        
+        emit!(RushTokenInitialized {
+            rush_mint: rush_mint_key,
+            rush_config: rush_config_key,
+            total_supply: MAX_RUSH_SUPPLY_BASE,
+            rewards_per_second: rewards_per_second_base,
+            apy_numerator: APY_NUMERATOR,
+            apy_denominator: APY_DENOMINATOR,
+            start_timestamp: now_timestamp,
+            authority: authority_key,
+        });
+        
+        // ====================================================================
+        // LOGGING
+        // ====================================================================
+        
+        msg!("╔════════════════════════════════════════════════════════════╗");
+        msg!("║         RUSH TOKEN INITIALIZATION SUCCESSFUL              ║");
+        msg!("╚════════════════════════════════════════════════════════════╝");
+        msg!("📊 Configuration:");
+        msg!("  • Mint: {}", rush_mint_key);
+        msg!("  • Total Supply: {} RUSH (1e12 base units)", MAX_RUSH_SUPPLY);
+        msg!("  • APY: {}%", APY_NUMERATOR);
+        msg!("  • Rewards/Second: {:.2} RUSH", rewards_per_second_base as f64 / 1e6);
+        msg!("  • Yearly Distribution: {:.0} RUSH", yearly_rewards as f64);
+        msg!("  • Start Timestamp: {}", now_timestamp);
+        msg!("═══════════════════════════════════════════════════════════════");
+        
+        Ok(())
+    }
+}
 
 #[derive(Accounts)]
 #[instruction(initial_deposit_a: u64, initial_deposit_b: u64)]
@@ -1819,3 +1943,52 @@ pub struct CancelLimitOrder<'info> {
     pub user: Signer<'info>,
     pub token_program: Program<'info, Token>,
 }
+
+// ============================================================================
+// INITIALIZE RUSH TOKEN CONTEXT (Module 4.2)
+// ============================================================================
+
+/// Account validation and initialization context for Module 4.2
+/// Initializes RUSH token mint and RushConfig account for rewards system
+#[derive(Accounts)]
+pub struct InitializeRushToken<'info> {
+    /// RushConfig account - stores all RUSH token configuration
+    /// Seeds: ["rush_config"]
+    /// This is a PDA derived from the program itself
+    #[account(
+        init,
+        payer = authority,
+        space = RushConfig::SIZE,
+        seeds = [b"rush_config"],
+        bump
+    )]
+    pub rush_config: Account<'info, RushConfig>,
+    
+    /// RUSH token mint - the actual SPL token mint
+    /// Will be initialized with:
+    /// - 6 decimals (matching USDC for consistency)
+    /// - Authority = rush_config (for minting rewards)
+    /// - Freeze authority = None (tokens cannot be frozen)
+    #[account(
+        init,
+        payer = authority,
+        mint::decimals = 6,
+        mint::authority = rush_config,
+    )]
+    pub rush_mint: Account<'info, Mint>,
+    
+    /// Authority who pays for account creation
+    /// Must be a signer (validates transaction)
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    
+    /// Solana System Program - required for account creation
+    pub system_program: Program<'info, System>,
+    
+    /// SPL Token Program - required for token operations
+    pub token_program: Program<'info, Token>,
+    
+    /// Solana Rent Sysvar - required for rent calculations
+    pub rent: Sysvar<'info, Rent>,
+}
+
