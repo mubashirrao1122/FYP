@@ -59,4 +59,11 @@ pub enum CustomError {
     
     #[msg("Pyth price data is stale")]
     StalePriceData,
+    
+    // ============================================================================
+    // Module 4.6: Admin Function Errors
+    // ============================================================================
+    
+    #[msg("Invalid authority - must be configured authority")]
+    InvalidAuthority,
 }

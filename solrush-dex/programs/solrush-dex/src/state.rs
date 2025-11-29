@@ -92,7 +92,7 @@ impl LimitOrder {
 /// RushConfig Account Structure
 /// Manages RUSH token configuration and rewards distribution settings
 ///
-/// Space: 8 (discriminator) + 32*2 + 8*6 + 1 = 121 bytes
+/// Space: 8 (discriminator) + 32*2 + 8*6 + 2 = 122 bytes
 ///
 /// Module 4.1 - RUSH Token Configuration
 /// The RushConfig stores all settings for the RUSH token incentive mechanism.
@@ -114,11 +114,12 @@ pub struct RushConfig {
     pub apy_numerator: u64,          // APY numerator: 50 for 50% (8 bytes)
     pub apy_denominator: u64,        // APY denominator: 100 (8 bytes)
     pub start_timestamp: i64,        // When rewards distribution starts (8 bytes)
+    pub is_paused: bool,             // Emergency pause flag (1 byte) - Module 4.6
     pub bump: u8,                    // PDA bump seed (1 byte)
 }
 
 impl RushConfig {
-    pub const SIZE: usize = 8 + 32*2 + 8*6 + 1;
+    pub const SIZE: usize = 8 + 32*2 + 8*6 + 2;
     
     /// Calculate total rewards available per year
     /// Formula: (total_supply * apy_numerator) / apy_denominator

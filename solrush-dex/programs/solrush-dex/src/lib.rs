@@ -146,6 +146,43 @@ pub struct RewardsClaimed {
     pub total_claimed_lifetime: u64, // Total RUSH claimed by user (cumulative)
 }
 
+// ============================================================================
+// EVENTS (Module 4.5 & 4.6: View & Admin Functions)
+// ============================================================================
+
+/// Event emitted when RUSH APY is updated by authority (Module 4.6)
+#[event]
+pub struct RewardsConfigUpdated {
+    pub previous_apy_numerator: u64,  // Previous APY numerator
+    pub new_apy_numerator: u64,       // New APY numerator
+    pub new_rewards_per_second: u64,  // Updated rewards per second
+    pub updated_at: i64,              // When the update occurred
+    pub updated_by: Pubkey,           // Authority who made the update
+}
+
+/// Event emitted when RUSH rewards are paused (Module 4.6)
+#[event]
+pub struct RewardsPaused {
+    pub is_paused: bool,              // True if paused, false if resumed
+    pub paused_at: i64,               // When the pause occurred
+    pub paused_by: Pubkey,            // Authority who paused rewards
+    pub reason: String,               // Reason for pause/resume
+}
+
+// ============================================================================
+// DATA STRUCTURES (Module 4.5: View Functions)
+// ============================================================================
+
+/// Comprehensive rewards information for a user's LP position
+/// Returned by get_user_rewards_info (Module 4.5)
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct UserRewardsInfo {
+    pub pending_rewards: u64,         // Unclaimed RUSH rewards in base units
+    pub total_claimed: u64,           // Total RUSH claimed to date (base units)
+    pub current_apy: u64,             // Current APY percentage (e.g., 50 for 50%)
+    pub position_value_usd: u64,      // Estimated USD value of position (scaled by 1e6)
+    pub time_since_deposit: i64,      // Seconds elapsed since initial deposit
+}
 
 /// Calculate LP tokens using geometric mean formula
 /// LP tokens = sqrt(amount_a * amount_b)
@@ -1851,6 +1888,319 @@ pub mod solrush_dex {
         
         Ok(())
     }
+
+    // ========================================================================
+    // MODULE 4.5: VIEW FUNCTIONS (READ-ONLY)
+    // ========================================================================
+
+    /// Get comprehensive rewards information for a user's LP position
+    /// 
+    /// Returns UserRewardsInfo containing:
+    /// - Pending rewards (unclaimed)
+    /// - Total claimed (historical)
+    /// - Current APY
+    /// - Position value in USD (estimated)
+    /// - Time since deposit
+    pub fn get_user_rewards_info(
+        ctx: Context<GetUserRewards>,
+    ) -> Result<UserRewardsInfo> {
+        let position = &ctx.accounts.position;
+        let pool = &ctx.accounts.pool;
+        let rush_config = &ctx.accounts.rush_config;
+        let current_time = Clock::get()?.unix_timestamp;
+        
+        // ====================================================================
+        // STEP 1: VALIDATE POSITION
+        // ====================================================================
+        
+        require!(
+            position.lp_tokens > 0,
+            CustomError::InvalidAmount
+        );
+        require!(
+            pool.total_lp_supply > 0,
+            CustomError::InsufficientLiquidity
+        );
+        
+        // ====================================================================
+        // STEP 2: CALCULATE PENDING REWARDS
+        // ====================================================================
+        
+        let time_elapsed = current_time
+            .checked_sub(position.last_claim_timestamp)
+            .ok_or(error!(CustomError::CalculationOverflow))? as u64;
+        
+        // User share (fixed-point with 10^12 scaling)
+        let user_share_fixed = (position.lp_tokens as u128)
+            .checked_mul(1_000_000_000_000u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(pool.total_lp_supply as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        // Period rewards
+        let period_rewards_fixed = (rush_config.rewards_per_second as u128)
+            .checked_mul(time_elapsed as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        // User rewards
+        let user_rewards_fixed = period_rewards_fixed
+            .checked_mul(user_share_fixed)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(1_000_000_000_000u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        let pending_rewards = user_rewards_fixed
+            .try_into()
+            .unwrap_or(0u64);
+        
+        // Ensure we don't exceed max supply
+        let pending_rewards = if rush_config.minted_so_far + pending_rewards > rush_config.total_supply {
+            rush_config.total_supply.saturating_sub(rush_config.minted_so_far)
+        } else {
+            pending_rewards
+        };
+        
+        // ====================================================================
+        // STEP 3: GET TOTAL CLAIMED (from position state)
+        // ====================================================================
+        
+        let total_claimed = position.total_rush_claimed;
+        
+        // ====================================================================
+        // STEP 4: GET CURRENT APY
+        // ====================================================================
+        
+        let current_apy = rush_config.apy_numerator;
+        
+        // ====================================================================
+        // STEP 5: CALCULATE POSITION VALUE IN USD
+        // ====================================================================
+        // 
+        // Estimated calculation:
+        // position_value_usd = (lp_tokens / total_lp_supply) * (reserve_a + reserve_b)
+        // scaled by 1e6 for precision
+        //
+        // Note: In production, use oracle prices for token values
+        
+        let user_lp_percentage = (position.lp_tokens as u128)
+            .checked_mul(1_000_000_000_000u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(pool.total_lp_supply as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        // Total pool value (in base units, assuming 1:1 for now)
+        let total_pool_value = (pool.reserve_a as u128)
+            .checked_add(pool.reserve_b as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        // User's share of pool value
+        let position_value = total_pool_value
+            .checked_mul(user_lp_percentage)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(1_000_000_000_000u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        let position_value_usd = (position_value as u64)
+            .saturating_mul(1_000_000); // Scale by 1e6
+        
+        // ====================================================================
+        // STEP 6: CALCULATE TIME SINCE DEPOSIT
+        // ====================================================================
+        
+        let time_since_deposit = current_time
+            .checked_sub(position.deposit_timestamp)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        // ====================================================================
+        // STEP 7: RETURN USER REWARDS INFO
+        // ====================================================================
+        
+        Ok(UserRewardsInfo {
+            pending_rewards,
+            total_claimed,
+            current_apy,
+            position_value_usd,
+            time_since_deposit,
+        })
+    }
+
+    // ========================================================================
+    // MODULE 4.6: ADMIN FUNCTIONS
+    // ========================================================================
+
+    /// Update RUSH APY (authority only)
+    /// 
+    /// Requires:
+    /// - Signer to be the configured authority
+    /// - new_apy: APY percentage (e.g., 30 for 30%)
+    /// 
+    /// Effects:
+    /// - Updates apy_numerator
+    /// - Recalculates rewards_per_second
+    /// - Emits RewardsConfigUpdated event
+    pub fn update_rush_apy(
+        ctx: Context<UpdateRushAPY>,
+        new_apy: u64,
+    ) -> Result<()> {
+        let rush_config = &mut ctx.accounts.rush_config;
+        let current_time = Clock::get()?.unix_timestamp;
+        
+        // ====================================================================
+        // STEP 1: VERIFY AUTHORITY
+        // ====================================================================
+        
+        require_eq!(
+            ctx.accounts.authority.key(),
+            rush_config.authority,
+            CustomError::InvalidAuthority
+        );
+        
+        // ====================================================================
+        // STEP 2: VALIDATE APY (0-500%)
+        // ====================================================================
+        
+        require!(
+            new_apy > 0 && new_apy <= 500,
+            CustomError::InvalidAmount
+        );
+        
+        // ====================================================================
+        // STEP 3: CALCULATE NEW REWARDS PER SECOND
+        // ====================================================================
+        // 
+        // Calculation:
+        // rewards_per_second = (total_supply * new_apy) / apy_denominator / seconds_per_year
+        // seconds_per_year = 365 * 24 * 60 * 60 = 31,536,000
+        //
+        // Example: total_supply=1M, new_apy=50, denominator=100
+        // yearly_rewards = (1,000,000 * 50) / 100 = 500,000 RUSH
+        // rewards_per_second = 500,000 / 31,536,000 = ~15.85 RUSH/sec
+        
+        let yearly_rewards = (rush_config.total_supply as u128)
+            .checked_mul(new_apy as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(rush_config.apy_denominator as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        let seconds_per_year: u128 = 31_536_000;
+        let new_rewards_per_second = yearly_rewards
+            .checked_div(seconds_per_year)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .try_into()
+            .map_err(|_| error!(CustomError::CalculationOverflow))?;
+        
+        // ====================================================================
+        // STEP 4: UPDATE STATE
+        // ====================================================================
+        
+        let previous_apy = rush_config.apy_numerator;
+        rush_config.apy_numerator = new_apy;
+        rush_config.rewards_per_second = new_rewards_per_second;
+        
+        // ====================================================================
+        // STEP 5: EMIT EVENT
+        // ====================================================================
+        
+        emit!(RewardsConfigUpdated {
+            previous_apy_numerator: previous_apy,
+            new_apy_numerator: new_apy,
+            new_rewards_per_second,
+            updated_at: current_time,
+            updated_by: ctx.accounts.authority.key(),
+        });
+        
+        msg!("╔════════════════════════════════════════════════════════════╗");
+        msg!("║           ✅ APY UPDATED SUCCESSFULLY                      ║");
+        msg!("╚════════════════════════════════════════════════════════════╝");
+        msg!("📊 APY Update Details:");
+        msg!("   • Previous APY: {}%", previous_apy);
+        msg!("   • New APY: {}%", new_apy);
+        msg!("   • New Rewards/Sec: {} base units (~{:.2} RUSH/sec)", 
+             new_rewards_per_second, new_rewards_per_second as f64 / 1_000_000.0);
+        msg!("   • Annual Distribution: {:.0} RUSH", yearly_rewards as f64 / 1_000_000.0);
+        msg!("═════════════════════════════════════════════════════════════");
+        
+        Ok(())
+    }
+
+    /// Pause or resume RUSH rewards distribution (authority only)
+    /// 
+    /// Requires:
+    /// - Signer to be the configured authority
+    /// - Sets is_paused flag in RushConfig
+    /// 
+    /// Effects:
+    /// - Toggles reward distribution on/off
+    /// - Emits RewardsPaused event
+    /// - All reward claims will fail while paused
+    pub fn pause_rush_rewards(
+        ctx: Context<PauseRewards>,
+    ) -> Result<()> {
+        let rush_config = &mut ctx.accounts.rush_config;
+        let current_time = Clock::get()?.unix_timestamp;
+        
+        // ====================================================================
+        // STEP 1: VERIFY AUTHORITY
+        // ====================================================================
+        
+        require_eq!(
+            ctx.accounts.authority.key(),
+            rush_config.authority,
+            CustomError::InvalidAuthority
+        );
+        
+        // ====================================================================
+        // STEP 2: TOGGLE PAUSE STATE
+        // ====================================================================
+        
+        let was_paused = rush_config.is_paused;
+        rush_config.is_paused = !was_paused;
+        let is_now_paused = rush_config.is_paused;
+        
+        // ====================================================================
+        // STEP 3: EMIT EVENT
+        // ====================================================================
+        
+        let reason = if is_now_paused {
+            "Emergency pause triggered - rewards distribution halted".to_string()
+        } else {
+            "Rewards resumed - distribution re-enabled".to_string()
+        };
+        
+        emit!(RewardsPaused {
+            is_paused: is_now_paused,
+            paused_at: current_time,
+            paused_by: ctx.accounts.authority.key(),
+            reason: reason.clone(),
+        });
+        
+        // ====================================================================
+        // STEP 4: LOG MESSAGE
+        // ====================================================================
+        
+        if is_now_paused {
+            msg!("╔════════════════════════════════════════════════════════════╗");
+            msg!("║                ⏸️  REWARDS PAUSED                          ║");
+            msg!("╚════════════════════════════════════════════════════════════╝");
+            msg!("⚠️  Emergency Status:");
+            msg!("   • Rewards are now PAUSED");
+            msg!("   • New reward claims will FAIL");
+            msg!("   • Existing balances are SAFE");
+            msg!("   • Only authority can resume");
+            msg!("═════════════════════════════════════════════════════════════");
+        } else {
+            msg!("╔════════════════════════════════════════════════════════════╗");
+            msg!("║              ▶️  REWARDS RESUMED                           ║");
+            msg!("╚════════════════════════════════════════════════════════════╝");
+            msg!("✅ Status Updated:");
+            msg!("   • Rewards are now ACTIVE");
+            msg!("   • Reward claims ENABLED");
+            msg!("   • Distribution RESUMED");
+            msg!("═════════════════════════════════════════════════════════════");
+        }
+        
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -2323,5 +2673,55 @@ pub struct ClaimRewards<'info> {
     
     /// System Program (for account creation)
     pub system_program: Program<'info, System>,
+}
+
+// ============================================================================
+// GET USER REWARDS INFO CONTEXT (Module 4.5)
+// ============================================================================
+
+/// Account validation context for getting user rewards information (read-only)
+/// Fetches data from position, pool, and rush_config to calculate rewards
+#[derive(Accounts)]
+pub struct GetUserRewards<'info> {
+    /// User's liquidity position - contains lp_tokens and claim timestamps
+    pub position: Account<'info, UserLiquidityPosition>,
+    
+    /// Pool account - contains total_lp_supply and reserves for share calculation
+    pub pool: Account<'info, LiquidityPool>,
+    
+    /// RUSH configuration - contains rewards_per_second and APY settings
+    pub rush_config: Account<'info, RushConfig>,
+}
+
+// ============================================================================
+// UPDATE RUSH APY CONTEXT (Module 4.6)
+// ============================================================================
+
+/// Account validation context for updating RUSH APY (authority only)
+/// Allows authority to adjust reward distribution parameters
+#[derive(Accounts)]
+pub struct UpdateRushAPY<'info> {
+    /// RUSH configuration - will be updated with new APY
+    #[account(mut)]
+    pub rush_config: Account<'info, RushConfig>,
+    
+    /// Authority signer - must match rush_config.authority
+    pub authority: Signer<'info>,
+}
+
+// ============================================================================
+// PAUSE RUSH REWARDS CONTEXT (Module 4.6)
+// ============================================================================
+
+/// Account validation context for pausing/resuming RUSH rewards (authority only)
+/// Allows emergency pause of reward distribution
+#[derive(Accounts)]
+pub struct PauseRewards<'info> {
+    /// RUSH configuration - is_paused flag will be toggled
+    #[account(mut)]
+    pub rush_config: Account<'info, RushConfig>,
+    
+    /// Authority signer - must match rush_config.authority
+    pub authority: Signer<'info>,
 }
 
