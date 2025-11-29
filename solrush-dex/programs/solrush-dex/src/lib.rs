@@ -132,6 +132,20 @@ pub struct RushTokenInitialized {
     pub authority: Pubkey,           // Minting authority
 }
 
+/// Event emitted when RUSH rewards are claimed (Module 4.4)
+#[event]
+pub struct RewardsClaimed {
+    pub user: Pubkey,                // User who claimed rewards
+    pub position: Pubkey,            // UserLiquidityPosition account
+    pub pool: Pubkey,                // Pool where LP tokens are held
+    pub rewards_amount: u64,         // Amount of RUSH claimed (in base units)
+    pub rewards_display: f64,        // Amount for display (in RUSH tokens)
+    pub time_elapsed: i64,           // Seconds since last claim
+    pub user_lp_share: f64,          // User's share percentage (0.0 to 1.0)
+    pub claimed_at: i64,             // Timestamp when claimed
+    pub total_claimed_lifetime: u64, // Total RUSH claimed by user (cumulative)
+}
+
 
 /// Calculate LP tokens using geometric mean formula
 /// LP tokens = sqrt(amount_a * amount_b)
@@ -1584,6 +1598,259 @@ pub mod solrush_dex {
         
         Ok(())
     }
+
+    // ========================================================================
+    // MODULE 4.3: CALCULATE PENDING REWARDS
+    // ========================================================================
+
+    /// Calculate pending RUSH rewards for a liquidity provider
+    /// 
+    /// Algorithm:
+    /// 1. Time elapsed = current_time - last_claim_timestamp
+    /// 2. User share = user_lp_tokens / total_lp_supply
+    /// 3. Period rewards = rewards_per_second * time_elapsed
+    /// 4. User rewards = period_rewards * user_share
+    /// 5. Convert to token units (multiply by 10^decimals)
+    /// 6. Validate against max supply
+    ///
+    /// Returns: Amount of RUSH tokens (in base units with 6 decimals)
+    pub fn calculate_pending_rewards(
+        ctx: Context<CalculateRewards>,
+    ) -> Result<u64> {
+        let position = &ctx.accounts.position;
+        let pool = &ctx.accounts.pool;
+        let rush_config = &ctx.accounts.rush_config;
+        let current_time = Clock::get()?.unix_timestamp;
+        
+        // ====================================================================
+        // VALIDATION
+        // ====================================================================
+        
+        require!(
+            position.lp_tokens > 0,
+            CustomError::InvalidAmount
+        );
+        require!(
+            pool.total_lp_supply > 0,
+            CustomError::InsufficientLiquidity
+        );
+        
+        // ====================================================================
+        // STEP 1: CALCULATE TIME ELAPSED
+        // ====================================================================
+        
+        let time_elapsed = current_time
+            .checked_sub(position.last_claim_timestamp)
+            .ok_or(error!(CustomError::CalculationOverflow))? as u64;
+        
+        // No rewards if no time has passed
+        if time_elapsed == 0 {
+            return Ok(0);
+        }
+        
+        // ====================================================================
+        // STEP 2 & 3: CALCULATE USER SHARE AND PERIOD REWARDS
+        // ====================================================================
+        
+        // User share as fixed-point (scale by 10^12 for precision)
+        let user_share_fixed = (position.lp_tokens as u128)
+            .checked_mul(1_000_000_000_000u128) // scale by 10^12
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(pool.total_lp_supply as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        // Total rewards in this period (base units per second * elapsed seconds)
+        let period_rewards_fixed = (rush_config.rewards_per_second as u128)
+            .checked_mul(time_elapsed as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        // ====================================================================
+        // STEP 4: CALCULATE USER'S PORTION
+        // ====================================================================
+        
+        let user_rewards_fixed = period_rewards_fixed
+            .checked_mul(user_share_fixed)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(1_000_000_000_000u128)  // remove fixed-point scaling
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        // Convert to u64
+        let user_rewards = user_rewards_fixed
+            .try_into()
+            .map_err(|_| error!(CustomError::CalculationOverflow))?;
+        
+        // ====================================================================
+        // STEP 5: VALIDATE AGAINST MAX SUPPLY
+        // ====================================================================
+        
+        let new_minted_total = rush_config.minted_so_far
+            .checked_add(user_rewards)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        require!(
+            new_minted_total <= rush_config.total_supply,
+            CustomError::InvalidAmount
+        );
+        
+        msg!(
+            "📊 Rewards calculated: {} base units ({:.6} RUSH) | Time: {} sec | Share: {:.6}%",
+            user_rewards,
+            user_rewards as f64 / 1_000_000.0,
+            time_elapsed,
+            (user_share_fixed as f64 / 1_000_000_000_000.0) * 100.0
+        );
+        
+        Ok(user_rewards)
+    }
+
+    // ========================================================================
+    // MODULE 4.4: CLAIM RUSH REWARDS
+    // ========================================================================
+
+    /// Claim accrued RUSH rewards and mint them to user's account
+    /// 
+    /// Steps:
+    /// 1. Calculate pending rewards
+    /// 2. Validate rewards > 0
+    /// 3. Mint RUSH tokens to user
+    /// 4. Update position.last_claim_timestamp
+    /// 5. Update position.total_rush_claimed
+    /// 6. Update rush_config.minted_so_far
+    /// 7. Emit RewardsClaimed event
+    pub fn claim_rush_rewards(
+        ctx: Context<ClaimRewards>,
+    ) -> Result<()> {
+        let position = &mut ctx.accounts.position;
+        let pool = &ctx.accounts.pool;
+        let rush_config = &mut ctx.accounts.rush_config;
+        let current_time = Clock::get()?.unix_timestamp;
+        
+        // ====================================================================
+        // STEP 1: CALCULATE PENDING REWARDS
+        // ====================================================================
+        
+        // Validation
+        require!(
+            position.lp_tokens > 0,
+            CustomError::InvalidAmount
+        );
+        require!(
+            pool.total_lp_supply > 0,
+            CustomError::InsufficientLiquidity
+        );
+        
+        // Time elapsed
+        let time_elapsed = current_time
+            .checked_sub(position.last_claim_timestamp)
+            .ok_or(error!(CustomError::CalculationOverflow))? as u64;
+        
+        // User share (fixed-point with 10^12 scaling)
+        let user_share_fixed = (position.lp_tokens as u128)
+            .checked_mul(1_000_000_000_000u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(pool.total_lp_supply as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        // Period rewards
+        let period_rewards_fixed = (rush_config.rewards_per_second as u128)
+            .checked_mul(time_elapsed as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        // User rewards
+        let user_rewards_fixed = period_rewards_fixed
+            .checked_mul(user_share_fixed)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(1_000_000_000_000u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        let user_rewards = user_rewards_fixed
+            .try_into()
+            .map_err(|_| error!(CustomError::CalculationOverflow))?;
+        
+        // ====================================================================
+        // STEP 2: VALIDATE REWARDS > 0
+        // ====================================================================
+        
+        require!(
+            user_rewards > 0,
+            CustomError::InvalidAmount
+        );
+        
+        // ====================================================================
+        // STEP 3: VALIDATE MAX SUPPLY
+        // ====================================================================
+        
+        let new_minted_total = rush_config.minted_so_far
+            .checked_add(user_rewards)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        require!(
+            new_minted_total <= rush_config.total_supply,
+            CustomError::InvalidAmount
+        );
+        
+        // ====================================================================
+        // STEP 4: MINT RUSH TOKENS
+        // ====================================================================
+        
+        let bump_seed = rush_config.bump;
+        let signer_seeds: &[&[&[u8]]] = &[&[b"rush_config", &[bump_seed]]];
+        
+        mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                MintTo {
+                    mint: ctx.accounts.rush_mint.to_account_info(),
+                    to: ctx.accounts.user_rush_account.to_account_info(),
+                    authority: rush_config.to_account_info(),
+                },
+                signer_seeds,
+            ),
+            user_rewards,
+        )?;
+        
+        // ====================================================================
+        // STEP 5-6: UPDATE STATE
+        // ====================================================================
+        
+        position.last_claim_timestamp = current_time;
+        position.total_rush_claimed = position.total_rush_claimed
+            .checked_add(user_rewards)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        
+        rush_config.minted_so_far = new_minted_total;
+        
+        // ====================================================================
+        // STEP 7: EMIT EVENT
+        // ====================================================================
+        
+        let user_share_percent = (user_share_fixed as f64 / 1_000_000_000_000.0) * 100.0;
+        let user_rewards_display = user_rewards as f64 / 1_000_000.0;
+        
+        emit!(RewardsClaimed {
+            user: ctx.accounts.user.key(),
+            position: position.key(),
+            pool: pool.key(),
+            rewards_amount: user_rewards,
+            rewards_display: user_rewards_display,
+            time_elapsed: time_elapsed as i64,
+            user_lp_share: user_share_fixed as f64 / 1_000_000_000_000.0,
+            claimed_at: current_time,
+            total_claimed_lifetime: position.total_rush_claimed,
+        });
+        
+        msg!("╔════════════════════════════════════════════════════════════╗");
+        msg!("║              ✅ REWARDS CLAIMED SUCCESSFULLY               ║");
+        msg!("╚════════════════════════════════════════════════════════════╝");
+        msg!("💰 Reward Details:");
+        msg!("   • Amount: {:.6} RUSH ({} base units)", user_rewards_display, user_rewards);
+        msg!("   • Your Share: {:.6}%", user_share_percent);
+        msg!("   • Time Held: {} seconds ({:.2} days)", time_elapsed, time_elapsed as f64 / 86400.0);
+        msg!("   • Lifetime Total: {:.6} RUSH", position.total_rush_claimed as f64 / 1_000_000.0);
+        msg!("═════════════════════════════════════════════════════════════");
+        
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -1990,5 +2257,71 @@ pub struct InitializeRushToken<'info> {
     
     /// Solana Rent Sysvar - required for rent calculations
     pub rent: Sysvar<'info, Rent>,
+}
+
+// ============================================================================
+// CALCULATE PENDING REWARDS CONTEXT (Module 4.3)
+// ============================================================================
+
+/// Account validation context for calculating pending RUSH rewards
+/// Reads all necessary accounts to compute accrued rewards since last claim
+#[derive(Accounts)]
+pub struct CalculateRewards<'info> {
+    /// User's liquidity position - contains lp_tokens and last_claim_timestamp
+    pub position: Account<'info, UserLiquidityPosition>,
+    
+    /// Pool account - contains total_lp_supply for share calculation
+    pub pool: Account<'info, LiquidityPool>,
+    
+    /// RUSH configuration - contains rewards_per_second
+    pub rush_config: Account<'info, RushConfig>,
+}
+
+// ============================================================================
+// CLAIM REWARDS CONTEXT (Module 4.4)
+// ============================================================================
+
+/// Account validation context for claiming RUSH rewards
+/// Handles minting RUSH tokens and updating position state
+#[derive(Accounts)]
+pub struct ClaimRewards<'info> {
+    /// User's liquidity position - will be updated with new claim timestamp
+    #[account(mut)]
+    pub position: Account<'info, UserLiquidityPosition>,
+    
+    /// Pool account - needed for share calculation
+    #[account(mut)]
+    pub pool: Account<'info, LiquidityPool>,
+    
+    /// RUSH configuration - minted_so_far will be updated
+    #[account(mut)]
+    pub rush_config: Account<'info, RushConfig>,
+    
+    /// RUSH token mint - will mint tokens via CPI
+    #[account(mut)]
+    pub rush_mint: Account<'info, Mint>,
+    
+    /// User's RUSH token account (created if needed)
+    /// Associated with rush_mint and user authority
+    #[account(
+        init_if_needed,
+        payer = user,
+        associated_token::mint = rush_mint,
+        associated_token::authority = user,
+    )]
+    pub user_rush_account: Account<'info, TokenAccount>,
+    
+    /// User who claims rewards (must sign and pay for account creation if needed)
+    #[account(mut)]
+    pub user: Signer<'info>,
+    
+    /// SPL Token Program
+    pub token_program: Program<'info, Token>,
+    
+    /// Associated Token Program (for ATA creation)
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    
+    /// System Program (for account creation)
+    pub system_program: Program<'info, System>,
 }
 
