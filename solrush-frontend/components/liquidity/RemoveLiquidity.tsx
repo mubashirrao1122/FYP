@@ -11,8 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Info, Trash2 } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { usePool } from '@/lib/hooks/usePool';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -40,7 +39,7 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
   const [slippage, setSlippage] = useState(1.0);
   const [showDetails, setShowDetails] = useState(false);
 
-  const { pool, loading, removeLiquidity, calculatePoolShare } =
+  const { pool, loading, removeLiquidity } =
     usePool(poolAddress);
 
   // Mock user position
@@ -108,49 +107,49 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
   };
 
   return (
-    <Card className="w-full max-w-lg">
+    <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
       <CardHeader>
-        <CardTitle>Remove Liquidity</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-white">Remove Liquidity</CardTitle>
+        <CardDescription className="text-white/40">
           Withdraw your tokens and close your liquidity position
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         {/* Your Position Summary */}
-        <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+        <div className="p-4 bg-white/5 rounded-xl border border-white/10">
           <h3 className="text-sm font-semibold text-white mb-3">
             Your Position
           </h3>
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-white/50">LP Tokens</span>
-              <div className="text-white font-medium">
+              <span className="text-white/40">LP Tokens</span>
+              <div className="text-white font-medium text-lg">
                 {userPosition.lpTokenAmount.toFixed(2)}
               </div>
             </div>
             <div>
-              <span className="text-white/50">Liquidity Value</span>
-              <div className="text-white font-medium">
+              <span className="text-white/40">Liquidity Value</span>
+              <div className="text-white font-medium text-lg">
                 ${userPosition.liquidityUSD.toLocaleString()}
               </div>
             </div>
             <div>
-              <span className="text-white/50">Fees Earned</span>
-              <div className="text-green-400 font-medium">
+              <span className="text-white/40">Fees Earned</span>
+              <div className="text-green-400 font-medium text-lg">
                 +${userPosition.feesEarned.toFixed(2)}
               </div>
             </div>
             <div>
-              <span className="text-white/50">Pool Share</span>
-              <div className="text-white font-medium">0.50%</div>
+              <span className="text-white/40">Pool Share</span>
+              <div className="text-white font-medium text-lg">0.50%</div>
             </div>
           </div>
         </div>
 
         {/* Percentage Selector */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-white/70">
+          <label className="text-sm font-medium text-white/40">
             Percentage to Withdraw
           </label>
           <div className="grid grid-cols-4 gap-2">
@@ -159,10 +158,10 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
                 key={value}
                 onClick={() => setPercentage(value)}
                 className={cn(
-                  'px-3 py-2 rounded-lg text-sm font-medium transition-all',
+                  'px-3 py-2 rounded-xl text-sm font-bold transition-all border',
                   percentage === value
-                    ? 'bg-red-600 text-white'
-                    : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/20'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
                 )}
               >
                 {value}%
@@ -172,10 +171,13 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
         </div>
 
         {/* LP Token Amount */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-white/70">
-            LP Tokens to Burn
-          </label>
+        <div className="bg-black/20 rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-colors">
+          <div className="flex justify-between mb-2">
+            <label className="text-sm font-medium text-white/40">
+              LP Tokens to Burn
+            </label>
+            <div className="text-xs text-white/40">Available: {userPosition.lpTokenAmount}</div>
+          </div>
           <Input
             type="number"
             placeholder="0.0"
@@ -185,12 +187,13 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
               const perc = (parseFloat(e.target.value) / userPosition.lpTokenAmount) * 100 || 0;
               setPercentage(Math.min(perc, 100));
             }}
+            className="bg-transparent border-none text-3xl font-bold h-auto focus:ring-0 px-0 placeholder:text-white/20 w-full text-white"
           />
         </div>
 
         {/* Slippage Tolerance */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-white/70">
+          <label className="text-sm font-medium text-white/40">
             Slippage Tolerance
           </label>
           <div className="flex gap-2">
@@ -199,10 +202,10 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
                 key={value}
                 onClick={() => setSlippage(value)}
                 className={cn(
-                  'flex-1 px-2 py-1 rounded text-xs font-medium transition-all',
+                  'flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all border',
                   slippage === value
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/20'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
                 )}
               >
                 {value}%
@@ -213,12 +216,12 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
 
         {/* Withdrawal Preview */}
         {lpTokenAmount && parseFloat(lpTokenAmount) > 0 && (
-          <div className="space-y-3 p-4 bg-white/5 rounded-lg border border-white/10">
+          <div className="space-y-3 p-4 bg-white/5 rounded-xl border border-white/10">
             <div className="flex items-center gap-2 mb-2">
               <h3 className="text-sm font-semibold text-white">You Receive</h3>
               <button
                 onClick={() => setShowDetails(!showDetails)}
-                className="text-white/50 hover:text-white/70"
+                className="text-white/40 hover:text-white transition-colors"
               >
                 <Info className="h-4 w-4" />
               </button>
@@ -226,19 +229,19 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-white/50">SOL</span>
+                <span className="text-white/40">SOL</span>
                 <span className="text-white font-medium">
                   {receivedAmountA.toFixed(6)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-white/50">USDC</span>
+                <span className="text-white/40">USDC</span>
                 <span className="text-white font-medium">
                   {receivedAmountB.toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between pt-2 border-t border-white/10">
-                <span className="text-white/50">Total Value</span>
+                <span className="text-white/40">Total Value</span>
                 <span className="text-white font-medium">
                   ${receivedUSD.toLocaleString()}
                 </span>
@@ -246,7 +249,7 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
             </div>
 
             {showDetails && (
-              <div className="pt-2 border-t border-white/10 text-xs text-white/50 space-y-1">
+              <div className="pt-2 border-t border-white/10 text-xs text-white/40 space-y-1">
                 <div className="flex justify-between">
                   <span>Min. Received (SOL):</span>
                   <span className="text-white">
@@ -265,7 +268,7 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
         )}
 
         {/* Warning */}
-        <div className="p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg text-xs text-yellow-200">
+        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-200/80">
           <strong>Note:</strong> Removing liquidity will close your position and
           permanently claim your earned fees.
         </div>
@@ -274,8 +277,7 @@ export function RemoveLiquidity({ poolAddress }: { poolAddress: string }) {
         <Button
           onClick={handleRemoveLiquidity}
           disabled={!publicKey || loading || !lpTokenAmount}
-          className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
-          size="lg"
+          className="w-full h-14 text-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all"
         >
           {!publicKey
             ? 'Connect Wallet'

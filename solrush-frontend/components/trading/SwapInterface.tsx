@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -13,10 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TokenSelect } from '@/components/ui/token-select';
-import { ArrowUpDown, Settings, AlertCircle, ChevronDown } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useSwap } from '@/lib/hooks/useSwap';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import { SwapTab } from './SwapTab';
+import { BuyTab } from './BuyTab';
+import { SellTab } from './SellTab';
 
 interface LimitOrder {
   id: string;
@@ -29,20 +31,21 @@ interface LimitOrder {
   createdAt: Date;
 }
 
+interface SwapInterfaceProps {
+  onTokenChange?: (inputToken: string, outputToken: string) => void;
+}
+
 /**
  * SwapInterface Component - Module 6.1, 6.2, 6.3
  * Complete trading interface with Swap, Limit, Buy, and Sell tabs
  * Features real-time quotes, slippage tolerance, and order management
  */
-export function SwapInterface() {
+export function SwapInterface({ onTokenChange }: SwapInterfaceProps = {}) {
   const { publicKey } = useWallet();
   const { toast } = useToast();
+  const { loading } = useSwap();
 
   // Swap state
-  const [inputAmount, setInputAmount] = useState('');
-  const [outputAmount, setOutputAmount] = useState('');
-  const [inputToken, setInputToken] = useState('SOL');
-  const [outputToken, setOutputToken] = useState('USDC');
   const [slippageTolerance, setSlippageTolerance] = useState(1.0);
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
 
@@ -64,201 +67,6 @@ export function SwapInterface() {
       createdAt: new Date(),
     },
   ]);
-
-  // Buy state
-  const [buyAmount, setBuyAmount] = useState('');
-  const [buyTokenSpend, setBuyTokenSpend] = useState('USDC');
-  const [buyEstimatedAmount, setBuyEstimatedAmount] = useState('');
-
-  // Sell state
-  const [sellAmount, setSellAmount] = useState('');
-  const [sellToken, setSellToken] = useState('SOL');
-  const [sellEstimatedAmount, setSellEstimatedAmount] = useState('');
-
-  const { calculateQuote, executeSwap, loading } = useSwap();
-
-  // Real-time quote calculation for Swap tab
-  useEffect(() => {
-    if (inputAmount && parseFloat(inputAmount) > 0) {
-      try {
-        const quote = calculateQuote(
-          parseFloat(inputAmount),
-          inputToken,
-          outputToken,
-          slippageTolerance
-        );
-        setOutputAmount(quote.outputAmount.toFixed(6));
-      } catch (error) {
-        console.error('Quote calculation error:', error);
-      }
-    } else {
-      setOutputAmount('');
-    }
-  }, [inputAmount, inputToken, outputToken, slippageTolerance, calculateQuote]);
-
-  // Real-time quote calculation for Buy tab
-  useEffect(() => {
-    if (buyAmount && parseFloat(buyAmount) > 0) {
-      try {
-        const quote = calculateQuote(
-          parseFloat(buyAmount),
-          buyTokenSpend,
-          'SOL',
-          slippageTolerance
-        );
-        setBuyEstimatedAmount(quote.outputAmount.toFixed(6));
-      } catch (error) {
-        console.error('Buy quote error:', error);
-      }
-    } else {
-      setBuyEstimatedAmount('');
-    }
-  }, [buyAmount, buyTokenSpend, slippageTolerance, calculateQuote]);
-
-  // Real-time quote calculation for Sell tab
-  useEffect(() => {
-    if (sellAmount && parseFloat(sellAmount) > 0) {
-      try {
-        const quote = calculateQuote(
-          parseFloat(sellAmount),
-          sellToken,
-          'USDC',
-          slippageTolerance
-        );
-        setSellEstimatedAmount(quote.outputAmount.toFixed(6));
-      } catch (error) {
-        console.error('Sell quote error:', error);
-      }
-    } else {
-      setSellEstimatedAmount('');
-    }
-  }, [sellAmount, sellToken, slippageTolerance, calculateQuote]);
-
-  const handleSwap = async () => {
-    if (!publicKey) {
-      toast({
-        title: 'Wallet Not Connected',
-        description: 'Please connect your wallet to continue.',
-      });
-      return;
-    }
-
-    if (!inputAmount || parseFloat(inputAmount) <= 0) {
-      toast({
-        title: 'Invalid Amount',
-        description: 'Please enter a valid amount.',
-      });
-      return;
-    }
-
-    try {
-      const quote = calculateQuote(
-        parseFloat(inputAmount),
-        inputToken,
-        outputToken,
-        slippageTolerance
-      );
-
-      const signature = await executeSwap({
-        inputToken,
-        outputToken,
-        inputAmount: parseFloat(inputAmount),
-        minOutputAmount: quote.minReceived,
-      });
-
-      toast({
-        title: 'Swap Successful!',
-        description: `Swapped ${inputAmount} ${inputToken} for ${outputAmount} ${outputToken}. TX: ${signature.slice(0, 8)}...`,
-      });
-
-      // Reset form
-      setInputAmount('');
-      setOutputAmount('');
-    } catch (error: any) {
-      toast({
-        title: 'Swap Failed',
-        description: error.message || 'Transaction failed. Please try again.',
-      });
-    }
-  };
-
-  const handleBuy = async () => {
-    if (!publicKey) {
-      toast({
-        title: 'Wallet Not Connected',
-        description: 'Please connect your wallet to continue.',
-      });
-      return;
-    }
-
-    try {
-      const quote = calculateQuote(
-        parseFloat(buyAmount),
-        buyTokenSpend,
-        'SOL',
-        slippageTolerance
-      );
-
-      const signature = await executeSwap({
-        inputToken: buyTokenSpend,
-        outputToken: 'SOL',
-        inputAmount: parseFloat(buyAmount),
-        minOutputAmount: quote.minReceived,
-      });
-
-      toast({
-        title: 'Purchase Successful!',
-        description: `Bought ${buyEstimatedAmount} SOL for ${buyAmount} ${buyTokenSpend}. TX: ${signature.slice(0, 8)}...`,
-      });
-
-      setBuyAmount('');
-      setBuyEstimatedAmount('');
-    } catch (error: any) {
-      toast({
-        title: 'Purchase Failed',
-        description: error.message || 'Transaction failed.',
-      });
-    }
-  };
-
-  const handleSell = async () => {
-    if (!publicKey) {
-      toast({
-        title: 'Wallet Not Connected',
-        description: 'Please connect your wallet to continue.',
-      });
-      return;
-    }
-
-    try {
-      const quote = calculateQuote(
-        parseFloat(sellAmount),
-        sellToken,
-        'USDC',
-        slippageTolerance
-      );
-
-      const signature = await executeSwap({
-        inputToken: sellToken,
-        outputToken: 'USDC',
-        inputAmount: parseFloat(sellAmount),
-        minOutputAmount: quote.minReceived,
-      });
-
-      toast({
-        title: 'Sale Successful!',
-        description: `Sold ${sellAmount} ${sellToken} for ${sellEstimatedAmount} USDC. TX: ${signature.slice(0, 8)}...`,
-      });
-
-      setSellAmount('');
-      setSellEstimatedAmount('');
-    } catch (error: any) {
-      toast({
-        title: 'Sale Failed',
-        description: error.message || 'Transaction failed.',
-      });
-    }
-  };
 
   const handleCreateLimitOrder = async () => {
     if (!publicKey) {
@@ -327,43 +135,26 @@ export function SwapInterface() {
     });
   };
 
-  const handleSwitchTokens = () => {
-    setInputToken(outputToken);
-    setOutputToken(inputToken);
-    setInputAmount(outputAmount);
-    setOutputAmount('');
-  };
-
-  const currentQuote = calculateQuote(
-    parseFloat(inputAmount) || 0,
-    inputToken,
-    outputToken,
-    slippageTolerance
-  );
-
   return (
-    <Card className="w-full max-w-lg">
-      <CardHeader>
+    <Card className="w-full border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl overflow-hidden">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Trade</CardTitle>
-            <CardDescription>
-              Swap, limit orders, buy, or sell tokens
-            </CardDescription>
+            <CardTitle className="text-xl font-bold text-white">Swap</CardTitle>
           </div>
           <button
             onClick={() => setShowSlippageSettings(!showSlippageSettings)}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors text-white/70 hover:text-white"
             title="Slippage settings"
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-5 w-5" />
           </button>
         </div>
 
         {/* Slippage Settings */}
         {showSlippageSettings && (
-          <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
-            <label className="text-xs font-medium text-white/70 block mb-2">
+          <div className="mt-4 p-4 bg-black/20 rounded-xl border border-white/5 animate-in slide-in-from-top-2">
+            <label className="text-xs font-bold text-white/50 uppercase tracking-wider block mb-3">
               Slippage Tolerance
             </label>
             <div className="flex gap-2">
@@ -372,26 +163,29 @@ export function SwapInterface() {
                   key={value}
                   onClick={() => setSlippageTolerance(value)}
                   className={cn(
-                    'flex-1 px-2 py-1 rounded text-xs font-medium transition-all',
+                    'flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all',
                     slippageTolerance === value
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+                      : 'bg-white/5 text-white/70 hover:bg-white/10'
                   )}
                 >
                   {value}%
                 </button>
               ))}
             </div>
-            <input
-              type="number"
-              min="0"
-              max="50"
-              step="0.1"
-              value={slippageTolerance}
-              onChange={(e) => setSlippageTolerance(parseFloat(e.target.value))}
-              className="w-full mt-2 px-2 py-1 rounded bg-white/10 border border-white/10 text-xs text-white"
-              placeholder="Custom %"
-            />
+            <div className="relative mt-3">
+              <input
+                type="number"
+                min="0"
+                max="50"
+                step="0.1"
+                value={slippageTolerance}
+                onChange={(e) => setSlippageTolerance(parseFloat(e.target.value))}
+                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
+                placeholder="Custom %"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 text-sm">%</span>
+            </div>
           </div>
         )}
       </CardHeader>
@@ -407,121 +201,10 @@ export function SwapInterface() {
 
           {/* SWAP TAB - Module 6.1 */}
           <TabsContent value="swap" className="space-y-4">
-            {/* Input Section */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white/70">
-                You Pay
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="0.0"
-                  value={inputAmount}
-                  onChange={(e) => setInputAmount(e.target.value)}
-                  className="flex-1"
-                />
-                <TokenSelect
-                  value={inputToken}
-                  onChange={(token) => {
-                    const symbol = typeof token === 'string' ? token : token.symbol;
-                    setInputToken(symbol);
-                  }}
-                  exclude={[outputToken]}
-                />
-              </div>
-              <div className="text-xs text-white/50">
-                Balance: 10.5 {inputToken}
-              </div>
-            </div>
-
-            {/* Switch Button */}
-            <div className="flex justify-center -my-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSwitchTokens}
-                className="rounded-full bg-white/10 hover:bg-white/20"
-              >
-                <ArrowUpDown className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Output Section */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white/70">
-                You Receive
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="0.0"
-                  value={outputAmount}
-                  readOnly
-                  className="flex-1 bg-white/5"
-                />
-                <TokenSelect
-                  value={outputToken}
-                  onChange={(token) => {
-                    const symbol = typeof token === 'string' ? token : token.symbol;
-                    setOutputToken(symbol);
-                  }}
-                  exclude={[inputToken]}
-                />
-              </div>
-            </div>
-
-            {/* Swap Details */}
-            {inputAmount && parseFloat(inputAmount) > 0 && (
-              <div className="space-y-1 p-3 bg-white/5 rounded-lg border border-white/10 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-white/50">Exchange Rate</span>
-                  <span className="text-white">
-                    1 {inputToken} = {currentQuote.exchangeRate.toFixed(2)}{' '}
-                    {outputToken}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/50">Fee (0.3%)</span>
-                  <span className="text-white">
-                    {currentQuote.fee.toFixed(6)} {inputToken}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/50">Price Impact</span>
-                  <span
-                    className={cn(
-                      currentQuote.priceImpact > 2
-                        ? 'text-red-400'
-                        : currentQuote.priceImpact > 1
-                          ? 'text-yellow-400'
-                          : 'text-green-400'
-                    )}
-                  >
-                    {currentQuote.priceImpact.toFixed(2)}%
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/50">Minimum Received</span>
-                  <span className="text-white">
-                    {currentQuote.minReceived.toFixed(6)} {outputToken}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Swap Button */}
-            <Button
-              onClick={handleSwap}
-              disabled={!publicKey || loading || !inputAmount}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
-              size="lg"
-            >
-              {!publicKey
-                ? 'Connect Wallet'
-                : loading
-                  ? 'Swapping...'
-                  : 'Swap Tokens'}
-            </Button>
+            <SwapTab
+              slippageTolerance={slippageTolerance}
+              onTokenChange={onTokenChange}
+            />
           </TabsContent>
 
           {/* LIMIT ORDER TAB - Module 6.2 */}
@@ -612,7 +295,7 @@ export function SwapInterface() {
                   !limitTargetPrice ||
                   loading
                 }
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
               >
                 {loading ? 'Creating...' : 'Create Limit Order'}
               </Button>
@@ -676,178 +359,18 @@ export function SwapInterface() {
 
           {/* BUY TAB - Module 6.3 */}
           <TabsContent value="buy" className="space-y-4">
-            <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-              <div className="space-y-2 mb-4">
-                <label className="text-sm font-medium text-white/70">
-                  Spend
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="0.0"
-                    value={buyAmount}
-                    onChange={(e) => setBuyAmount(e.target.value)}
-                    className="flex-1"
-                  />
-                  <TokenSelect
-                    value={buyTokenSpend}
-                    onChange={(token) => {
-                      const symbol = typeof token === 'string' ? token : token.symbol;
-                      setBuyTokenSpend(symbol);
-                    }}
-                    exclude={['SOL']}
-                  />
-                </div>
-                <div className="text-xs text-white/50">
-                  Balance: 250 {buyTokenSpend}
-                </div>
-              </div>
-
-              <div className="flex justify-center mb-4">
-                <div className="text-white/50">↓</div>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                <label className="text-sm font-medium text-white/70">
-                  Receive
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="0.0"
-                    value={buyEstimatedAmount}
-                    readOnly
-                    className="flex-1 bg-white/5"
-                  />
-                  <div className="px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-white font-medium min-w-16 flex items-center justify-center">
-                    SOL
-                  </div>
-                </div>
-                <div className="text-xs text-white/50">Balance: 2.5 SOL</div>
-              </div>
-
-              {buyAmount && buyEstimatedAmount && (
-                <div className="p-2 bg-white/5 rounded-lg border border-white/10 mb-4 text-xs text-white/70 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Rate:</span>
-                    <span>
-                      1 {buyTokenSpend} ={' '}
-                      {(
-                        parseFloat(buyEstimatedAmount) / parseFloat(buyAmount)
-                      ).toFixed(4)}{' '}
-                      SOL
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Min. Received:</span>
-                    <span>
-                      {(parseFloat(buyEstimatedAmount) * 0.99).toFixed(6)} SOL
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <Button
-                onClick={handleBuy}
-                disabled={!publicKey || loading || !buyAmount}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-                size="lg"
-              >
-                {!publicKey
-                  ? 'Connect Wallet'
-                  : loading
-                    ? 'Buying...'
-                    : 'Buy SOL'}
-              </Button>
-            </div>
+            <BuyTab
+              slippageTolerance={slippageTolerance}
+              onTokenChange={onTokenChange}
+            />
           </TabsContent>
 
           {/* SELL TAB - Module 6.3 */}
           <TabsContent value="sell" className="space-y-4">
-            <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-              <div className="space-y-2 mb-4">
-                <label className="text-sm font-medium text-white/70">
-                  Sell
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="0.0"
-                    value={sellAmount}
-                    onChange={(e) => setSellAmount(e.target.value)}
-                    className="flex-1"
-                  />
-                  <TokenSelect
-                    value={sellToken}
-                    onChange={(token) => {
-                      const symbol = typeof token === 'string' ? token : token.symbol;
-                      setSellToken(symbol);
-                    }}
-                    exclude={['USDC', 'USDT']}
-                  />
-                </div>
-                <div className="text-xs text-white/50">
-                  Balance: 10.5 {sellToken}
-                </div>
-              </div>
-
-              <div className="flex justify-center mb-4">
-                <div className="text-white/50">↓</div>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                <label className="text-sm font-medium text-white/70">
-                  Receive
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="0.0"
-                    value={sellEstimatedAmount}
-                    readOnly
-                    className="flex-1 bg-white/5"
-                  />
-                  <div className="px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-white font-medium min-w-16 flex items-center justify-center">
-                    USDC
-                  </div>
-                </div>
-                <div className="text-xs text-white/50">Balance: 250 USDC</div>
-              </div>
-
-              {sellAmount && sellEstimatedAmount && (
-                <div className="p-2 bg-white/5 rounded-lg border border-white/10 mb-4 text-xs text-white/70 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Rate:</span>
-                    <span>
-                      1 {sellToken} ={' '}
-                      {(
-                        parseFloat(sellEstimatedAmount) / parseFloat(sellAmount)
-                      ).toFixed(2)}{' '}
-                      USDC
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Min. Received:</span>
-                    <span>
-                      {(parseFloat(sellEstimatedAmount) * 0.99).toFixed(2)} USDC
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <Button
-                onClick={handleSell}
-                disabled={!publicKey || loading || !sellAmount}
-                className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
-                size="lg"
-              >
-                {!publicKey
-                  ? 'Connect Wallet'
-                  : loading
-                    ? 'Selling...'
-                    : 'Sell ' + sellToken}
-              </Button>
-            </div>
+            <SellTab
+              slippageTolerance={slippageTolerance}
+              onTokenChange={onTokenChange}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>

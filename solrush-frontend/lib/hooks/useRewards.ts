@@ -1,73 +1,42 @@
-"use client";
+import { useState, useEffect } from 'react';
 
-import { useState, useEffect } from "react";
-
-interface RewardData {
-  totalRush: number;
-  claimable: number;
-  claimed: number;
-  loading: boolean;
-  error: string | null;
-}
-
-export const useRewards = (walletAddress: string | null) => {
-  const [rewards, setRewards] = useState<RewardData>({
-    totalRush: 0,
-    claimable: 0,
-    claimed: 0,
-    loading: true,
-    error: null,
-  });
+export const useRewards = (userId: string | null) => {
+  const [loading, setLoading] = useState(false);
+  const [claimable, setClaimable] = useState(0);
+  const [totalRush, setTotalRush] = useState(0);
+  const [claimed, setClaimed] = useState(0);
 
   useEffect(() => {
-    if (!walletAddress) {
-      setRewards((prev) => ({ ...prev, loading: false }));
-      return;
+    if (userId) {
+      // Mock data fetching
+      setClaimable(150.5);
+      setTotalRush(500.0);
+      setClaimed(349.5);
+    } else {
+      setClaimable(0);
+      setTotalRush(0);
+      setClaimed(0);
     }
-
-    const fetchRewards = async () => {
-      try {
-        setRewards((prev) => ({ ...prev, loading: true }));
-        // TODO: Fetch actual rewards from blockchain
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setRewards((prev) => ({
-          ...prev,
-          loading: false,
-          totalRush: 1500,
-          claimable: 500,
-          claimed: 1000,
-        }));
-      } catch (error) {
-        setRewards((prev) => ({
-          ...prev,
-          loading: false,
-          error: error instanceof Error ? error.message : "Failed to fetch rewards",
-        }));
-      }
-    };
-
-    fetchRewards();
-  }, [walletAddress]);
+  }, [userId]);
 
   const claimRewards = async () => {
+    if (!userId) return;
+    setLoading(true);
     try {
-      setRewards((prev) => ({ ...prev, loading: true }));
-      // TODO: Execute claim transaction
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setRewards((prev) => ({
-        ...prev,
-        loading: false,
-        claimable: 0,
-        claimed: prev.claimed + prev.claimable,
-      }));
-    } catch (error) {
-      setRewards((prev) => ({
-        ...prev,
-        loading: false,
-        error: error instanceof Error ? error.message : "Claim failed",
-      }));
+      // Mock claim delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setClaimed((prev) => prev + claimable);
+      setClaimable(0);
+    } finally {
+      setLoading(false);
     }
   };
 
-  return { ...rewards, claimRewards };
+  return {
+    loading,
+    claimable,
+    totalRush,
+    claimed,
+    claimRewards,
+  };
 };

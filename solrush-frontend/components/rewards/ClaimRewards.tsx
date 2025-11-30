@@ -3,6 +3,7 @@
 import { useRewards } from "@/lib/hooks/useRewards";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { formatTokenAmount } from "@/lib/utils/formatters";
+import { Button } from "@/components/ui/button";
 
 export const ClaimRewards = () => {
   const { publicKey } = useWallet();
@@ -14,24 +15,24 @@ export const ClaimRewards = () => {
 
   if (!publicKey || rewards.claimable === 0) {
     return (
-      <button
+      <Button
         disabled
-        className="w-full bg-gray-600 text-gray-400 font-bold py-3 rounded-lg cursor-not-allowed opacity-50"
+        className="w-full h-14 text-lg bg-white/5 text-white/40 font-bold rounded-xl border border-white/10"
       >
         No Rewards to Claim
-      </button>
+      </Button>
     );
   }
 
   return (
-    <button
+    <Button
       onClick={handleClaim}
       disabled={rewards.loading}
-      className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition-colors"
+      className="w-full h-14 text-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all"
     >
       {rewards.loading
         ? "Claiming..."
         : `Claim ${formatTokenAmount(rewards.claimable)} RUSH`}
-    </button>
+    </Button>
   );
 };

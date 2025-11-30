@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SolIcon, UsdcIcon, UsdtIcon, RushIcon } from '@/components/icons/TokenIcons';
 
-interface Token {
+export interface Token {
   symbol: string;
-  icon: string;
+  icon: React.ReactNode;
   name: string;
 }
 
@@ -17,13 +18,14 @@ interface TokenSelectProps {
   placeholder?: string;
   className?: string;
   exclude?: string[];
+  compact?: boolean; // New compact mode for smaller display
 }
 
 const DEFAULT_TOKENS: Token[] = [
-  { symbol: 'SOL', icon: '◎', name: 'Solana' },
-  { symbol: 'USDC', icon: '💵', name: 'USD Coin' },
-  { symbol: 'USDT', icon: '💴', name: 'Tether USD' },
-  { symbol: 'RUSH', icon: '⚡', name: 'SolRush Token' },
+  { symbol: 'SOL', icon: <SolIcon className="w-8 h-8" />, name: 'Solana' },
+  { symbol: 'USDC', icon: <UsdcIcon className="w-8 h-8" />, name: 'USD Coin' },
+  { symbol: 'USDT', icon: <UsdtIcon className="w-8 h-8" />, name: 'Tether USD' },
+  { symbol: 'RUSH', icon: <RushIcon className="w-8 h-8" />, name: 'SolRush Token' },
 ];
 
 /**
@@ -44,6 +46,7 @@ export function TokenSelect({
   placeholder = 'Select token',
   className,
   exclude = [],
+  compact = false,
 }: TokenSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -62,7 +65,7 @@ export function TokenSelect({
   );
 
   const handleSelect = (token: Token) => {
-    onChange?.(token.symbol);
+    onChange?.(token.symbol); // Pass symbol for compatibility
     setIsOpen(false);
     setSearch('');
   };
@@ -72,18 +75,29 @@ export function TokenSelect({
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors"
+        className={cn(
+          "w-full flex items-center justify-between gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all hover:border-purple-500/30 group",
+          compact ? "px-2 py-1.5" : "px-3 py-2"
+        )}
       >
-        <div className="flex items-center gap-3 flex-1">
+        <div className={cn("flex items-center gap-2 flex-1 overflow-hidden", compact && "gap-1.5")}>
           {selectedToken ? (
             <>
-              <span className="text-2xl">{selectedToken.icon}</span>
-              <div className="flex flex-col items-start">
-                <span className="font-semibold text-white">
-                  {selectedToken.symbol}
-                </span>
-                <span className="text-xs text-white/50">{selectedToken.name}</span>
+              <div className={cn(
+                "flex-shrink-0 transform group-hover:scale-110 transition-transform",
+                compact ? "w-5 h-5" : "w-8 h-8"
+              )}>
+                {compact ?
+                  React.cloneElement(selectedToken.icon as React.ReactElement<{ className?: string }>, { className: "w-5 h-5" }) :
+                  selectedToken.icon
+                }
               </div>
+              <span className={cn(
+                "font-bold text-white truncate",
+                compact ? "text-sm" : "text-lg"
+              )}>
+                {selectedToken.symbol}
+              </span>
             </>
           ) : (
             <span className="text-white/50">{placeholder}</span>
@@ -91,15 +105,16 @@ export function TokenSelect({
         </div>
         <ChevronDown
           className={cn(
-            'h-5 w-5 text-white/50 transition-transform',
-            isOpen && 'rotate-180'
+            'text-white/50 transition-transform group-hover:text-white',
+            isOpen && 'rotate-180',
+            compact ? "h-3 w-3" : "h-4 w-4"
           )}
         />
       </button>
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a2e] border border-white/10 rounded-xl shadow-2xl shadow-purple-900/20 z-50 overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0a1a] border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/20 z-50 overflow-hidden backdrop-blur-xl">
           {/* Search Input */}
           <div className="p-3 border-b border-white/5">
             <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg">
@@ -125,10 +140,10 @@ export function TokenSelect({
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors text-left',
                     selectedToken?.symbol === token.symbol &&
-                      'bg-purple-500/20 border-l-2 border-purple-500'
+                    'bg-purple-500/20 border-l-2 border-purple-500'
                   )}
                 >
-                  <span className="text-2xl">{token.icon}</span>
+                  <div className="flex-shrink-0">{token.icon}</div>
                   <div className="flex flex-col flex-1">
                     <span className="font-semibold text-white">
                       {token.symbol}

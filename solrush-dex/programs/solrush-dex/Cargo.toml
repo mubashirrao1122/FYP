@@ -20,8 +20,8 @@ init-if-needed = ["anchor-lang/init-if-needed"]
 
 
 [dependencies]
-anchor-lang = { version = "0.31.0", features = ["init-if-needed"] }
-anchor-spl = "0.31.0"
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
+anchor-spl = "0.31.1"
 spl-token = "~5"
 spl-associated-token-account = "~1"
 pyth-sdk-solana = "0.7"

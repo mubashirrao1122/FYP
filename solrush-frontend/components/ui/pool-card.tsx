@@ -8,12 +8,12 @@ import { cn } from '@/lib/utils';
 interface PoolCardProps {
   token1: {
     symbol: string;
-    icon: string;
+    icon: React.ReactNode;
     reserve: string;
   };
   token2: {
     symbol: string;
-    icon: string;
+    icon: React.ReactNode;
     reserve: string;
   };
   apy: string;
@@ -57,7 +57,7 @@ export function PoolCard({
         <div className="flex items-center gap-1">
           {/* Token 1 */}
           <div className="flex flex-col items-center">
-            <span className="text-3xl">{token1.icon}</span>
+            <div className="text-3xl flex items-center justify-center w-10 h-10">{token1.icon}</div>
             <span className="text-xs font-semibold text-white mt-1">
               {token1.symbol}
             </span>
@@ -68,7 +68,7 @@ export function PoolCard({
 
           {/* Token 2 */}
           <div className="flex flex-col items-center">
-            <span className="text-3xl">{token2.icon}</span>
+            <div className="text-3xl flex items-center justify-center w-10 h-10">{token2.icon}</div>
             <span className="text-xs font-semibold text-white mt-1">
               {token2.symbol}
             </span>

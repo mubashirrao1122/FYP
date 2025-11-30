@@ -17,10 +17,23 @@ export const metadata: Metadata = {
   title: 'SolRush DEX - Decentralized Exchange on Solana',
   description: 'Trade, provide liquidity, and earn RUSH rewards on Solana',
   keywords: ['Solana', 'DEX', 'Trading', 'Liquidity', 'Rewards'],
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
   openGraph: {
     title: 'SolRush DEX',
     description: 'Decentralized Exchange on Solana',
     type: 'website',
+    images: [
+      {
+        url: '/logo.png',
+        width: 512,
+        height: 512,
+        alt: 'SolRush DEX Logo',
+      },
+    ],
   },
 };
 
