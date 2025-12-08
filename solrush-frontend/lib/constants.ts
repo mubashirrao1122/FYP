@@ -1,11 +1,30 @@
 import { PublicKey } from "@solana/web3.js";
 
-// Token Mints (Devnet) - use environment variables in production
+// Network Configuration - Use environment variables
+const NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'devnet';
+
+// Network-specific RPC endpoints
+const RPC_ENDPOINTS: Record<string, string> = {
+    localnet: 'http://127.0.0.1:8899',
+    devnet: process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com',
+    mainnet: process.env.NEXT_PUBLIC_MAINNET_RPC_URL || 'https://api.mainnet-beta.solana.com',
+};
+
+export const CURRENT_NETWORK = NETWORK;
+export const RPC_ENDPOINT = RPC_ENDPOINTS[NETWORK] || RPC_ENDPOINTS.devnet;
+
+// Program ID
+export const PROGRAM_ID = new PublicKey(
+    process.env.NEXT_PUBLIC_PROGRAM_ID || "HCkVnLDL76FR8JJ9fbWg67kr48AtNqDgsivSt19Dnu9c"
+);
+
+// Token Mints - Use environment variables for flexibility across networks
 export const TOKENS: Record<string, PublicKey> = {
     SOL: new PublicKey("So11111111111111111111111111111111111111112"),
-    USDC: new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT || "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"), // Devnet USDC
-    USDT: new PublicKey(process.env.NEXT_PUBLIC_USDT_MINT || "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"), // Devnet USDT
-    RUSH: new PublicKey(process.env.NEXT_PUBLIC_RUSH_MINT || "11111111111111111111111111111111"), // Placeholder
+    USDC: new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT || "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+    USDT: new PublicKey(process.env.NEXT_PUBLIC_USDT_MINT || "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"),
+    WETH: new PublicKey(process.env.NEXT_PUBLIC_WETH_MINT || "7vfCXTUXx5WJV5JAWYwqBo7dropjUiWDPvR8Ch3HfFPc"),
+    RUSH: new PublicKey(process.env.NEXT_PUBLIC_RUSH_MINT || "11111111111111111111111111111111"),
 };
 
 // Token Decimals

@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { AddLiquidity } from '@/components/liquidity/AddLiquidity';
 import { RemoveLiquidity } from '@/components/liquidity/RemoveLiquidity';
 import { PoolCard } from '@/components/ui/pool-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SolIcon, UsdcIcon, UsdtIcon } from '@/components/icons/TokenIcons';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Pool {
@@ -17,6 +17,12 @@ interface Pool {
     apy: number;
     fee: number;
     volume24h: number;
+    reserveA?: number;
+    reserveB?: number;
+    formattedReserveA?: string;
+    formattedReserveB?: string;
+    tokenADecimals?: number;
+    tokenBDecimals?: number;
 }
 
 interface PoolsViewProps {
@@ -45,6 +51,17 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
     handleAddLiquidity,
     onRefresh,
 }) => {
+    // FIXED: Add pool selector state for Add/Remove Liquidity tabs
+    const [selectedPoolIndex, setSelectedPoolIndex] = useState(0);
+    
+    // Helper to format reserve display
+    const formatReserve = (pool: Pool, isTokenA: boolean) => {
+        if (isTokenA) {
+            return pool.formattedReserveA || pool.reserveA?.toLocaleString() || '0';
+        }
+        return pool.formattedReserveB || pool.reserveB?.toLocaleString() || '0';
+    };
+
     return (
         <div className="min-h-screen bg-black relative overflow-hidden selection:bg-purple-500/30">
             <Navbar />
@@ -102,36 +119,74 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
 
                     {/* Browse Pools Tab */}
                     <TabsContent value="browse" className="space-y-6 mt-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {pools.map((pool) => (
-                                <PoolCard
-                                    key={pool.id}
-                                    token1={{
-                                        symbol: pool.tokens[0],
-                                        icon: getTokenIcon(pool.tokens[0]),
-                                        reserve: '1,000,000',
-                                    }}
-                                    token2={{
-                                        symbol: pool.tokens[1],
-                                        icon: getTokenIcon(pool.tokens[1]),
-                                        reserve: '2,000,000',
-                                    }}
-                                    apy={`${pool.apy}%`}
-                                    tvl={`$${(pool.tvl / 1000000).toFixed(2)}M`}
-                                    fee={`${pool.fee}%`}
-                                    onAddLiquidity={() => handleAddLiquidity(pool.name)}
-                                />
-                            ))}
-                        </div>
+                        {loading ? (
+                            <div className="flex justify-center items-center py-12">
+                                <RefreshCw className="w-8 h-8 text-purple-500 animate-spin" />
+                                <span className="ml-3 text-white/60">Loading pools...</span>
+                            </div>
+                        ) : pools.length === 0 ? (
+                            <div className="text-center py-12">
+                                <AlertCircle className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                                <p className="text-white/40 text-lg">No pools available</p>
+                                <p className="text-white/20 text-sm mt-2">Initialize pools on-chain to see them here</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {pools.map((pool) => (
+                                    <PoolCard
+                                        key={pool.id}
+                                        token1={{
+                                            symbol: pool.tokens[0],
+                                            icon: getTokenIcon(pool.tokens[0]),
+                                            reserve: formatReserve(pool, true),
+                                        }}
+                                        token2={{
+                                            symbol: pool.tokens[1],
+                                            icon: getTokenIcon(pool.tokens[1]),
+                                            reserve: formatReserve(pool, false),
+                                        }}
+                                        apy={`${pool.apy.toFixed(2)}%`}
+                                        tvl={pool.tvl >= 1000000 
+                                            ? `$${(pool.tvl / 1000000).toFixed(2)}M`
+                                            : pool.tvl >= 1000 
+                                                ? `$${(pool.tvl / 1000).toFixed(2)}K`
+                                                : `$${pool.tvl.toFixed(2)}`
+                                        }
+                                        fee={`${pool.fee}%`}
+                                        onAddLiquidity={() => handleAddLiquidity(pool.name)}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </TabsContent>
 
                     {/* Add Liquidity Tab */}
                     <TabsContent value="add" className="mt-8">
-                        <div className="flex justify-center">
+                        <div className="flex flex-col items-center">
+                            {/* Pool Selector */}
+                            {pools.length > 1 && (
+                                <div className="w-full max-w-lg mb-6">
+                                    <label className="block text-sm font-medium text-white/60 mb-2">
+                                        Select Pool
+                                    </label>
+                                    <select
+                                        value={selectedPoolIndex}
+                                        onChange={(e) => setSelectedPoolIndex(Number(e.target.value))}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    >
+                                        {pools.map((pool, index) => (
+                                            <option key={pool.address} value={index} className="bg-gray-900">
+                                                {pool.tokens[0]}/{pool.tokens[1]} - TVL: ${pool.tvl.toLocaleString()}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                             {pools.length > 0 ? (
-                                <AddLiquidity poolAddress={pools[0].address} />
+                                <AddLiquidity poolAddress={pools[selectedPoolIndex]?.address || pools[0].address} />
                             ) : (
                                 <div className="text-center text-gray-400 py-12">
+                                    <Plus className="w-12 h-12 text-white/20 mx-auto mb-4" />
                                     <p className="text-lg">No pools available</p>
                                     <p className="text-sm mt-2">Create a pool first to add liquidity</p>
                                 </div>
@@ -141,11 +196,31 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
 
                     {/* Remove Liquidity Tab */}
                     <TabsContent value="remove" className="mt-8">
-                        <div className="flex justify-center">
+                        <div className="flex flex-col items-center">
+                            {/* Pool Selector */}
+                            {pools.length > 1 && (
+                                <div className="w-full max-w-lg mb-6">
+                                    <label className="block text-sm font-medium text-white/60 mb-2">
+                                        Select Pool
+                                    </label>
+                                    <select
+                                        value={selectedPoolIndex}
+                                        onChange={(e) => setSelectedPoolIndex(Number(e.target.value))}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    >
+                                        {pools.map((pool, index) => (
+                                            <option key={pool.address} value={index} className="bg-gray-900">
+                                                {pool.tokens[0]}/{pool.tokens[1]} - TVL: ${pool.tvl.toLocaleString()}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                             {pools.length > 0 ? (
-                                <RemoveLiquidity poolAddress={pools[0].address} />
+                                <RemoveLiquidity poolAddress={pools[selectedPoolIndex]?.address || pools[0].address} />
                             ) : (
                                 <div className="text-center text-gray-400 py-12">
+                                    <AlertCircle className="w-12 h-12 text-white/20 mx-auto mb-4" />
                                     <p className="text-lg">No pools available</p>
                                     <p className="text-sm mt-2">No liquidity to remove</p>
                                 </div>

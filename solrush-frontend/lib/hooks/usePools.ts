@@ -6,6 +6,7 @@ import { PublicKey } from '@solana/web3.js';
 import { BN } from '@project-serum/anchor';
 import { getReadOnlyProgram, fromBN } from '../anchor/setup';
 import { TOKEN_DECIMALS, getTokenSymbol } from '../constants';
+import { getTokenPrice, calculatePoolTVL } from '../services/priceService';
 
 export interface Pool {
     id: string;
@@ -19,62 +20,28 @@ export interface Pool {
     lpMint: string;
     reserveA: number;
     reserveB: number;
+    formattedReserveA: string;
+    formattedReserveB: string;
     tvl: number;
     apy: number;
     fee: number;
     volume24h: number;
     authority: string;
+    tokenADecimals: number;
+    tokenBDecimals: number;
+    totalLPSupply: number;
 }
-
-// Fallback mock data when blockchain is unavailable
-const getMockPools = (): Pool[] => [
-    {
-        id: 'sol-usdc',
-        name: 'SOL/USDC',
-        address: 'mock-pool-1',
-        tokens: ['SOL', 'USDC'],
-        tokenAMint: 'So11111111111111111111111111111111111111112',
-        tokenBMint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
-        tokenAVault: '',
-        tokenBVault: '',
-        lpMint: '',
-        reserveA: 10000,
-        reserveB: 1000000,
-        tvl: 2000000,
-        apy: 45,
-        fee: 0.3,
-        volume24h: 5000000,
-        authority: '',
-    },
-    {
-        id: 'sol-usdt',
-        name: 'SOL/USDT',
-        address: 'mock-pool-2',
-        tokens: ['SOL', 'USDT'],
-        tokenAMint: 'So11111111111111111111111111111111111111112',
-        tokenBMint: 'EJwZgeZrdC8TXTQbQBoL6bfuAnFUUy1PVCMB4DYPzVaS',
-        tokenAVault: '',
-        tokenBVault: '',
-        lpMint: '',
-        reserveA: 5000,
-        reserveB: 500000,
-        tvl: 1000000,
-        apy: 38,
-        fee: 0.3,
-        volume24h: 3000000,
-        authority: '',
-    },
-];
 
 /**
  * Custom hook to fetch all liquidity pools from the blockchain
+ * No mock data fallback - shows actual blockchain state
  */
 export const usePools = () => {
     const { connection } = useConnection();
     const [pools, setPools] = useState<Pool[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isUsingMockData, setIsUsingMockData] = useState(false);
+    const [isUsingMockData] = useState(false); // Always false now - no mock data
 
     /**
      * Fetch all pools from the blockchain
@@ -87,27 +54,23 @@ export const usePools = () => {
             const program = getReadOnlyProgram(connection);
             
             if (!program) {
-                console.warn('Program not available, using mock data');
-                setPools(getMockPools());
-                setIsUsingMockData(true);
+                setError('Program not available. Check network connection and program deployment.');
+                setPools([]);
                 return;
             }
 
             // Fetch all LiquidityPool accounts from the blockchain
-            const poolAccounts = await program.account.liquidityPool.all();
+            const poolAccounts = await (program.account as any).liquidityPool.all();
             
             if (poolAccounts.length === 0) {
-                console.warn('No pools found on chain, using mock data');
-                setPools(getMockPools());
-                setIsUsingMockData(true);
+                setError('No pools found on-chain. Initialize pools first.');
+                setPools([]);
                 return;
             }
 
-            setIsUsingMockData(false);
-
             // Transform blockchain data to our Pool interface
             const transformedPools: Pool[] = await Promise.all(
-                poolAccounts.map(async (account) => {
+                poolAccounts.map(async (account: any) => {
                     const poolData = account.account;
                     const poolAddress = account.publicKey.toBase58();
 
@@ -121,61 +84,85 @@ export const usePools = () => {
                     const decimalsA = TOKEN_DECIMALS[tokenASymbol] || 9;
                     const decimalsB = TOKEN_DECIMALS[tokenBSymbol] || 6;
 
-                    // Convert reserves from BN
-                    const reserveA = fromBN(poolData.tokenAReserve as BN, decimalsA);
-                    const reserveB = fromBN(poolData.tokenBReserve as BN, decimalsB);
+                    // FIXED: Use correct field names matching Rust struct (reserve_a, reserve_b)
+                    // Anchor converts snake_case to camelCase
+                    const reserveA = fromBN(poolData.reserveA as BN || poolData.tokenAReserve as BN || new BN(0), decimalsA);
+                    const reserveB = fromBN(poolData.reserveB as BN || poolData.tokenBReserve as BN || new BN(0), decimalsB);
 
-                    // Calculate TVL (simplified - using mock SOL price for now)
-                    const solPrice = 100; // TODO: Get real price from oracle
-                    let tvl = 0;
-                    if (tokenASymbol === 'SOL') {
-                        tvl = reserveA * solPrice * 2; // Assume equal value
-                    } else if (tokenBSymbol === 'SOL') {
-                        tvl = reserveB * solPrice * 2;
-                    } else {
-                        // Stablecoin pair
-                        tvl = reserveA + reserveB;
+                    // Format reserves for display
+                    const formattedReserveA = reserveA.toLocaleString(undefined, { 
+                        maximumFractionDigits: decimalsA > 6 ? 4 : 2 
+                    });
+                    const formattedReserveB = reserveB.toLocaleString(undefined, { 
+                        maximumFractionDigits: decimalsB > 6 ? 4 : 2 
+                    });
+
+                    // FIXED: Calculate TVL using real prices
+                    const tvl = await calculatePoolTVL(
+                        tokenASymbol,
+                        reserveA,
+                        tokenBSymbol,
+                        reserveB
+                    );
+
+                    // Get fee from the pool data
+                    // Try multiple possible field names
+                    let feePercent = 0.3; // Default 0.3%
+                    if (poolData.feeNumerator && poolData.feeDenominator) {
+                        feePercent = (poolData.feeNumerator / poolData.feeDenominator) * 100;
+                    } else if (poolData.feeBasisPoints) {
+                        feePercent = poolData.feeBasisPoints / 100;
+                    } else if (poolData.fee) {
+                        feePercent = poolData.fee;
                     }
 
-                    // Get fee from basis points (30 = 0.3%)
-                    const feeBasisPoints = poolData.feeBasisPoints as number;
-                    const fee = feeBasisPoints / 100;
+                    // Get total LP supply
+                    const totalLPSupply = poolData.totalLpSupply 
+                        ? fromBN(poolData.totalLpSupply as BN, 6) 
+                        : poolData.lpSupply 
+                            ? fromBN(poolData.lpSupply as BN, 6)
+                            : Math.sqrt(reserveA * reserveB);
 
-                    // Calculate APY (simplified formula based on volume and fees)
-                    // In production, this should come from historical data
-                    const estimatedDailyVolume = tvl * 0.1; // Assume 10% daily volume
-                    const dailyFees = estimatedDailyVolume * (fee / 100);
-                    const apy = ((dailyFees * 365) / tvl) * 100;
+                    // FIXED: Calculate APY based on actual fee structure
+                    // This is still an estimate - real APY should come from historical data
+                    // APY = (daily_fees * 365 / TVL) * 100
+                    // Assuming average daily volume is ~5% of TVL
+                    const estimatedDailyVolumePercent = 5; // 5% of TVL
+                    const estimatedDailyVolume = tvl * (estimatedDailyVolumePercent / 100);
+                    const dailyFees = estimatedDailyVolume * (feePercent / 100);
+                    const apy = tvl > 0 ? ((dailyFees * 365) / tvl) * 100 : 0;
 
                     return {
                         id: `${tokenASymbol.toLowerCase()}-${tokenBSymbol.toLowerCase()}`,
-                        name: (poolData.name as string) || `${tokenASymbol}/${tokenBSymbol}`,
+                        name: poolData.name || `${tokenASymbol}/${tokenBSymbol}`,
                         address: poolAddress,
                         tokens: [tokenASymbol, tokenBSymbol] as [string, string],
                         tokenAMint,
                         tokenBMint,
-                        tokenAVault: (poolData.tokenAVault as PublicKey).toBase58(),
-                        tokenBVault: (poolData.tokenBVault as PublicKey).toBase58(),
-                        lpMint: (poolData.poolMint as PublicKey).toBase58(),
+                        tokenAVault: (poolData.tokenAVault as PublicKey || poolData.vaultA as PublicKey)?.toBase58() || '',
+                        tokenBVault: (poolData.tokenBVault as PublicKey || poolData.vaultB as PublicKey)?.toBase58() || '',
+                        lpMint: (poolData.poolMint as PublicKey || poolData.lpMint as PublicKey)?.toBase58() || '',
                         reserveA,
                         reserveB,
+                        formattedReserveA,
+                        formattedReserveB,
                         tvl,
                         apy: Math.round(apy * 100) / 100,
-                        fee,
-                        volume24h: estimatedDailyVolume, // TODO: Get real volume from indexer
-                        authority: (poolData.authority as PublicKey).toBase58(),
+                        fee: feePercent,
+                        volume24h: estimatedDailyVolume,
+                        authority: (poolData.authority as PublicKey)?.toBase58() || '',
+                        tokenADecimals: decimalsA,
+                        tokenBDecimals: decimalsB,
+                        totalLPSupply,
                     };
                 })
             );
 
             setPools(transformedPools);
-            console.log(`Fetched ${transformedPools.length} pools from blockchain`);
         } catch (err: any) {
             console.error('Failed to fetch pools:', err);
-            setError(err.message || 'Failed to fetch pools');
-            // Fallback to mock data on error
-            setPools(getMockPools());
-            setIsUsingMockData(true);
+            setError(err.message || 'Failed to fetch pools from blockchain');
+            setPools([]);
         } finally {
             setLoading(false);
         }
@@ -222,6 +209,9 @@ export const usePools = () => {
     // Calculate aggregate stats
     const totalTVL = pools.reduce((sum, pool) => sum + pool.tvl, 0);
     const totalVolume24h = pools.reduce((sum, pool) => sum + pool.volume24h, 0);
+    const averageAPY = pools.length > 0 
+        ? pools.reduce((sum, pool) => sum + pool.apy, 0) / pools.length 
+        : 0;
 
     return {
         pools,
@@ -230,6 +220,7 @@ export const usePools = () => {
         isUsingMockData,
         totalTVL,
         totalVolume24h,
+        averageAPY,
         refreshPools,
         getPoolByAddress,
         getPoolByTokens,
