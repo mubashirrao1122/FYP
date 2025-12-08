@@ -150,14 +150,14 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
             </div>
 
             {/* Switch Button */}
-            <div className="flex justify-center -my-3 z-10 relative">
+            <div className="flex justify-center -my-5 z-10 relative">
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={handleSwitchTokens}
-                    className="rounded-full bg-[#1a1a2e] border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all h-10 w-10 shadow-lg"
+                    className="rounded-full bg-[#0a0a1a] border-4 border-[#0a0a1a] hover:bg-[#1a1a2e] hover:border-[#0a0a1a] ring-1 ring-white/10 hover:ring-purple-500/50 transition-all h-12 w-12 shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] group"
                 >
-                    <ArrowUpDown className="h-5 w-5 text-purple-400" />
+                    <ArrowUpDown className="h-6 w-6 text-purple-400 group-hover:scale-110 transition-transform" />
                 </Button>
             </div>
 

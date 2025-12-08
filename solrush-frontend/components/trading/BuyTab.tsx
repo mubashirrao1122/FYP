@@ -5,6 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TokenSelect } from '@/components/ui/token-select';
+import { ArrowUpDown } from 'lucide-react';
 import { useSwap } from '@/lib/hooks/useSwap';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -47,6 +48,13 @@ export function BuyTab({ slippageTolerance, onTokenChange }: BuyTabProps) {
         };
         updateQuote();
     }, [buyAmount, buyTokenSpend, buyTokenReceive, slippageTolerance, calculateQuote]);
+
+    const handleSwitchTokens = () => {
+        setBuyTokenSpend(buyTokenReceive);
+        setBuyTokenReceive(buyTokenSpend);
+        setBuyAmount(buyEstimatedAmount);
+        setBuyEstimatedAmount('');
+    };
 
     const handleBuy = async () => {
         if (!publicKey) {
@@ -128,11 +136,16 @@ export function BuyTab({ slippageTolerance, onTokenChange }: BuyTabProps) {
                     </div>
                 </div>
 
-                {/* Arrow */}
-                <div className="flex justify-center mb-4 -mt-2 relative z-10">
-                    <div className="text-white/50 bg-[#1a1a2e] border border-white/10 rounded-full p-2 shadow-lg">
-                        <div className="w-4 h-4 flex items-center justify-center">↓</div>
-                    </div>
+                {/* Switch Button */}
+                <div className="flex justify-center -my-5 z-10 relative">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleSwitchTokens}
+                        className="rounded-full bg-[#0a0a1a] border-4 border-[#0a0a1a] hover:bg-[#1a1a2e] hover:border-[#0a0a1a] ring-1 ring-white/10 hover:ring-purple-500/50 transition-all h-12 w-12 shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] group"
+                    >
+                        <ArrowUpDown className="h-6 w-6 text-purple-400 group-hover:scale-110 transition-transform" />
+                    </Button>
                 </div>
 
                 {/* Receive Section */}
