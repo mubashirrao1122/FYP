@@ -37,14 +37,14 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
 
   // Auto-calculate second amount based on pool ratio
   useEffect(() => {
-    if (amountA && parseFloat(amountA) > 0) {
+    if (amountA && parseFloat(amountA) > 0 && pool) {
       const ratio = pool.reserveB / pool.reserveA;
       const calculated = (parseFloat(amountA) * ratio).toFixed(6);
       setAmountB(calculated);
     } else {
       setAmountB('');
     }
-  }, [amountA, pool.reserveA, pool.reserveB]);
+  }, [amountA, pool]);
 
   const lpTokensToReceive =
     amountA && amountB
@@ -94,7 +94,27 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
     }
   };
 
-  const exchangeRate = pool.reserveB / pool.reserveA;
+  const exchangeRate = pool ? pool.reserveB / pool.reserveA : 0;
+
+  if (loading) {
+    return (
+      <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
+        <CardContent className="p-8 text-center">
+          <p className="text-white/40">Loading pool data...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!pool) {
+    return (
+      <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
+        <CardContent className="p-8 text-center">
+          <p className="text-white/40">Pool not found</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">

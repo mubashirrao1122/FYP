@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 
 export const ClaimRewards = () => {
   const { publicKey } = useWallet();
-  const rewards = useRewards(publicKey?.toString() || null);
+  const { rewards, loading, claimAllRewards } = useRewards();
 
   const handleClaim = async () => {
-    await rewards.claimRewards();
+    await claimAllRewards();
   };
 
   if (!publicKey || rewards.claimable === 0) {
@@ -27,10 +27,10 @@ export const ClaimRewards = () => {
   return (
     <Button
       onClick={handleClaim}
-      disabled={rewards.loading}
+      disabled={loading}
       className="w-full h-14 text-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all"
     >
-      {rewards.loading
+      {loading
         ? "Claiming..."
         : `Claim ${formatTokenAmount(rewards.claimable)} RUSH`}
     </Button>

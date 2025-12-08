@@ -9,6 +9,7 @@ import { ArrowUpDown } from 'lucide-react';
 import { useSwap } from '@/lib/hooks/useSwap';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import { SwapQuote } from '@/lib/types';
 
 interface SwapTabProps {
     slippageTolerance: number;
@@ -24,34 +25,34 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
     const [outputAmount, setOutputAmount] = useState('');
     const [inputToken, setInputToken] = useState('SOL');
     const [outputToken, setOutputToken] = useState('USDC');
-
-    const currentQuote = calculateQuote(
-        parseFloat(inputAmount) || 0,
-        inputToken,
-        outputToken,
-        slippageTolerance
-    );
+    const [currentQuote, setCurrentQuote] = useState<SwapQuote | null>(null);
 
     useEffect(() => {
         onTokenChange?.(inputToken, outputToken);
     }, [inputToken, outputToken, onTokenChange]);
 
     useEffect(() => {
-        if (inputAmount && parseFloat(inputAmount) > 0) {
-            try {
-                const quote = calculateQuote(
-                    parseFloat(inputAmount),
-                    inputToken,
-                    outputToken,
-                    slippageTolerance
-                );
-                setOutputAmount(quote.outputAmount.toFixed(6));
-            } catch (error) {
-                console.error('Quote calculation error:', error);
+        const updateQuote = async () => {
+            if (inputAmount && parseFloat(inputAmount) > 0) {
+                try {
+                    const quote = await calculateQuote(
+                        parseFloat(inputAmount),
+                        inputToken,
+                        outputToken,
+                        slippageTolerance
+                    );
+                    setCurrentQuote(quote);
+                    setOutputAmount(quote.outputAmount.toFixed(6));
+                } catch (error) {
+                    console.error('Quote calculation error:', error);
+                    setCurrentQuote(null);
+                }
+            } else {
+                setOutputAmount('');
+                setCurrentQuote(null);
             }
-        } else {
-            setOutputAmount('');
-        }
+        };
+        updateQuote();
     }, [inputAmount, inputToken, outputToken, slippageTolerance, calculateQuote]);
 
     const handleSwitchTokens = () => {
@@ -79,7 +80,7 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
         }
 
         try {
-            const quote = calculateQuote(
+            const quote = await calculateQuote(
                 parseFloat(inputAmount),
                 inputToken,
                 outputToken,
@@ -193,7 +194,7 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
             </div>
 
             {/* Swap Details */}
-            {inputAmount && parseFloat(inputAmount) > 0 && (
+            {inputAmount && parseFloat(inputAmount) > 0 && currentQuote && (
                 <div className="space-y-1 p-3 bg-white/5 rounded-xl border border-white/10 text-sm">
                     <div className="flex justify-between">
                         <span className="text-white/40">Exchange Rate</span>

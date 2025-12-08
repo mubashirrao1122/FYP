@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { usePools } from '@/lib/hooks/usePools';
 import { PoolsView } from '@/components/pools/PoolsView';
 
@@ -12,12 +13,22 @@ import { PoolsView } from '@/components/pools/PoolsView';
  * - View: PoolsView component
  */
 export default function PoolsPage() {
-  const { pools, handleAddLiquidity } = usePools();
+  const router = useRouter();
+  const { pools, loading, error, isUsingMockData, refreshPools } = usePools();
+
+  const handleAddLiquidity = (poolId: string) => {
+    // Navigate to liquidity page with pool pre-selected
+    router.push(`/liquidity?pool=${poolId}`);
+  };
 
   return (
     <PoolsView
       pools={pools}
+      loading={loading}
+      error={error}
+      isUsingMockData={isUsingMockData}
       handleAddLiquidity={handleAddLiquidity}
+      onRefresh={refreshPools}
     />
   );
 }

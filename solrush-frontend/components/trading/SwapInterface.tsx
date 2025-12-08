@@ -136,7 +136,7 @@ export function SwapInterface({ onTokenChange }: SwapInterfaceProps = {}) {
   };
 
   return (
-    <Card className="w-full border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl overflow-hidden">
+    <Card className="w-full border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>

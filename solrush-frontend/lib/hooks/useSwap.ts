@@ -1,13 +1,13 @@
 'use client';
 
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
-import { getProgram } from '../anchor/setup';
-import { findPoolAddress, findVaultAddress } from '../anchor/pda';
-import { getTokenMint } from '../constants';
-import { getAssociatedTokenAddress } from '@solana/spl-token';
+import { getProgram, getReadOnlyProgram, toBN, fromBN } from '../anchor/setup';
+import { findPoolAddress } from '../anchor/pda';
+import { getTokenMint, TOKEN_DECIMALS } from '../constants';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
 export interface SwapQuote {
   inputAmount: number;
@@ -16,6 +16,13 @@ export interface SwapQuote {
   fee: number;
   minReceived: number;
   exchangeRate: number;
+}
+
+export interface PoolReserves {
+  reserveA: number;
+  reserveB: number;
+  feeNumerator: number;
+  feeDenominator: number;
 }
 
 /**
@@ -27,40 +34,102 @@ export function useSwap() {
   const wallet = useWallet();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [txSignature, setTxSignature] = useState<string | null>(null);
 
   /**
-   * Calculate swap quote using AMM formula
+   * Fetch real pool data from blockchain
+   */
+  const fetchPoolData = useCallback(async (
+    inputToken: string,
+    outputToken: string
+  ): Promise<PoolReserves | null> => {
+    try {
+      const program = getReadOnlyProgram(connection);
+      if (!program) {
+        console.warn("Program not available");
+        return null;
+      }
+      
+      const inputMint = getTokenMint(inputToken);
+      const outputMint = getTokenMint(outputToken);
+      
+      const [poolAddress] = findPoolAddress(inputMint, outputMint);
+      
+      const poolAccount = await program.account.liquidityPool.fetch(poolAddress);
+      
+      // Check which direction we're swapping
+      const isAToB = inputMint.toBuffer().compare(outputMint.toBuffer()) < 0;
+      
+      return {
+        reserveA: (poolAccount.tokenAReserve as BN).toNumber(),
+        reserveB: (poolAccount.tokenBReserve as BN).toNumber(),
+        feeNumerator: (poolAccount.feeBasisPoints as number) || 25,
+        feeDenominator: 10000,
+      };
+    } catch (err) {
+      console.error("Failed to fetch pool data:", err);
+      return null;
+    }
+  }, [connection]);
+
+  /**
+   * Calculate swap quote using AMM formula (with real pool data)
    * Uses constant product formula: x * y = k
    */
-  const calculateQuote = (
+  const calculateQuote = useCallback(async (
     inputAmount: number,
     inputToken: string,
     outputToken: string,
     slippage: number
-  ): SwapQuote => {
-    // Mock pool data (in production, fetch from blockchain)
-    const poolData: { [key: string]: { [key: string]: number } } = {
-      'SOL-USDC': { reserveIn: 100, reserveOut: 10050 },
-      'USDC-SOL': { reserveIn: 10050, reserveOut: 100 },
-      'SOL-USDT': { reserveIn: 100, reserveOut: 10040 },
-      'USDT-SOL': { reserveIn: 10040, reserveOut: 100 },
-      'SOL-RUSH': { reserveIn: 100, reserveOut: 5000 },
-      'RUSH-SOL': { reserveIn: 5000, reserveOut: 100 },
-    };
+  ): Promise<SwapQuote> => {
+    // Try to fetch real pool data first
+    const poolData = await fetchPoolData(inputToken, outputToken);
+    
+    let reserveIn: number;
+    let reserveOut: number;
+    let feeNumerator: number;
+    let feeDenominator: number;
 
-    const pairKey = `${inputToken}-${outputToken}`;
-    const pool = poolData[pairKey] || { reserveIn: 100, reserveOut: 10050 };
+    if (poolData) {
+      // Use real pool data
+      const inputMint = getTokenMint(inputToken);
+      const outputMint = getTokenMint(outputToken);
+      const isAToB = inputMint.toBuffer().compare(outputMint.toBuffer()) < 0;
+      
+      reserveIn = isAToB ? poolData.reserveA : poolData.reserveB;
+      reserveOut = isAToB ? poolData.reserveB : poolData.reserveA;
+      feeNumerator = poolData.feeNumerator;
+      feeDenominator = poolData.feeDenominator;
+    } else {
+      // Fallback to mock data if pool doesn't exist yet
+      console.warn("Using mock pool data - pool not found on chain");
+      const mockPoolData: { [key: string]: { reserveIn: number; reserveOut: number } } = {
+        'SOL-USDC': { reserveIn: 1000, reserveOut: 100000 },
+        'USDC-SOL': { reserveIn: 100000, reserveOut: 1000 },
+        'SOL-USDT': { reserveIn: 1000, reserveOut: 100000 },
+        'USDT-SOL': { reserveIn: 100000, reserveOut: 1000 },
+        'SOL-RUSH': { reserveIn: 1000, reserveOut: 50000 },
+        'RUSH-SOL': { reserveIn: 50000, reserveOut: 1000 },
+      };
 
-    const FEE = 0.003; // 0.3% fee
+      const pairKey = `${inputToken}-${outputToken}`;
+      const pool = mockPoolData[pairKey] || { reserveIn: 1000, reserveOut: 100000 };
+      reserveIn = pool.reserveIn;
+      reserveOut = pool.reserveOut;
+      feeNumerator = 25; // 0.25%
+      feeDenominator = 10000;
+    }
+
+    const FEE = feeNumerator / feeDenominator;
     const amountInWithFee = inputAmount * (1 - FEE);
 
     // AMM formula: outputAmount = (amountInWithFee * reserveOut) / (reserveIn + amountInWithFee)
-    const numerator = amountInWithFee * pool.reserveOut;
-    const denominator = pool.reserveIn + amountInWithFee;
+    const numerator = amountInWithFee * reserveOut;
+    const denominator = reserveIn + amountInWithFee;
     const outputAmount = numerator / denominator;
 
-    // Calculate price impact: how much worse the price is due to the swap
-    const initialPrice = pool.reserveOut / pool.reserveIn;
+    // Calculate price impact
+    const initialPrice = reserveOut / reserveIn;
     const executionPrice = outputAmount / inputAmount;
     const priceImpact = ((initialPrice - executionPrice) / initialPrice) * 100;
 
@@ -76,12 +145,12 @@ export function useSwap() {
       minReceived,
       exchangeRate,
     };
-  };
+  }, [fetchPoolData]);
 
   /**
    * Execute swap transaction on blockchain
    */
-  const executeSwap = async (params: {
+  const executeSwap = useCallback(async (params: {
     inputToken: string;
     outputToken: string;
     inputAmount: number;
@@ -93,73 +162,106 @@ export function useSwap() {
 
     setLoading(true);
     setError(null);
+    setTxSignature(null);
 
     try {
       const program = getProgram(connection, wallet);
+      if (!program) {
+        throw new Error('Failed to initialize program');
+      }
 
       const inputMint = getTokenMint(params.inputToken);
       const outputMint = getTokenMint(params.outputToken);
 
-      const poolAddress = findPoolAddress(inputMint, outputMint);
+      const [poolAddress] = findPoolAddress(inputMint, outputMint);
 
       // Determine direction (A to B or B to A)
-      // We assume findPoolAddress sorts them, so we check which one is A (smaller)
       const isAToB = inputMint.toBuffer().compare(outputMint.toBuffer()) < 0;
 
-      const tokenAMint = isAToB ? inputMint : outputMint;
-      const tokenBMint = isAToB ? outputMint : inputMint;
-
-      const tokenAVault = findVaultAddress(poolAddress, tokenAMint);
-      const tokenBVault = findVaultAddress(poolAddress, tokenBMint);
+      // Fetch pool to get vault addresses
+      const poolAccount = await program.account.liquidityPool.fetch(poolAddress);
+      
+      const tokenAVault = poolAccount.tokenAVault as PublicKey;
+      const tokenBVault = poolAccount.tokenBVault as PublicKey;
 
       const userTokenIn = await getAssociatedTokenAddress(inputMint, wallet.publicKey);
       const userTokenOut = await getAssociatedTokenAddress(outputMint, wallet.publicKey);
 
-      // Convert amounts to BN (assuming 9 decimals for SOL/USDC/USDT for simplicity, but should check mint decimals)
-      // TODO: Fetch decimals dynamically
-      const decimals = 9;
-      const amountInBN = new BN(params.inputAmount * Math.pow(10, decimals));
-      const minOutBN = new BN(params.minOutputAmount * Math.pow(10, decimals));
+      // Get decimals for proper conversion
+      const inputDecimals = TOKEN_DECIMALS[params.inputToken] || 9;
+      const outputDecimals = TOKEN_DECIMALS[params.outputToken] || 9;
+
+      const amountInBN = toBN(params.inputAmount, inputDecimals);
+      const minOutBN = toBN(params.minOutputAmount, outputDecimals);
+
+      // Create deadline (5 minutes from now)
+      const deadline = new BN(Math.floor(Date.now() / 1000) + 300);
 
       const tx = await program.methods
         .swap(
           amountInBN,
           minOutBN,
-          isAToB ? { aToB: {} } : { bToA: {} }
+          isAToB,
+          deadline
         )
         .accounts({
           user: wallet.publicKey,
           pool: poolAddress,
           userTokenIn,
           userTokenOut,
-          tokenVaultIn: isAToB ? tokenAVault : tokenBVault,
-          tokenVaultOut: isAToB ? tokenBVault : tokenAVault,
-          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+          poolVaultIn: isAToB ? tokenAVault : tokenBVault,
+          poolVaultOut: isAToB ? tokenBVault : tokenAVault,
+          tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
 
+      setTxSignature(tx);
+      console.log("Swap successful! TX:", tx);
       return tx;
     } catch (err: any) {
       console.error("Swap error:", err);
-      // Fallback to simulation if on localnet without deployed program
-      if (err.message.includes("Program not found") || err.message.includes("FetchError")) {
-        console.warn("Falling back to simulation mode");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return 'simulated_tx_' + Date.now();
-      }
-
       const errorMsg = err.message || 'Swap transaction failed';
       setError(errorMsg);
       throw err;
     } finally {
       setLoading(false);
     }
-  };
+  }, [connection, wallet]);
+
+  /**
+   * Check user's token balance
+   */
+  const checkBalance = useCallback(async (
+    token: string
+  ): Promise<number> => {
+    if (!wallet.publicKey) return 0;
+    
+    try {
+      const mint = getTokenMint(token);
+      const tokenAccount = await getAssociatedTokenAddress(mint, wallet.publicKey);
+      const balance = await connection.getTokenAccountBalance(tokenAccount);
+      return parseFloat(balance.value.uiAmountString || '0');
+    } catch (err) {
+      console.error("Failed to fetch balance:", err);
+      return 0;
+    }
+  }, [connection, wallet.publicKey]);
+
+  /**
+   * Clear error state
+   */
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   return {
     calculateQuote,
     executeSwap,
+    fetchPoolData,
+    checkBalance,
+    clearError,
     loading,
     error,
+    txSignature,
   };
 }

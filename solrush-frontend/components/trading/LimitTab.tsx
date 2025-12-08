@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { TokenSelect } from '@/components/ui/token-select';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
-import { LimitOrder } from '@/lib/types';
+import { LimitOrderDisplay, OrderStatus } from '@/lib/types';
 
 export function LimitTab() {
     const { publicKey } = useWallet();
@@ -19,14 +19,15 @@ export function LimitTab() {
     const [limitInputToken, setLimitInputToken] = useState('SOL');
     const [limitOutputToken, setLimitOutputToken] = useState('USDC');
     const [limitExpiry, setLimitExpiry] = useState('1');
-    const [limitOrders, setLimitOrders] = useState<LimitOrder[]>([
+    const [limitOrders, setLimitOrders] = useState<LimitOrderDisplay[]>([
         {
             id: '1',
             inputToken: 'SOL',
             outputToken: 'USDC',
             inputAmount: 5,
             targetPrice: 95,
-            status: 'pending',
+            minReceive: 450,
+            status: OrderStatus.Pending,
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
             createdAt: new Date(),
         },
@@ -62,13 +63,14 @@ export function LimitTab() {
             const expiresAt = new Date();
             expiresAt.setDate(expiresAt.getDate() + parseInt(limitExpiry));
 
-            const newOrder: LimitOrder = {
+            const newOrder: LimitOrderDisplay = {
                 id: Date.now().toString(),
                 inputToken: limitInputToken,
                 outputToken: limitOutputToken,
                 inputAmount: parseFloat(limitInputAmount),
                 targetPrice: parseFloat(limitTargetPrice),
-                status: 'pending',
+                minReceive: parseFloat(limitInputAmount) * parseFloat(limitTargetPrice),
+                status: OrderStatus.Pending,
                 expiresAt,
                 createdAt: new Date(),
             };
@@ -95,7 +97,7 @@ export function LimitTab() {
     const handleCancelLimitOrder = (orderId: string) => {
         setLimitOrders(
             limitOrders.map((order) =>
-                order.id === orderId ? { ...order, status: 'cancelled' as const } : order
+                order.id === orderId ? { ...order, status: OrderStatus.Cancelled } : order
             )
         );
 

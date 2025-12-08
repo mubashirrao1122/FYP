@@ -1,19 +1,89 @@
-import { Program, Idl, AnchorProvider, setProvider } from "@project-serum/anchor";
-import { Connection, PublicKey } from "@solana/web3.js";
-import idl from "../../anchor.json";
+import { Program, Idl, AnchorProvider, setProvider, BN } from "@project-serum/anchor";
+import { Connection, PublicKey, Commitment } from "@solana/web3.js";
+import rawIdl from "../../anchor.json";
 
-// Define the program ID from the IDL or environment
-export const PROGRAM_ID = new PublicKey("3jRmy5gMAQLFxb2mD3Gi4p9N9VuwLXp9toaqEhi1QSRT");
+// Convert legacy IDL format to work with anchor
+const idl = {
+    ...rawIdl,
+    metadata: {
+        address: process.env.NEXT_PUBLIC_PROGRAM_ID || "HCkVnLDL76FR8JJ9fbWg67kr48AtNqDgsivSt19Dnu9c"
+    }
+} as unknown as Idl;
+
+// Define the program ID - should match Anchor.toml
+export const PROGRAM_ID = new PublicKey(
+    process.env.NEXT_PUBLIC_PROGRAM_ID || "HCkVnLDL76FR8JJ9fbWg67kr48AtNqDgsivSt19Dnu9c"
+);
 
 // Network configuration
-export const NETWORK = "http://127.0.0.1:8899"; // Localnet for now
+export const NETWORK = process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com";
 
-export const getProgram = (connection: Connection, wallet: any) => {
+// Commitment level for transactions
+export const COMMITMENT: Commitment = "confirmed";
+
+// Provider options
+export const PROVIDER_OPTIONS = {
+    preflightCommitment: COMMITMENT,
+    commitment: COMMITMENT,
+};
+
+/**
+ * Create Anchor Provider from wallet and connection
+ */
+export const getProvider = (connection: Connection, wallet: any): AnchorProvider => {
     const provider = new AnchorProvider(
         connection,
         wallet,
-        AnchorProvider.defaultOptions()
+        PROVIDER_OPTIONS
     );
     setProvider(provider);
-    return new Program(idl as unknown as Idl, PROGRAM_ID, provider);
+    return provider;
 };
+
+/**
+ * Get Anchor Program instance
+ */
+export const getProgram = (connection: Connection, wallet: any): Program | null => {
+    try {
+        const provider = getProvider(connection, wallet);
+        return new Program(idl, PROGRAM_ID, provider);
+    } catch (error) {
+        console.error("Failed to create program:", error);
+        return null;
+    }
+};
+
+/**
+ * Get Program without wallet (read-only operations)
+ */
+export const getReadOnlyProgram = (connection: Connection): Program | null => {
+    try {
+        // Create a dummy wallet for read-only operations
+        const readOnlyWallet = {
+            publicKey: PublicKey.default,
+            signTransaction: async () => { throw new Error("Read-only"); },
+            signAllTransactions: async () => { throw new Error("Read-only"); },
+        };
+        const provider = new AnchorProvider(connection, readOnlyWallet as any, PROVIDER_OPTIONS);
+        return new Program(idl, PROGRAM_ID, provider);
+    } catch (error) {
+        console.error("Failed to create read-only program:", error);
+        return null;
+    }
+};
+
+/**
+ * Convert number to BN with decimals
+ */
+export const toBN = (amount: number, decimals: number = 9): BN => {
+    return new BN(Math.floor(amount * Math.pow(10, decimals)));
+};
+
+/**
+ * Convert BN to number with decimals
+ */
+export const fromBN = (amount: BN, decimals: number = 9): number => {
+    return amount.toNumber() / Math.pow(10, decimals);
+};
+
+export { BN };

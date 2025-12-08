@@ -28,21 +28,24 @@ export function SellTab({ slippageTolerance, onTokenChange }: SellTabProps) {
     }, [sellToken, sellTokenReceive, onTokenChange]);
 
     useEffect(() => {
-        if (sellAmount && parseFloat(sellAmount) > 0) {
-            try {
-                const quote = calculateQuote(
-                    parseFloat(sellAmount),
-                    sellToken,
-                    sellTokenReceive,
-                    slippageTolerance
-                );
-                setSellEstimatedAmount(quote.outputAmount.toFixed(6));
-            } catch (error) {
-                console.error('Sell quote error:', error);
+        const updateQuote = async () => {
+            if (sellAmount && parseFloat(sellAmount) > 0) {
+                try {
+                    const quote = await calculateQuote(
+                        parseFloat(sellAmount),
+                        sellToken,
+                        sellTokenReceive,
+                        slippageTolerance
+                    );
+                    setSellEstimatedAmount(quote.outputAmount.toFixed(6));
+                } catch (error) {
+                    console.error('Sell quote error:', error);
+                }
+            } else {
+                setSellEstimatedAmount('');
             }
-        } else {
-            setSellEstimatedAmount('');
-        }
+        };
+        updateQuote();
     }, [sellAmount, sellToken, sellTokenReceive, slippageTolerance, calculateQuote]);
 
     const handleSell = async () => {
@@ -55,7 +58,7 @@ export function SellTab({ slippageTolerance, onTokenChange }: SellTabProps) {
         }
 
         try {
-            const quote = calculateQuote(
+            const quote = await calculateQuote(
                 parseFloat(sellAmount),
                 sellToken,
                 sellTokenReceive,

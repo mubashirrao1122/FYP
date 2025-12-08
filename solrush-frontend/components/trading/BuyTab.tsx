@@ -28,21 +28,24 @@ export function BuyTab({ slippageTolerance, onTokenChange }: BuyTabProps) {
     }, [buyTokenSpend, buyTokenReceive, onTokenChange]);
 
     useEffect(() => {
-        if (buyAmount && parseFloat(buyAmount) > 0) {
-            try {
-                const quote = calculateQuote(
-                    parseFloat(buyAmount),
-                    buyTokenSpend,
-                    buyTokenReceive,
-                    slippageTolerance
-                );
-                setBuyEstimatedAmount(quote.outputAmount.toFixed(6));
-            } catch (error) {
-                console.error('Buy quote error:', error);
+        const updateQuote = async () => {
+            if (buyAmount && parseFloat(buyAmount) > 0) {
+                try {
+                    const quote = await calculateQuote(
+                        parseFloat(buyAmount),
+                        buyTokenSpend,
+                        buyTokenReceive,
+                        slippageTolerance
+                    );
+                    setBuyEstimatedAmount(quote.outputAmount.toFixed(6));
+                } catch (error) {
+                    console.error('Buy quote error:', error);
+                }
+            } else {
+                setBuyEstimatedAmount('');
             }
-        } else {
-            setBuyEstimatedAmount('');
-        }
+        };
+        updateQuote();
     }, [buyAmount, buyTokenSpend, buyTokenReceive, slippageTolerance, calculateQuote]);
 
     const handleBuy = async () => {
@@ -55,7 +58,7 @@ export function BuyTab({ slippageTolerance, onTokenChange }: BuyTabProps) {
         }
 
         try {
-            const quote = calculateQuote(
+            const quote = await calculateQuote(
                 parseFloat(buyAmount),
                 buyTokenSpend,
                 buyTokenReceive,

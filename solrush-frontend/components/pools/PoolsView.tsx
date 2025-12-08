@@ -5,6 +5,8 @@ import { RemoveLiquidity } from '@/components/liquidity/RemoveLiquidity';
 import { PoolCard } from '@/components/ui/pool-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SolIcon, UsdcIcon, UsdtIcon } from '@/components/icons/TokenIcons';
+import { RefreshCw, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Pool {
     id: string;
@@ -19,7 +21,11 @@ interface Pool {
 
 interface PoolsViewProps {
     pools: Pool[];
+    loading?: boolean;
+    error?: string | null;
+    isUsingMockData?: boolean;
     handleAddLiquidity: (poolName: string) => void;
+    onRefresh?: () => void;
 }
 
 const getTokenIcon = (symbol: string) => {
@@ -31,7 +37,14 @@ const getTokenIcon = (symbol: string) => {
     }
 };
 
-export const PoolsView: React.FC<PoolsViewProps> = ({ pools, handleAddLiquidity }) => {
+export const PoolsView: React.FC<PoolsViewProps> = ({ 
+    pools, 
+    loading = false,
+    error = null,
+    isUsingMockData = false,
+    handleAddLiquidity,
+    onRefresh,
+}) => {
     return (
         <div className="min-h-screen bg-black relative overflow-hidden selection:bg-purple-500/30">
             <Navbar />
@@ -41,10 +54,40 @@ export const PoolsView: React.FC<PoolsViewProps> = ({ pools, handleAddLiquidity 
 
             {/* Main Content */}
             <main className="relative z-10 max-w-7xl mx-auto px-6 pt-24 pb-12">
+                {/* Status Banner */}
+                {isUsingMockData && (
+                    <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-yellow-500" />
+                        <span className="text-sm text-yellow-500">
+                            Using demo data. Deploy contracts to see real pools.
+                        </span>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                        <span className="text-sm text-red-500">{error}</span>
+                    </div>
+                )}
+
                 <div className="mb-12 text-center">
-                    <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-4">
-                        Liquidity Pools
-                    </h1>
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                        <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
+                            Liquidity Pools
+                        </h1>
+                        {onRefresh && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={onRefresh}
+                                disabled={loading}
+                                className="text-white/40 hover:text-white"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                            </Button>
+                        )}
+                    </div>
                     <p className="text-white/40 text-lg max-w-2xl mx-auto">
                         Provide liquidity to earn from trading fees and protocol rewards
                     </p>
@@ -85,14 +128,28 @@ export const PoolsView: React.FC<PoolsViewProps> = ({ pools, handleAddLiquidity 
                     {/* Add Liquidity Tab */}
                     <TabsContent value="add" className="mt-8">
                         <div className="flex justify-center">
-                            <AddLiquidity poolAddress={pools[0].address} />
+                            {pools.length > 0 ? (
+                                <AddLiquidity poolAddress={pools[0].address} />
+                            ) : (
+                                <div className="text-center text-gray-400 py-12">
+                                    <p className="text-lg">No pools available</p>
+                                    <p className="text-sm mt-2">Create a pool first to add liquidity</p>
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
 
                     {/* Remove Liquidity Tab */}
                     <TabsContent value="remove" className="mt-8">
                         <div className="flex justify-center">
-                            <RemoveLiquidity poolAddress={pools[0].address} />
+                            {pools.length > 0 ? (
+                                <RemoveLiquidity poolAddress={pools[0].address} />
+                            ) : (
+                                <div className="text-center text-gray-400 py-12">
+                                    <p className="text-lg">No pools available</p>
+                                    <p className="text-sm mt-2">No liquidity to remove</p>
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
                 </Tabs>

@@ -1,14 +1,13 @@
 import { PublicKey } from "@solana/web3.js";
 import { PROGRAM_ID } from "./setup";
 
-export const findPoolAddress = (tokenAMint: PublicKey, tokenBMint: PublicKey): PublicKey => {
-    // Sort mints to ensure deterministic order (if required by backend, usually yes)
-    // But looking at lib.rs: seeds = [b"pool", token_a_mint.key().as_ref(), token_b_mint.key().as_ref()]
-    // It doesn't explicitly sort in the macro, but usually pools sort them.
-    // I'll assume the caller passes them in the correct order or I should sort them.
-    // For safety, I'll assume the backend expects them in the order they were initialized.
-    // However, standard AMM practice is to sort.
-    // Let's assume sorted for now.
+/**
+ * Find Pool PDA address
+ * Seeds: ["pool", token_a_mint, token_b_mint]
+ * NOTE: Mints are sorted to ensure deterministic address
+ */
+export const findPoolAddress = (tokenAMint: PublicKey, tokenBMint: PublicKey): [PublicKey, number] => {
+    // Sort mints to ensure deterministic order (smaller first)
     const [mintA, mintB] = tokenAMint.toBuffer().compare(tokenBMint.toBuffer()) < 0
         ? [tokenAMint, tokenBMint]
         : [tokenBMint, tokenAMint];
@@ -16,37 +15,88 @@ export const findPoolAddress = (tokenAMint: PublicKey, tokenBMint: PublicKey): P
     return PublicKey.findProgramAddressSync(
         [Buffer.from("pool"), mintA.toBuffer(), mintB.toBuffer()],
         PROGRAM_ID
-    )[0];
+    );
 };
 
-export const findLpMintAddress = (poolAddress: PublicKey): PublicKey => {
+/**
+ * Find LP Token Mint PDA address
+ * Seeds: ["lp_mint", pool_address]
+ */
+export const findLpMintAddress = (poolAddress: PublicKey): [PublicKey, number] => {
     return PublicKey.findProgramAddressSync(
         [Buffer.from("lp_mint"), poolAddress.toBuffer()],
         PROGRAM_ID
-    )[0];
+    );
 };
 
-export const findVaultAddress = (poolAddress: PublicKey, tokenMint: PublicKey): PublicKey => {
-    // The backend doesn't seem to use a PDA for vaults in the search results I saw?
-    // Wait, I missed checking vault seeds.
-    // initializePool accounts: tokenAVault, tokenBVault.
-    // Usually these are Token Accounts owned by the PDA or ATAs.
-    // If they are PDAs, I need the seeds.
-    // If they are just ATAs owned by the pool, I use getAssociatedTokenAddress.
-    // Let's assume they are ATAs for now or check lib.rs again if needed.
-    // But for swap, I need to pass them.
-    // Let's look at the search results again.
-    // I don't see "vault" seeds.
-    // So they might be ATAs.
-    return PublicKey.findProgramAddressSync(
-        [Buffer.from("vault"), poolAddress.toBuffer(), tokenMint.toBuffer()],
-        PROGRAM_ID
-    )[0];
-};
-
-export const findPositionAddress = (poolAddress: PublicKey, userAddress: PublicKey): PublicKey => {
+/**
+ * Find User Position PDA address
+ * Seeds: ["position", pool_address, user_address]
+ */
+export const findPositionAddress = (poolAddress: PublicKey, userAddress: PublicKey): [PublicKey, number] => {
     return PublicKey.findProgramAddressSync(
         [Buffer.from("position"), poolAddress.toBuffer(), userAddress.toBuffer()],
         PROGRAM_ID
-    )[0];
+    );
+};
+
+/**
+ * Find RUSH Config PDA address
+ * Seeds: ["rush_config"]
+ */
+export const findRushConfigAddress = (): [PublicKey, number] => {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from("rush_config")],
+        PROGRAM_ID
+    );
+};
+
+/**
+ * Find Limit Order PDA address
+ * Seeds: ["limit_order", pool_address, user_address, order_id_bytes]
+ */
+export const findLimitOrderAddress = (
+    poolAddress: PublicKey,
+    userAddress: PublicKey,
+    orderId: number
+): [PublicKey, number] => {
+    const orderIdBuffer = Buffer.alloc(8);
+    orderIdBuffer.writeBigUInt64LE(BigInt(orderId));
+
+    return PublicKey.findProgramAddressSync(
+        [
+            Buffer.from("limit_order"),
+            poolAddress.toBuffer(),
+            userAddress.toBuffer(),
+            orderIdBuffer,
+        ],
+        PROGRAM_ID
+    );
+};
+
+/**
+ * Helper to get just the address (without bump)
+ */
+export const getPoolAddress = (tokenAMint: PublicKey, tokenBMint: PublicKey): PublicKey => {
+    return findPoolAddress(tokenAMint, tokenBMint)[0];
+};
+
+export const getLpMintAddress = (poolAddress: PublicKey): PublicKey => {
+    return findLpMintAddress(poolAddress)[0];
+};
+
+export const getPositionAddress = (poolAddress: PublicKey, userAddress: PublicKey): PublicKey => {
+    return findPositionAddress(poolAddress, userAddress)[0];
+};
+
+export const getRushConfigAddress = (): PublicKey => {
+    return findRushConfigAddress()[0];
+};
+
+export const getLimitOrderAddress = (
+    poolAddress: PublicKey,
+    userAddress: PublicKey,
+    orderId: number
+): PublicKey => {
+    return findLimitOrderAddress(poolAddress, userAddress, orderId)[0];
 };

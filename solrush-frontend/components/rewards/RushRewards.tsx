@@ -5,7 +5,7 @@ import { RushIcon } from "@/components/icons/TokenIcons";
 
 export const RushRewards = () => {
   const { publicKey } = useWallet();
-  const rewards = useRewards(publicKey?.toString() || null);
+  const { rewards } = useRewards();
 
   if (!publicKey) {
     return (
@@ -28,7 +28,7 @@ export const RushRewards = () => {
           <div className="flex items-center gap-3">
             <RushIcon className="w-6 h-6" />
             <p className="text-white text-3xl font-bold">
-              {formatTokenAmount(rewards.totalRush)}
+              {formatTokenAmount(rewards.totalEarned)}
             </p>
           </div>
         </div>
