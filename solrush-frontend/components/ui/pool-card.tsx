@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, Minus, TrendingUp } from 'lucide-react';
+import { Plus, Minus, TrendingUp, Eye } from 'lucide-react';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
 
@@ -19,8 +19,10 @@ interface PoolCardProps {
   apy: string;
   fee: string;
   tvl: string;
+  poolAddress?: string; // Optional pool address for navigation
   onAddLiquidity?: () => void;
   onRemoveLiquidity?: () => void;
+  onViewDetails?: () => void; // Optional view details handler
   className?: string;
 }
 
@@ -41,8 +43,10 @@ export function PoolCard({
   apy,
   fee,
   tvl,
+  poolAddress,
   onAddLiquidity,
   onRemoveLiquidity,
+  onViewDetails,
   className,
 }: PoolCardProps) {
   return (
@@ -118,23 +122,38 @@ export function PoolCard({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3">
-        <Button
-          onClick={onAddLiquidity}
-          variant="default"
-          className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add Liquidity
-        </Button>
-        <Button
-          onClick={onRemoveLiquidity}
-          variant="outline"
-          className="flex-1 gap-2"
-        >
-          <Minus className="h-4 w-4" />
-          Remove
-        </Button>
+      <div className="space-y-3">
+        {/* View Details Button */}
+        {onViewDetails && (
+          <Button
+            onClick={onViewDetails}
+            variant="ghost"
+            className="w-full gap-2 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+          >
+            <Eye className="h-4 w-4" />
+            View Details
+          </Button>
+        )}
+
+        {/* Add/Remove Liquidity Buttons */}
+        <div className="flex gap-3">
+          <Button
+            onClick={onAddLiquidity}
+            variant="default"
+            className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add
+          </Button>
+          <Button
+            onClick={onRemoveLiquidity}
+            variant="outline"
+            className="flex-1 gap-2"
+          >
+            <Minus className="h-4 w-4" />
+            Remove
+          </Button>
+        </div>
       </div>
     </div>
   );

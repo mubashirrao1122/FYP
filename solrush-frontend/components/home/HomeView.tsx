@@ -2,10 +2,11 @@ import React from 'react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Zap, Coins, Gift, ArrowRight } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
-import { StatCard } from '@/components/ui/stat-card';
+
 import { PoolCard } from '@/components/ui/pool-card';
 import { Button } from '@/components/ui/button';
 import { SolIcon, UsdcIcon, UsdtIcon } from '@/components/icons/TokenIcons';
+import { TokenCarousel } from '@/components/home/TokenCarousel';
 
 interface HomeViewProps {
     publicKey: any;
@@ -66,22 +67,17 @@ export const HomeView: React.FC<HomeViewProps> = ({ publicKey, handleLaunchApp }
                     </div>
                 </section>
 
+
+
                 {/* Stats Bar */}
-                <section className="border-y border-white/5 bg-white/5 backdrop-blur-sm py-12 px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-                            <StatCard label="Total Value Locked" value="$2.5M" />
-                            <StatCard label="24h Volume" value="$450K" trend="up" trendValue="+12.5%" />
-                            <StatCard label="Active Pools" value="342" />
-                            <StatCard label="RUSH Distributed" value="1.2M" />
-                        </div>
-                    </div>
-                </section>
+
+
+                {/* Token Carousel */}
+                <TokenCarousel />
 
                 {/* Features Section */}
                 <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
                     <div className="text-center mb-16 space-y-4">
-                        <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight">Why SolRush?</h2>
                         <p className="text-white/40 text-lg max-w-2xl mx-auto">
                             Experience the best decentralized exchange on Solana
                         </p>
@@ -214,10 +210,14 @@ export const HomeView: React.FC<HomeViewProps> = ({ publicKey, handleLaunchApp }
                     <div className="max-w-7xl mx-auto">
                         <div className="grid md:grid-cols-4 gap-12 mb-12">
                             <div>
-                                <h3 className="font-black text-xl mb-6 flex items-center gap-2 text-white">
-                                    <Zap className="h-6 w-6 text-purple-400" />
-                                    SolRush
-                                </h3>
+                                <div className="flex items-center gap-2 mb-6">
+                                    <div className="w-8 h-8 relative rounded-lg overflow-hidden">
+                                        <img src="/logo.png" alt="SolRush Logo" className="w-full h-full object-cover" />
+                                    </div>
+                                    <h3 className="font-black text-xl text-white">
+                                        SolRush
+                                    </h3>
+                                </div>
                                 <p className="text-white/40 text-sm leading-relaxed">
                                     The fastest DEX on Solana. Built for speed, designed for liquidity.
                                 </p>

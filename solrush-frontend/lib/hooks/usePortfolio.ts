@@ -95,7 +95,10 @@ export const usePortfolio = () => {
         try {
             // First add SOL balance
             const solBalance = await fetchSolBalance();
-            const solPrice = 100; // TODO: Get from oracle
+
+            // Fetch real SOL price from oracle
+            const { oracleService } = await import('../services/oracleService');
+            const solPrice = await oracleService.getTokenPrice('SOL');
             holdings.push({
                 symbol: 'SOL',
                 name: 'Solana',
@@ -125,15 +128,10 @@ export const usePortfolio = () => {
                 const symbol = getTokenSymbol(mintAddress);
                 const tokenInfo = TOKEN_LIST.find(t => t.mint.toBase58() === mintAddress);
 
-                // Simple price estimation (in production, use oracle)
-                let usdValue = 0;
-                if (symbol === 'USDC' || symbol === 'USDT') {
-                    usdValue = balance; // Stablecoins
-                } else if (symbol === 'RUSH') {
-                    usdValue = balance * 0.1; // Example RUSH price
-                } else {
-                    usdValue = balance; // Default to 1:1
-                }
+                // Fetch real price from oracle
+                const { oracleService } = await import('../services/oracleService');
+                const tokenPrice = await oracleService.getTokenPrice(symbol || 'UNKNOWN', mintAddress);
+                const usdValue = balance * tokenPrice;
 
                 holdings.push({
                     symbol: symbol || 'UNKNOWN',
@@ -175,7 +173,7 @@ export const usePortfolio = () => {
 
                     if (positionAccount) {
                         const lpTokens = fromBN(positionAccount.lpTokens as BN, 6);
-                        
+
                         // Skip if no LP tokens
                         if (lpTokens === 0) continue;
 
@@ -187,16 +185,11 @@ export const usePortfolio = () => {
                         const tokenAAmount = pool.reserveA * (sharePercent / 100);
                         const tokenBAmount = pool.reserveB * (sharePercent / 100);
 
-                        // Calculate USD value
-                        const solPrice = 100;
-                        let usdValue = 0;
-                        if (pool.tokens[0] === 'SOL') {
-                            usdValue = tokenAAmount * solPrice + tokenBAmount;
-                        } else if (pool.tokens[1] === 'SOL') {
-                            usdValue = tokenAAmount + tokenBAmount * solPrice;
-                        } else {
-                            usdValue = tokenAAmount + tokenBAmount;
-                        }
+                        // Calculate USD value using real prices
+                        const { oracleService } = await import('../services/oracleService');
+                        const priceA = await oracleService.getTokenPrice(pool.tokens[0]);
+                        const priceB = await oracleService.getTokenPrice(pool.tokens[1]);
+                        const usdValue = (tokenAAmount * priceA) + (tokenBAmount * priceB);
 
                         positions.push({
                             poolAddress: pool.address,

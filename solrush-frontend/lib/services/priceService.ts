@@ -89,43 +89,11 @@ async function fetchFromJupiter(mintAddress: string): Promise<number | null> {
 
 /**
  * Get token price with caching and fallback
+ * Now uses the oracleService as primary source
  */
 export async function getTokenPrice(symbol: string): Promise<number> {
-    const upperSymbol = symbol.toUpperCase();
-
-    // Check cache first
-    const cached = priceCache[upperSymbol];
-    if (cached && Date.now() - cached.lastUpdated < CACHE_DURATION) {
-        return cached.price;
-    }
-
-    // Stablecoins are always $1
-    if (upperSymbol === 'USDC' || upperSymbol === 'USDT') {
-        priceCache[upperSymbol] = {
-            price: 1,
-            change24h: 0,
-            lastUpdated: Date.now(),
-        };
-        return 1;
-    }
-
-    // Try CoinGecko first
-    let price = await fetchFromCoinGecko(upperSymbol);
-
-    // Use fallback if API fails
-    if (price === null) {
-        price = FALLBACK_PRICES[upperSymbol] || 0;
-        console.warn(`Using fallback price for ${upperSymbol}: $${price}`);
-    }
-
-    // Update cache
-    priceCache[upperSymbol] = {
-        price,
-        change24h: 0,
-        lastUpdated: Date.now(),
-    };
-
-    return price;
+    const { oracleService } = await import('./oracleService');
+    return oracleService.getTokenPrice(symbol);
 }
 
 /**

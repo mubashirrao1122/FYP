@@ -12,16 +12,14 @@ pub use events::*;
 pub use instructions::*;
 pub use constants::*;
 
-declare_id!("HCkVnLDL76FR8JJ9fbWg67kr48AtNqDgsivSt19Dnu9c");
+declare_id!("HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp");
 #[program]
 pub mod solrush_dex {
     use super::*;
     pub fn initialize_pool(
         ctx: Context<InitializePool>,
-        initial_deposit_a: u64,
-        initial_deposit_b: u64,
     ) -> Result<()> {
-        instructions::pool::initialize_pool(ctx, initial_deposit_a, initial_deposit_b)
+        instructions::pool::initialize_pool(ctx)
     }
     pub fn add_liquidity(
         ctx: Context<AddLiquidity>,

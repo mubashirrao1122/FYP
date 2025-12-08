@@ -16,9 +16,9 @@ export default function PoolsPage() {
   const router = useRouter();
   const { pools, loading, error, isUsingMockData, refreshPools } = usePools();
 
-  const handleAddLiquidity = (poolId: string) => {
+  const handleAddLiquidity = (poolName: string) => {
     // Navigate to liquidity page with pool pre-selected
-    router.push(`/liquidity?pool=${poolId}`);
+    router.push(`/liquidity?pool=${poolName}`);
   };
 
   return (

@@ -110,3 +110,111 @@ export const RushIcon = ({ className }: { className?: string }) => (
         />
     </svg>
 );
+
+export const WethIcon = ({ className }: { className?: string }) => (
+    <svg
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+    >
+        <circle cx="16" cy="16" r="16" fill="#627EEA" />
+        <path
+            d="M16 4L15.865 4.457V13.843L16 13.977L20.526 11.3L16 4Z"
+            fill="white"
+            fillOpacity="0.602"
+        />
+        <path
+            d="M16 4L11.474 11.3L16 13.977V4Z"
+            fill="white"
+        />
+        <path
+            d="M16 14.885L15.937 14.962V19.38L16 19.563L20.53 13.197L16 14.885Z"
+            fill="white"
+            fillOpacity="0.602"
+        />
+        <path
+            d="M16 19.563V14.884L11.474 13.196L16 19.563Z"
+            fill="white"
+        />
+        <path
+            d="M16 13.977L20.526 11.3L16 4V13.977Z"
+            fill="white"
+            fillOpacity="0.2"
+        />
+        <path
+            d="M11.474 11.3L16 13.977V4L11.474 11.3Z"
+            fill="white"
+            fillOpacity="0.602"
+        />
+    </svg>
+);
+
+export const UsdsIcon = ({ className }: { className?: string }) => (
+    <svg
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+    >
+        <circle cx="16" cy="16" r="16" fill="#1A1A1A" stroke="#14F195" strokeWidth="1" />
+        <path
+            d="M16 8V24M12 10H18C19.1046 10 20 10.8954 20 12C20 13.1046 19.1046 14 18 14H14C12.8954 14 12 14.8954 12 16C12 17.1046 12.8954 18 14 18H20"
+            stroke="#14F195"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
+
+export const JupIcon = ({ className }: { className?: string }) => (
+    <svg
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+    >
+        <circle cx="16" cy="16" r="16" fill="#16A34A" />
+        <path
+            d="M16 6L16 26M6 16L26 16"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+        />
+        <circle cx="16" cy="16" r="6" stroke="white" strokeWidth="2" />
+    </svg>
+);
+
+export const BonkIcon = ({ className }: { className?: string }) => (
+    <svg
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+    >
+        <circle cx="16" cy="16" r="16" fill="#F97316" />
+        <path
+            d="M8 12C8 12 10 8 16 8C22 8 24 12 24 12V20C24 20 22 24 16 24C10 24 8 20 8 20V12Z"
+            fill="#FDBA74"
+        />
+        <circle cx="13" cy="15" r="2" fill="#1F2937" />
+        <circle cx="19" cy="15" r="2" fill="#1F2937" />
+        <path d="M16 19L16 21" stroke="#1F2937" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+);
+
+export const RayIcon = ({ className }: { className?: string }) => (
+    <svg
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+    >
+        <circle cx="16" cy="16" r="16" fill="#2563EB" />
+        <path
+            d="M16 4L20 12L28 16L20 20L16 28L12 20L4 16L12 12L16 4Z"
+            fill="white"
+        />
+    </svg>
+);

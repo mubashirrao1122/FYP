@@ -1,18 +1,18 @@
 import { Program, Idl, AnchorProvider, setProvider, BN } from "@project-serum/anchor";
 import { Connection, PublicKey, Commitment } from "@solana/web3.js";
-import rawIdl from "../../anchor.json";
+import rawIdl from "../solana/idl.json";
 
 // Convert legacy IDL format to work with anchor
 const idl = {
     ...rawIdl,
     metadata: {
-        address: process.env.NEXT_PUBLIC_PROGRAM_ID || "HCkVnLDL76FR8JJ9fbWg67kr48AtNqDgsivSt19Dnu9c"
+        address: process.env.NEXT_PUBLIC_PROGRAM_ID || "HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp"
     }
 } as unknown as Idl;
 
 // Define the program ID - should match Anchor.toml
 export const PROGRAM_ID = new PublicKey(
-    process.env.NEXT_PUBLIC_PROGRAM_ID || "HCkVnLDL76FR8JJ9fbWg67kr48AtNqDgsivSt19Dnu9c"
+    process.env.NEXT_PUBLIC_PROGRAM_ID || "HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp"
 );
 
 // Network configuration

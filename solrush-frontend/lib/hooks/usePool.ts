@@ -71,25 +71,25 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       if (!program) {
         throw new Error('Failed to initialize program');
       }
-      
+
       const tokenAMint = getTokenMint(tokenASymbol);
       const tokenBMint = getTokenMint(tokenBSymbol);
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
 
       const poolAccount = await program.account.liquidityPool.fetch(poolPda);
-      
+
       // Get LP mint address
       const lpMint = poolAccount.poolMint as PublicKey;
-      
+
       // Get reserves (convert from BN)
       const reserveA = (poolAccount.tokenAReserve as BN).toNumber();
       const reserveB = (poolAccount.tokenBReserve as BN).toNumber();
-      
+
       // Calculate TVL (simplified - assumes SOL price = $100 for demo)
       const solPrice = 100;
       const decimalA = TOKEN_DECIMALS[tokenASymbol] || 9;
       const decimalB = TOKEN_DECIMALS[tokenBSymbol] || 6;
-      
+
       const valueA = (reserveA / Math.pow(10, decimalA)) * (tokenASymbol === 'SOL' ? solPrice : 1);
       const valueB = (reserveB / Math.pow(10, decimalB)) * (tokenBSymbol === 'SOL' ? solPrice : 1);
       const tvl = valueA + valueB;
@@ -145,7 +145,7 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
    */
   const calculateLPTokens = useCallback((amountA: number, amountB: number): number => {
     if (!pool) return 0;
-    
+
     const existingA = pool.reserveA;
     const existingB = pool.reserveB;
     const existingSupply = pool.totalLPSupply;
@@ -190,14 +190,14 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       if (!program) {
         throw new Error('Failed to initialize program');
       }
-      
+
       const tokenAMint = getTokenMint(tokenASymbol);
       const tokenBMint = getTokenMint(tokenBSymbol);
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
-      
+
       // Fetch pool to get vault addresses
       const poolAccount = await program.account.liquidityPool.fetch(poolPda);
-      
+
       const lpMint = poolAccount.poolMint as PublicKey;
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
@@ -206,14 +206,14 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const userTokenA = await getAssociatedTokenAddress(tokenAMint, wallet.publicKey);
       const userTokenB = await getAssociatedTokenAddress(tokenBMint, wallet.publicKey);
       const userLpToken = await getAssociatedTokenAddress(lpMint, wallet.publicKey);
-      
+
       // Get user position PDA
       const [userPosition] = findPositionAddress(poolPda, wallet.publicKey);
 
       // Convert amounts
       const decimalA = TOKEN_DECIMALS[tokenASymbol] || 9;
       const decimalB = TOKEN_DECIMALS[tokenBSymbol] || 6;
-      
+
       const amountABN = toBN(params.amountA, decimalA);
       const amountBBN = toBN(params.amountB, decimalB);
 
@@ -237,10 +237,10 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
         .rpc();
 
       setTxSignature(tx);
-      
+
       // Refresh pool data
       await fetchPoolData();
-      
+
       return tx;
     } catch (err: any) {
       console.error("Add liquidity error:", err);
@@ -269,14 +269,14 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       if (!program) {
         throw new Error('Failed to initialize program');
       }
-      
+
       const tokenAMint = getTokenMint(tokenASymbol);
       const tokenBMint = getTokenMint(tokenBSymbol);
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
-      
+
       // Fetch pool to get vault addresses
       const poolAccount = await program.account.liquidityPool.fetch(poolPda);
-      
+
       const lpMint = poolAccount.poolMint as PublicKey;
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
@@ -285,14 +285,14 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const userTokenA = await getAssociatedTokenAddress(tokenAMint, wallet.publicKey);
       const userTokenB = await getAssociatedTokenAddress(tokenBMint, wallet.publicKey);
       const userLpToken = await getAssociatedTokenAddress(lpMint, wallet.publicKey);
-      
+
       // Get user position PDA
       const [userPosition] = findPositionAddress(poolPda, wallet.publicKey);
 
       // Convert amounts
       const decimalA = TOKEN_DECIMALS[tokenASymbol] || 9;
       const decimalB = TOKEN_DECIMALS[tokenBSymbol] || 6;
-      
+
       const lpAmountBN = toBN(params.lpTokenAmount, 6); // LP tokens have 6 decimals
       const minAmountABN = toBN(params.minAmountA, decimalA);
       const minAmountBBN = toBN(params.minAmountB, decimalB);
@@ -314,10 +314,10 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
         .rpc();
 
       setTxSignature(tx);
-      
+
       // Refresh pool data
       await fetchPoolData();
-      
+
       return tx;
     } catch (err: any) {
       console.error("Remove liquidity error:", err);
@@ -336,7 +336,7 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
     if (!pool || pool.totalLPSupply === 0) {
       return { amountA: 0, amountB: 0 };
     }
-    
+
     const share = lpAmount / pool.totalLPSupply;
     return {
       amountA: pool.reserveA * share,
@@ -361,7 +361,7 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
   // Refresh pool data periodically (every 30 seconds)
   useEffect(() => {
     if (!tokenASymbol || !tokenBSymbol) return;
-    
+
     const interval = setInterval(() => {
       fetchPoolData();
     }, 30000);
@@ -400,7 +400,6 @@ export function useCreatePool() {
   const createPool = useCallback(async (
     tokenAMint: PublicKey,
     tokenBMint: PublicKey,
-    poolName: string
   ): Promise<string> => {
     if (!wallet.publicKey) {
       throw new Error('Wallet not connected');
@@ -416,33 +415,38 @@ export function useCreatePool() {
         throw new Error('Failed to initialize program');
       }
 
-      // Derive PDAs
-      const [poolPda, poolBump] = findPoolAddress(tokenAMint, tokenBMint);
+      // Sort mints to ensure deterministic order (smaller first) matches PDA derivation
+      const [mintA, mintB] = tokenAMint.toBuffer().compare(tokenBMint.toBuffer()) < 0
+        ? [tokenAMint, tokenBMint]
+        : [tokenBMint, tokenAMint];
+
+      // Derive PDAs using sorted mints
+      const [poolPda] = findPoolAddress(mintA, mintB);
       const [lpMintPda] = findLpMintAddress(poolPda);
 
-      // Derive vault addresses (ATAs for pool)
+      // Derive vault addresses (automatically created by program)
       const tokenAVault = await getAssociatedTokenAddress(
-        tokenAMint,
+        mintA,
         poolPda,
         true // Allow owner off curve (PDA)
       );
       const tokenBVault = await getAssociatedTokenAddress(
-        tokenBMint,
+        mintB,
         poolPda,
         true
       );
 
-      // Call initializePool instruction
+      // Call initializePool instruction with sorted mints
       const tx = await program.methods
-        .initializePool(poolName)
+        .initializePool()
         .accounts({
           authority: wallet.publicKey,
           pool: poolPda,
-          tokenAMint,
-          tokenBMint,
+          tokenAMint: mintA,
+          tokenBMint: mintB,
           tokenAVault,
           tokenBVault,
-          poolMint: lpMintPda,
+          lpTokenMint: lpMintPda,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
@@ -451,7 +455,7 @@ export function useCreatePool() {
 
       setTxSignature(tx);
       console.log('Pool created:', tx);
-      
+
       return tx;
     } catch (err: any) {
       console.error('Create pool error:', err);
@@ -476,7 +480,7 @@ export function useCreatePool() {
 
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
       const poolAccount = await program.account.liquidityPool.fetchNullable(poolPda);
-      
+
       return poolAccount !== null;
     } catch {
       return false;

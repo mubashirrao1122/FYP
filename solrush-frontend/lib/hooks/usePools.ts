@@ -52,7 +52,7 @@ export const usePools = () => {
 
         try {
             const program = getReadOnlyProgram(connection);
-            
+
             if (!program) {
                 setError('Program not available. Check network connection and program deployment.');
                 setPools([]);
@@ -61,9 +61,9 @@ export const usePools = () => {
 
             // Fetch all LiquidityPool accounts from the blockchain
             const poolAccounts = await (program.account as any).liquidityPool.all();
-            
+
             if (poolAccounts.length === 0) {
-                setError('No pools found on-chain. Initialize pools first.');
+                // Empty state is not an error - just no pools initialized yet
                 setPools([]);
                 return;
             }
@@ -90,11 +90,11 @@ export const usePools = () => {
                     const reserveB = fromBN(poolData.reserveB as BN || poolData.tokenBReserve as BN || new BN(0), decimalsB);
 
                     // Format reserves for display
-                    const formattedReserveA = reserveA.toLocaleString(undefined, { 
-                        maximumFractionDigits: decimalsA > 6 ? 4 : 2 
+                    const formattedReserveA = reserveA.toLocaleString(undefined, {
+                        maximumFractionDigits: decimalsA > 6 ? 4 : 2
                     });
-                    const formattedReserveB = reserveB.toLocaleString(undefined, { 
-                        maximumFractionDigits: decimalsB > 6 ? 4 : 2 
+                    const formattedReserveB = reserveB.toLocaleString(undefined, {
+                        maximumFractionDigits: decimalsB > 6 ? 4 : 2
                     });
 
                     // FIXED: Calculate TVL using real prices
@@ -117,9 +117,9 @@ export const usePools = () => {
                     }
 
                     // Get total LP supply
-                    const totalLPSupply = poolData.totalLpSupply 
-                        ? fromBN(poolData.totalLpSupply as BN, 6) 
-                        : poolData.lpSupply 
+                    const totalLPSupply = poolData.totalLpSupply
+                        ? fromBN(poolData.totalLpSupply as BN, 6)
+                        : poolData.lpSupply
                             ? fromBN(poolData.lpSupply as BN, 6)
                             : Math.sqrt(reserveA * reserveB);
 
@@ -186,7 +186,7 @@ export const usePools = () => {
      * Get a specific pool by token pair
      */
     const getPoolByTokens = useCallback((tokenA: string, tokenB: string): Pool | undefined => {
-        return pools.find(pool => 
+        return pools.find(pool =>
             (pool.tokens[0] === tokenA && pool.tokens[1] === tokenB) ||
             (pool.tokens[0] === tokenB && pool.tokens[1] === tokenA)
         );
@@ -209,8 +209,8 @@ export const usePools = () => {
     // Calculate aggregate stats
     const totalTVL = pools.reduce((sum, pool) => sum + pool.tvl, 0);
     const totalVolume24h = pools.reduce((sum, pool) => sum + pool.volume24h, 0);
-    const averageAPY = pools.length > 0 
-        ? pools.reduce((sum, pool) => sum + pool.apy, 0) / pools.length 
+    const averageAPY = pools.length > 0
+        ? pools.reduce((sum, pool) => sum + pool.apy, 0) / pools.length
         : 0;
 
     return {

@@ -17,100 +17,48 @@ pub const MINIMUM_LIQUIDITY: u64 = 1000;
 
 pub fn initialize_pool(
     ctx: Context<InitializePool>,
-    initial_deposit_a: u64,
-    initial_deposit_b: u64,
 ) -> Result<()> {
-    require!(
-        initial_deposit_a > 0 && initial_deposit_b > 0,
-        CustomError::InvalidInitialDeposit
-    );
     require!(
         ctx.accounts.token_a_mint.key() != ctx.accounts.token_b_mint.key(),
         CustomError::InvalidAmount
     );
+    
     let pool = &mut ctx.accounts.pool;
     let clock = Clock::get()?;
+    
     pool.authority = ctx.accounts.authority.key();
     pool.token_a_mint = ctx.accounts.token_a_mint.key();
     pool.token_b_mint = ctx.accounts.token_b_mint.key();
     pool.token_a_vault = ctx.accounts.token_a_vault.key();
     pool.token_b_vault = ctx.accounts.token_b_vault.key();
     pool.lp_token_mint = ctx.accounts.lp_token_mint.key();
-    pool.reserve_a = initial_deposit_a;
-    pool.reserve_b = initial_deposit_b;
+    
+    // Initialize with zero reserves - liquidity added separately
+    pool.reserve_a = 0;
+    pool.reserve_b = 0;
+    
     pool.token_a_decimals = ctx.accounts.token_a_mint.decimals;
     pool.token_b_decimals = ctx.accounts.token_b_mint.decimals;
-    
     pool.is_stablecoin_pool = false;
     pool.fee_numerator = 3;
     pool.fee_denominator = 1000;
-    
     pool.bump = ctx.bumps.pool;
     pool.created_at = clock.unix_timestamp;
     pool.total_volume_a = 0;
     pool.total_volume_b = 0;
-    let lp_tokens = calculate_lp_tokens(initial_deposit_a, initial_deposit_b)?;
-    require!(
-        lp_tokens > MINIMUM_LIQUIDITY,
-        CustomError::InsufficientLiquidity
-    );
-    let user_lp_tokens = lp_tokens
-        .checked_sub(MINIMUM_LIQUIDITY)
-        .ok_or(error!(CustomError::CalculationOverflow))?;
-    pool.total_lp_supply = lp_tokens;
-    pool.locked_liquidity = MINIMUM_LIQUIDITY;
-    let token_a_mint_key = ctx.accounts.token_a_mint.key();
-    let token_b_mint_key = ctx.accounts.token_b_mint.key();
-    let bump_seed = pool.bump;
-    let signer_seeds: &[&[&[u8]]] = &[&[
-        b"pool",
-        token_a_mint_key.as_ref(),
-        token_b_mint_key.as_ref(),
-        &[bump_seed],
-    ]];
-    mint_to(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            MintTo {
-                mint: ctx.accounts.lp_token_mint.to_account_info(),
-                to: ctx.accounts.lp_token_account.to_account_info(),
-                authority: pool.to_account_info(),
-            },
-            signer_seeds,
-        ),
-        user_lp_tokens,
-    )?;
-    transfer(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.user_token_a.to_account_info(),
-                to: ctx.accounts.token_a_vault.to_account_info(),
-                authority: ctx.accounts.authority.to_account_info(),
-            },
-        ),
-        initial_deposit_a,
-    )?;
-    transfer(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.user_token_b.to_account_info(),
-                to: ctx.accounts.token_b_vault.to_account_info(),
-                authority: ctx.accounts.authority.to_account_info(),
-            },
-        ),
-        initial_deposit_b,
-    )?;
+    pool.total_lp_supply = 0;
+    pool.locked_liquidity = 0;
+    
     emit!(PoolCreated {
         pool: pool.key(),
         token_a_mint: ctx.accounts.token_a_mint.key(),
         token_b_mint: ctx.accounts.token_b_mint.key(),
-        reserve_a: initial_deposit_a,
-        reserve_b: initial_deposit_b,
-        lp_token_supply: lp_tokens,
+        reserve_a: 0,
+        reserve_b: 0,
+        lp_token_supply: 0,
         authority: ctx.accounts.authority.key(),
     });
+    
     Ok(())
 }
 
@@ -362,18 +310,6 @@ pub struct InitializePool<'info> {
         token::authority = pool
     )]
     pub token_b_vault: Box<Account<'info, TokenAccount>>,
-    #[account(
-        mut,
-        token::mint = token_a_mint,
-        token::authority = authority
-    )]
-    pub user_token_a: Box<Account<'info, TokenAccount>>,
-    #[account(
-        mut,
-        token::mint = token_b_mint,
-        token::authority = authority
-    )]
-    pub user_token_b: Box<Account<'info, TokenAccount>>,
     #[account(
         init,
         payer = authority,

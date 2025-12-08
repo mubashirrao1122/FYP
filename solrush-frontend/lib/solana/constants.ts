@@ -10,7 +10,7 @@ export const RPC_ENDPOINT = NETWORK === "mainnet" ? MAINNET_RPC : DEVNET_RPC;
 
 // Program ID
 export const PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PROGRAM_ID || "HCkVnLDL76FR8JJ9fbWg67kr48AtNqDgsivSt19Dnu9c"
+  process.env.NEXT_PUBLIC_PROGRAM_ID || "HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp"
 );
 
 // Token Mints (Devnet)

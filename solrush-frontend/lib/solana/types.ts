@@ -1,14 +1,20 @@
-{
+/**
+ * Program IDL in camelCase format in order to be used in JS/TS.
+ *
+ * Note that this is only a type helper and is not the actual IDL. The original
+ * IDL can be found at `target/idl/solrush_dex.json`.
+ */
+export type SolrushDex = {
   "address": "HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp",
   "metadata": {
-    "name": "solrush_dex",
+    "name": "solrushDex",
     "version": "0.1.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
   "instructions": [
     {
-      "name": "add_liquidity",
+      "name": "addLiquidity",
       "discriminator": [
         181,
         157,
@@ -25,11 +31,11 @@
           "writable": true
         },
         {
-          "name": "lp_token_mint",
+          "name": "lpTokenMint",
           "writable": true
         },
         {
-          "name": "user_position",
+          "name": "userPosition",
           "writable": true,
           "pda": {
             "seeds": [
@@ -58,23 +64,23 @@
           }
         },
         {
-          "name": "token_a_vault",
+          "name": "tokenAVault",
           "writable": true
         },
         {
-          "name": "token_b_vault",
+          "name": "tokenBVault",
           "writable": true
         },
         {
-          "name": "user_token_a",
+          "name": "userTokenA",
           "writable": true
         },
         {
-          "name": "user_token_b",
+          "name": "userTokenB",
           "writable": true
         },
         {
-          "name": "user_lp_token_account",
+          "name": "userLpTokenAccount",
           "writable": true
         },
         {
@@ -83,11 +89,11 @@
           "signer": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
-          "name": "system_program",
+          "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         },
         {
@@ -97,21 +103,21 @@
       ],
       "args": [
         {
-          "name": "amount_a",
+          "name": "amountA",
           "type": "u64"
         },
         {
-          "name": "amount_b",
+          "name": "amountB",
           "type": "u64"
         },
         {
-          "name": "min_lp_tokens",
+          "name": "minLpTokens",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "calculate_pending_rewards",
+      "name": "calculatePendingRewards",
       "discriminator": [
         56,
         207,
@@ -130,7 +136,7 @@
           "name": "pool"
         },
         {
-          "name": "rush_config"
+          "name": "rushConfig"
         },
         {
           "name": "user",
@@ -141,7 +147,7 @@
       "returns": "u64"
     },
     {
-      "name": "cancel_limit_order",
+      "name": "cancelLimitOrder",
       "discriminator": [
         132,
         156,
@@ -154,15 +160,15 @@
       ],
       "accounts": [
         {
-          "name": "limit_order",
+          "name": "limitOrder",
           "writable": true
         },
         {
-          "name": "order_vault",
+          "name": "orderVault",
           "writable": true
         },
         {
-          "name": "user_token_in",
+          "name": "userTokenIn",
           "writable": true
         },
         {
@@ -171,14 +177,14 @@
           "signer": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
     },
     {
-      "name": "claim_rush_rewards",
+      "name": "claimRushRewards",
       "discriminator": [
         214,
         101,
@@ -199,15 +205,15 @@
           "writable": true
         },
         {
-          "name": "rush_config",
+          "name": "rushConfig",
           "writable": true
         },
         {
-          "name": "rush_mint",
+          "name": "rushMint",
           "writable": true
         },
         {
-          "name": "user_rush_account",
+          "name": "userRushAccount",
           "writable": true,
           "pda": {
             "seeds": [
@@ -254,7 +260,7 @@
               },
               {
                 "kind": "account",
-                "path": "rush_mint"
+                "path": "rushMint"
               }
             ],
             "program": {
@@ -302,22 +308,22 @@
           "signer": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
-          "name": "associated_token_program",
+          "name": "associatedTokenProgram",
           "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
-          "name": "system_program",
+          "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
     },
     {
-      "name": "create_limit_order",
+      "name": "createLimitOrder",
       "discriminator": [
         76,
         161,
@@ -334,7 +340,7 @@
           "writable": true
         },
         {
-          "name": "limit_order",
+          "name": "limitOrder",
           "writable": true,
           "pda": {
             "seeds": [
@@ -364,24 +370,24 @@
               },
               {
                 "kind": "arg",
-                "path": "order_id"
+                "path": "orderId"
               }
             ]
           }
         },
         {
-          "name": "sell_token_mint"
+          "name": "sellTokenMint"
         },
         {
-          "name": "user_token_in",
+          "name": "userTokenIn",
           "writable": true
         },
         {
-          "name": "user_token_out",
+          "name": "userTokenOut",
           "writable": true
         },
         {
-          "name": "order_vault",
+          "name": "orderVault",
           "writable": true,
           "signer": true
         },
@@ -391,15 +397,15 @@
           "signer": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
-          "name": "associated_token_program",
+          "name": "associatedTokenProgram",
           "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
-          "name": "system_program",
+          "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         },
         {
@@ -409,29 +415,29 @@
       ],
       "args": [
         {
-          "name": "sell_amount",
+          "name": "sellAmount",
           "type": "u64"
         },
         {
-          "name": "target_price",
+          "name": "targetPrice",
           "type": "u64"
         },
         {
-          "name": "minimum_receive",
+          "name": "minimumReceive",
           "type": "u64"
         },
         {
-          "name": "expiry_days",
+          "name": "expiryDays",
           "type": "i64"
         },
         {
-          "name": "order_id",
+          "name": "orderId",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "execute_limit_order",
+      "name": "executeLimitOrder",
       "discriminator": [
         52,
         33,
@@ -448,34 +454,34 @@
           "writable": true
         },
         {
-          "name": "limit_order",
+          "name": "limitOrder",
           "writable": true
         },
         {
-          "name": "order_vault",
+          "name": "orderVault",
           "writable": true
         },
         {
-          "name": "pool_vault_in",
+          "name": "poolVaultIn",
           "writable": true
         },
         {
-          "name": "user_token_out",
+          "name": "userTokenOut",
           "writable": true
         },
         {
-          "name": "pool_vault_out",
+          "name": "poolVaultOut",
           "writable": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
     },
     {
-      "name": "initialize_pool",
+      "name": "initializePool",
       "discriminator": [
         95,
         180,
@@ -503,23 +509,23 @@
               },
               {
                 "kind": "account",
-                "path": "token_a_mint"
+                "path": "tokenAMint"
               },
               {
                 "kind": "account",
-                "path": "token_b_mint"
+                "path": "tokenBMint"
               }
             ]
           }
         },
         {
-          "name": "token_a_mint"
+          "name": "tokenAMint"
         },
         {
-          "name": "token_b_mint"
+          "name": "tokenBMint"
         },
         {
-          "name": "lp_token_mint",
+          "name": "lpTokenMint",
           "writable": true,
           "pda": {
             "seeds": [
@@ -543,17 +549,17 @@
           }
         },
         {
-          "name": "token_a_vault",
+          "name": "tokenAVault",
           "writable": true,
           "signer": true
         },
         {
-          "name": "token_b_vault",
+          "name": "tokenBVault",
           "writable": true,
           "signer": true
         },
         {
-          "name": "lp_token_account",
+          "name": "lpTokenAccount",
           "writable": true,
           "pda": {
             "seeds": [
@@ -600,7 +606,7 @@
               },
               {
                 "kind": "account",
-                "path": "lp_token_mint"
+                "path": "lpTokenMint"
               }
             ],
             "program": {
@@ -648,15 +654,15 @@
           "signer": true
         },
         {
-          "name": "associated_token_program",
+          "name": "associatedTokenProgram",
           "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
-          "name": "system_program",
+          "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         },
         {
@@ -667,7 +673,7 @@
       "args": []
     },
     {
-      "name": "initialize_rush_token",
+      "name": "initializeRushToken",
       "discriminator": [
         240,
         162,
@@ -680,7 +686,7 @@
       ],
       "accounts": [
         {
-          "name": "rush_config",
+          "name": "rushConfig",
           "writable": true,
           "pda": {
             "seeds": [
@@ -704,7 +710,7 @@
           }
         },
         {
-          "name": "rush_mint",
+          "name": "rushMint",
           "writable": true,
           "signer": true
         },
@@ -714,11 +720,11 @@
           "signer": true
         },
         {
-          "name": "system_program",
+          "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
@@ -729,7 +735,7 @@
       "args": []
     },
     {
-      "name": "market_buy",
+      "name": "marketBuy",
       "discriminator": [
         90,
         236,
@@ -746,19 +752,19 @@
           "writable": true
         },
         {
-          "name": "user_token_in",
+          "name": "userTokenIn",
           "writable": true
         },
         {
-          "name": "user_token_out",
+          "name": "userTokenOut",
           "writable": true
         },
         {
-          "name": "pool_vault_in",
+          "name": "poolVaultIn",
           "writable": true
         },
         {
-          "name": "pool_vault_out",
+          "name": "poolVaultOut",
           "writable": true
         },
         {
@@ -767,17 +773,17 @@
           "signer": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
         {
-          "name": "amount_b_in",
+          "name": "amountBIn",
           "type": "u64"
         },
         {
-          "name": "min_a_received",
+          "name": "minAReceived",
           "type": "u64"
         },
         {
@@ -787,7 +793,7 @@
       ]
     },
     {
-      "name": "market_sell",
+      "name": "marketSell",
       "discriminator": [
         11,
         224,
@@ -804,19 +810,19 @@
           "writable": true
         },
         {
-          "name": "user_token_in",
+          "name": "userTokenIn",
           "writable": true
         },
         {
-          "name": "user_token_out",
+          "name": "userTokenOut",
           "writable": true
         },
         {
-          "name": "pool_vault_in",
+          "name": "poolVaultIn",
           "writable": true
         },
         {
-          "name": "pool_vault_out",
+          "name": "poolVaultOut",
           "writable": true
         },
         {
@@ -825,17 +831,17 @@
           "signer": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
         {
-          "name": "amount_a_in",
+          "name": "amountAIn",
           "type": "u64"
         },
         {
-          "name": "min_b_received",
+          "name": "minBReceived",
           "type": "u64"
         },
         {
@@ -845,7 +851,7 @@
       ]
     },
     {
-      "name": "pause_rush_rewards",
+      "name": "pauseRushRewards",
       "discriminator": [
         124,
         156,
@@ -858,7 +864,7 @@
       ],
       "accounts": [
         {
-          "name": "rush_config",
+          "name": "rushConfig",
           "writable": true
         },
         {
@@ -869,7 +875,7 @@
       "args": []
     },
     {
-      "name": "remove_liquidity",
+      "name": "removeLiquidity",
       "discriminator": [
         80,
         85,
@@ -886,11 +892,11 @@
           "writable": true
         },
         {
-          "name": "lp_token_mint",
+          "name": "lpTokenMint",
           "writable": true
         },
         {
-          "name": "user_position",
+          "name": "userPosition",
           "writable": true,
           "pda": {
             "seeds": [
@@ -919,23 +925,23 @@
           }
         },
         {
-          "name": "token_a_vault",
+          "name": "tokenAVault",
           "writable": true
         },
         {
-          "name": "token_b_vault",
+          "name": "tokenBVault",
           "writable": true
         },
         {
-          "name": "user_lp_token_account",
+          "name": "userLpTokenAccount",
           "writable": true
         },
         {
-          "name": "user_token_a",
+          "name": "userTokenA",
           "writable": true
         },
         {
-          "name": "user_token_b",
+          "name": "userTokenB",
           "writable": true
         },
         {
@@ -944,21 +950,21 @@
           "signer": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
         {
-          "name": "lp_tokens_to_burn",
+          "name": "lpTokensToBurn",
           "type": "u64"
         },
         {
-          "name": "min_amount_a",
+          "name": "minAmountA",
           "type": "u64"
         },
         {
-          "name": "min_amount_b",
+          "name": "minAmountB",
           "type": "u64"
         }
       ]
@@ -981,19 +987,19 @@
           "writable": true
         },
         {
-          "name": "user_token_in",
+          "name": "userTokenIn",
           "writable": true
         },
         {
-          "name": "user_token_out",
+          "name": "userTokenOut",
           "writable": true
         },
         {
-          "name": "pool_vault_in",
+          "name": "poolVaultIn",
           "writable": true
         },
         {
-          "name": "pool_vault_out",
+          "name": "poolVaultOut",
           "writable": true
         },
         {
@@ -1002,21 +1008,21 @@
           "signer": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
         {
-          "name": "amount_in",
+          "name": "amountIn",
           "type": "u64"
         },
         {
-          "name": "minimum_amount_out",
+          "name": "minimumAmountOut",
           "type": "u64"
         },
         {
-          "name": "is_a_to_b",
+          "name": "isAToB",
           "type": "bool"
         },
         {
@@ -1026,7 +1032,7 @@
       ]
     },
     {
-      "name": "update_rush_apy",
+      "name": "updateRushApy",
       "discriminator": [
         17,
         148,
@@ -1039,7 +1045,7 @@
       ],
       "accounts": [
         {
-          "name": "rush_config",
+          "name": "rushConfig",
           "writable": true
         },
         {
@@ -1049,7 +1055,7 @@
       ],
       "args": [
         {
-          "name": "new_apy",
+          "name": "newApy",
           "type": "u64"
         }
       ]
@@ -1057,7 +1063,7 @@
   ],
   "accounts": [
     {
-      "name": "LimitOrder",
+      "name": "limitOrder",
       "discriminator": [
         137,
         183,
@@ -1070,7 +1076,7 @@
       ]
     },
     {
-      "name": "LiquidityPool",
+      "name": "liquidityPool",
       "discriminator": [
         66,
         38,
@@ -1083,7 +1089,7 @@
       ]
     },
     {
-      "name": "RushConfig",
+      "name": "rushConfig",
       "discriminator": [
         84,
         79,
@@ -1096,7 +1102,7 @@
       ]
     },
     {
-      "name": "UserLiquidityPosition",
+      "name": "userLiquidityPosition",
       "discriminator": [
         220,
         156,
@@ -1111,7 +1117,7 @@
   ],
   "events": [
     {
-      "name": "LimitOrderCancelled",
+      "name": "limitOrderCancelled",
       "discriminator": [
         244,
         219,
@@ -1124,7 +1130,7 @@
       ]
     },
     {
-      "name": "LimitOrderCreated",
+      "name": "limitOrderCreated",
       "discriminator": [
         90,
         152,
@@ -1137,7 +1143,7 @@
       ]
     },
     {
-      "name": "LimitOrderExecuted",
+      "name": "limitOrderExecuted",
       "discriminator": [
         230,
         96,
@@ -1150,7 +1156,7 @@
       ]
     },
     {
-      "name": "LiquidityAdded",
+      "name": "liquidityAdded",
       "discriminator": [
         154,
         26,
@@ -1163,7 +1169,7 @@
       ]
     },
     {
-      "name": "LiquidityRemoved",
+      "name": "liquidityRemoved",
       "discriminator": [
         225,
         105,
@@ -1176,7 +1182,7 @@
       ]
     },
     {
-      "name": "PoolCreated",
+      "name": "poolCreated",
       "discriminator": [
         202,
         44,
@@ -1189,7 +1195,7 @@
       ]
     },
     {
-      "name": "RewardsClaimed",
+      "name": "rewardsClaimed",
       "discriminator": [
         75,
         98,
@@ -1202,7 +1208,7 @@
       ]
     },
     {
-      "name": "RewardsConfigUpdated",
+      "name": "rewardsConfigUpdated",
       "discriminator": [
         104,
         85,
@@ -1215,7 +1221,7 @@
       ]
     },
     {
-      "name": "RewardsPaused",
+      "name": "rewardsPaused",
       "discriminator": [
         127,
         0,
@@ -1228,7 +1234,7 @@
       ]
     },
     {
-      "name": "RushTokenInitialized",
+      "name": "rushTokenInitialized",
       "discriminator": [
         96,
         232,
@@ -1241,7 +1247,7 @@
       ]
     },
     {
-      "name": "SwapExecuted",
+      "name": "swapExecuted",
       "discriminator": [
         150,
         166,
@@ -1257,128 +1263,128 @@
   "errors": [
     {
       "code": 6000,
-      "name": "InvalidInitialDeposit",
+      "name": "invalidInitialDeposit",
       "msg": "Initial deposits must be greater than zero"
     },
     {
       "code": 6001,
-      "name": "InsufficientLiquidity",
+      "name": "insufficientLiquidity",
       "msg": "Insufficient liquidity in pool"
     },
     {
       "code": 6002,
-      "name": "InvalidFeeParameters",
+      "name": "invalidFeeParameters",
       "msg": "Invalid fee parameters"
     },
     {
       "code": 6003,
-      "name": "InsufficientPoolReserves",
+      "name": "insufficientPoolReserves",
       "msg": "Insufficient pool reserves"
     },
     {
       "code": 6004,
-      "name": "CalculationOverflow",
+      "name": "calculationOverflow",
       "msg": "Overflow detected in calculation"
     },
     {
       "code": 6005,
-      "name": "RatioImbalance",
+      "name": "ratioImbalance",
       "msg": "Pool ratio imbalance exceeds tolerance"
     },
     {
       "code": 6006,
-      "name": "InsufficientLPBalance",
+      "name": "insufficientLpBalance",
       "msg": "Insufficient LP token balance"
     },
     {
       "code": 6007,
-      "name": "InvalidAmount",
+      "name": "invalidAmount",
       "msg": "Invalid amount: must be greater than zero"
     },
     {
       "code": 6008,
-      "name": "SlippageTooHigh",
+      "name": "slippageTooHigh",
       "msg": "Slippage tolerance exceeded"
     },
     {
       "code": 6009,
-      "name": "InsufficientBalance",
+      "name": "insufficientBalance",
       "msg": "Insufficient user token balance"
     },
     {
       "code": 6010,
-      "name": "OrderNotFound",
+      "name": "orderNotFound",
       "msg": "Limit order not found"
     },
     {
       "code": 6011,
-      "name": "InvalidOrderStatus",
+      "name": "invalidOrderStatus",
       "msg": "Invalid order status for this operation"
     },
     {
       "code": 6012,
-      "name": "OrderExpired",
+      "name": "orderExpired",
       "msg": "Limit order has expired"
     },
     {
       "code": 6013,
-      "name": "UnauthorizedOrderOwner",
+      "name": "unauthorizedOrderOwner",
       "msg": "Only order owner can cancel"
     },
     {
       "code": 6014,
-      "name": "PriceConditionNotMet",
+      "name": "priceConditionNotMet",
       "msg": "Price condition not met for execution"
     },
     {
       "code": 6015,
-      "name": "InvalidExpiryTime",
+      "name": "invalidExpiryTime",
       "msg": "Invalid expiry time"
     },
     {
       "code": 6016,
-      "name": "InvalidAuthority",
+      "name": "invalidAuthority",
       "msg": "Invalid authority - must be configured authority"
     },
     {
       "code": 6017,
-      "name": "RewardsPaused",
+      "name": "rewardsPaused",
       "msg": "RUSH rewards are currently paused"
     },
     {
       "code": 6018,
-      "name": "InvalidAPY",
+      "name": "invalidApy",
       "msg": "Invalid APY configuration"
     },
     {
       "code": 6019,
-      "name": "SupplyExhausted",
+      "name": "supplyExhausted",
       "msg": "RUSH token supply exhausted"
     },
     {
       "code": 6020,
-      "name": "DeadlineExceeded",
+      "name": "deadlineExceeded",
       "msg": "Transaction deadline exceeded"
     },
     {
       "code": 6021,
-      "name": "InvalidVault",
+      "name": "invalidVault",
       "msg": "Invalid vault - must be pool's token vault"
     },
     {
       "code": 6022,
-      "name": "InvalidPool",
+      "name": "invalidPool",
       "msg": "Invalid pool - order does not belong to this pool"
     },
     {
       "code": 6023,
-      "name": "InvalidMint",
+      "name": "invalidMint",
       "msg": "Invalid LP mint - must be pool's LP token mint"
     }
   ],
   "types": [
     {
-      "name": "LimitOrder",
+      "name": "limitOrder",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1391,38 +1397,38 @@
             "type": "pubkey"
           },
           {
-            "name": "sell_token",
+            "name": "sellToken",
             "type": "pubkey"
           },
           {
-            "name": "buy_token",
+            "name": "buyToken",
             "type": "pubkey"
           },
           {
-            "name": "sell_amount",
+            "name": "sellAmount",
             "type": "u64"
           },
           {
-            "name": "target_price",
+            "name": "targetPrice",
             "type": "u64"
           },
           {
-            "name": "minimum_receive",
+            "name": "minimumReceive",
             "type": "u64"
           },
           {
-            "name": "created_at",
+            "name": "createdAt",
             "type": "i64"
           },
           {
-            "name": "expires_at",
+            "name": "expiresAt",
             "type": "i64"
           },
           {
             "name": "status",
             "type": {
               "defined": {
-                "name": "OrderStatus"
+                "name": "orderStatus"
               }
             }
           },
@@ -1431,14 +1437,14 @@
             "type": "u8"
           },
           {
-            "name": "order_id",
+            "name": "orderId",
             "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "LimitOrderCancelled",
+      "name": "limitOrderCancelled",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1451,62 +1457,18 @@
             "type": "pubkey"
           },
           {
-            "name": "refunded_amount",
+            "name": "refundedAmount",
             "type": "u64"
           },
           {
-            "name": "cancelled_at",
+            "name": "cancelledAt",
             "type": "i64"
           }
         ]
       }
     },
     {
-      "name": "LimitOrderCreated",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "order",
-            "type": "pubkey"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "sell_token",
-            "type": "pubkey"
-          },
-          {
-            "name": "buy_token",
-            "type": "pubkey"
-          },
-          {
-            "name": "sell_amount",
-            "type": "u64"
-          },
-          {
-            "name": "target_price",
-            "type": "u64"
-          },
-          {
-            "name": "minimum_receive",
-            "type": "u64"
-          },
-          {
-            "name": "expires_at",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "LimitOrderExecuted",
+      "name": "limitOrderCreated",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1523,26 +1485,70 @@
             "type": "pubkey"
           },
           {
-            "name": "sell_amount",
+            "name": "sellToken",
+            "type": "pubkey"
+          },
+          {
+            "name": "buyToken",
+            "type": "pubkey"
+          },
+          {
+            "name": "sellAmount",
             "type": "u64"
           },
           {
-            "name": "receive_amount",
+            "name": "targetPrice",
             "type": "u64"
           },
           {
-            "name": "execution_price",
+            "name": "minimumReceive",
             "type": "u64"
           },
           {
-            "name": "executed_at",
+            "name": "expiresAt",
             "type": "i64"
           }
         ]
       }
     },
     {
-      "name": "LiquidityAdded",
+      "name": "limitOrderExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "sellAmount",
+            "type": "u64"
+          },
+          {
+            "name": "receiveAmount",
+            "type": "u64"
+          },
+          {
+            "name": "executionPrice",
+            "type": "u64"
+          },
+          {
+            "name": "executedAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "liquidityAdded",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1555,30 +1561,30 @@
             "type": "pubkey"
           },
           {
-            "name": "amount_a",
+            "name": "amountA",
             "type": "u64"
           },
           {
-            "name": "amount_b",
+            "name": "amountB",
             "type": "u64"
           },
           {
-            "name": "lp_tokens_minted",
+            "name": "lpTokensMinted",
             "type": "u64"
           },
           {
-            "name": "new_reserve_a",
+            "name": "newReserveA",
             "type": "u64"
           },
           {
-            "name": "new_reserve_b",
+            "name": "newReserveB",
             "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "LiquidityPool",
+      "name": "liquidityPool",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1587,71 +1593,71 @@
             "type": "pubkey"
           },
           {
-            "name": "token_a_mint",
+            "name": "tokenAMint",
             "type": "pubkey"
           },
           {
-            "name": "token_b_mint",
+            "name": "tokenBMint",
             "type": "pubkey"
           },
           {
-            "name": "token_a_vault",
+            "name": "tokenAVault",
             "type": "pubkey"
           },
           {
-            "name": "token_b_vault",
+            "name": "tokenBVault",
             "type": "pubkey"
           },
           {
-            "name": "lp_token_mint",
+            "name": "lpTokenMint",
             "type": "pubkey"
           },
           {
-            "name": "reserve_a",
+            "name": "reserveA",
             "type": "u64"
           },
           {
-            "name": "reserve_b",
+            "name": "reserveB",
             "type": "u64"
           },
           {
-            "name": "total_lp_supply",
+            "name": "totalLpSupply",
             "type": "u64"
           },
           {
-            "name": "fee_numerator",
+            "name": "feeNumerator",
             "type": "u64"
           },
           {
-            "name": "fee_denominator",
+            "name": "feeDenominator",
             "type": "u64"
           },
           {
-            "name": "token_a_decimals",
+            "name": "tokenADecimals",
             "type": "u8"
           },
           {
-            "name": "token_b_decimals",
+            "name": "tokenBDecimals",
             "type": "u8"
           },
           {
-            "name": "is_stablecoin_pool",
+            "name": "isStablecoinPool",
             "type": "bool"
           },
           {
-            "name": "created_at",
+            "name": "createdAt",
             "type": "i64"
           },
           {
-            "name": "total_volume_a",
+            "name": "totalVolumeA",
             "type": "u64"
           },
           {
-            "name": "total_volume_b",
+            "name": "totalVolumeB",
             "type": "u64"
           },
           {
-            "name": "locked_liquidity",
+            "name": "lockedLiquidity",
             "type": "u64"
           },
           {
@@ -1662,7 +1668,7 @@
       }
     },
     {
-      "name": "LiquidityRemoved",
+      "name": "liquidityRemoved",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1675,50 +1681,50 @@
             "type": "pubkey"
           },
           {
-            "name": "lp_tokens_burned",
+            "name": "lpTokensBurned",
             "type": "u64"
           },
           {
-            "name": "amount_a_received",
+            "name": "amountAReceived",
             "type": "u64"
           },
           {
-            "name": "amount_b_received",
+            "name": "amountBReceived",
             "type": "u64"
           },
           {
-            "name": "new_reserve_a",
+            "name": "newReserveA",
             "type": "u64"
           },
           {
-            "name": "new_reserve_b",
+            "name": "newReserveB",
             "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "OrderStatus",
+      "name": "orderStatus",
       "type": {
         "kind": "enum",
         "variants": [
           {
-            "name": "Pending"
+            "name": "pending"
           },
           {
-            "name": "Executed"
+            "name": "executed"
           },
           {
-            "name": "Cancelled"
+            "name": "cancelled"
           },
           {
-            "name": "Expired"
+            "name": "expired"
           }
         ]
       }
     },
     {
-      "name": "PoolCreated",
+      "name": "poolCreated",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1727,23 +1733,23 @@
             "type": "pubkey"
           },
           {
-            "name": "token_a_mint",
+            "name": "tokenAMint",
             "type": "pubkey"
           },
           {
-            "name": "token_b_mint",
+            "name": "tokenBMint",
             "type": "pubkey"
           },
           {
-            "name": "reserve_a",
+            "name": "reserveA",
             "type": "u64"
           },
           {
-            "name": "reserve_b",
+            "name": "reserveB",
             "type": "u64"
           },
           {
-            "name": "lp_token_supply",
+            "name": "lpTokenSupply",
             "type": "u64"
           },
           {
@@ -1754,7 +1760,7 @@
       }
     },
     {
-      "name": "RewardsClaimed",
+      "name": "rewardsClaimed",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1771,75 +1777,75 @@
             "type": "pubkey"
           },
           {
-            "name": "rewards_amount",
+            "name": "rewardsAmount",
             "type": "u64"
           },
           {
-            "name": "rewards_display",
+            "name": "rewardsDisplay",
             "type": "f64"
           },
           {
-            "name": "time_elapsed",
+            "name": "timeElapsed",
             "type": "i64"
           },
           {
-            "name": "user_lp_share",
+            "name": "userLpShare",
             "type": "f64"
           },
           {
-            "name": "claimed_at",
+            "name": "claimedAt",
             "type": "i64"
           },
           {
-            "name": "total_claimed_lifetime",
+            "name": "totalClaimedLifetime",
             "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "RewardsConfigUpdated",
+      "name": "rewardsConfigUpdated",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "previous_apy_numerator",
+            "name": "previousApyNumerator",
             "type": "u64"
           },
           {
-            "name": "new_apy_numerator",
+            "name": "newApyNumerator",
             "type": "u64"
           },
           {
-            "name": "new_rewards_per_second",
+            "name": "newRewardsPerSecond",
             "type": "u64"
           },
           {
-            "name": "updated_at",
+            "name": "updatedAt",
             "type": "i64"
           },
           {
-            "name": "updated_by",
+            "name": "updatedBy",
             "type": "pubkey"
           }
         ]
       }
     },
     {
-      "name": "RewardsPaused",
+      "name": "rewardsPaused",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "is_paused",
+            "name": "isPaused",
             "type": "bool"
           },
           {
-            "name": "paused_at",
+            "name": "pausedAt",
             "type": "i64"
           },
           {
-            "name": "paused_by",
+            "name": "pausedBy",
             "type": "pubkey"
           },
           {
@@ -1850,7 +1856,7 @@
       }
     },
     {
-      "name": "RushConfig",
+      "name": "rushConfig",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1863,31 +1869,31 @@
             "type": "pubkey"
           },
           {
-            "name": "total_supply",
+            "name": "totalSupply",
             "type": "u64"
           },
           {
-            "name": "minted_so_far",
+            "name": "mintedSoFar",
             "type": "u64"
           },
           {
-            "name": "rewards_per_second",
+            "name": "rewardsPerSecond",
             "type": "u64"
           },
           {
-            "name": "apy_numerator",
+            "name": "apyNumerator",
             "type": "u64"
           },
           {
-            "name": "apy_denominator",
+            "name": "apyDenominator",
             "type": "u64"
           },
           {
-            "name": "start_timestamp",
+            "name": "startTimestamp",
             "type": "i64"
           },
           {
-            "name": "is_paused",
+            "name": "isPaused",
             "type": "bool"
           },
           {
@@ -1898,36 +1904,36 @@
       }
     },
     {
-      "name": "RushTokenInitialized",
+      "name": "rushTokenInitialized",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "rush_mint",
+            "name": "rushMint",
             "type": "pubkey"
           },
           {
-            "name": "rush_config",
+            "name": "rushConfig",
             "type": "pubkey"
           },
           {
-            "name": "total_supply",
+            "name": "totalSupply",
             "type": "u64"
           },
           {
-            "name": "rewards_per_second",
+            "name": "rewardsPerSecond",
             "type": "u64"
           },
           {
-            "name": "apy_numerator",
+            "name": "apyNumerator",
             "type": "u64"
           },
           {
-            "name": "apy_denominator",
+            "name": "apyDenominator",
             "type": "u64"
           },
           {
-            "name": "start_timestamp",
+            "name": "startTimestamp",
             "type": "i64"
           },
           {
@@ -1938,7 +1944,7 @@
       }
     },
     {
-      "name": "SwapExecuted",
+      "name": "swapExecuted",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1951,34 +1957,34 @@
             "type": "pubkey"
           },
           {
-            "name": "amount_in",
+            "name": "amountIn",
             "type": "u64"
           },
           {
-            "name": "amount_out",
+            "name": "amountOut",
             "type": "u64"
           },
           {
-            "name": "fee_amount",
+            "name": "feeAmount",
             "type": "u64"
           },
           {
-            "name": "is_a_to_b",
+            "name": "isAToB",
             "type": "bool"
           },
           {
-            "name": "new_reserve_a",
+            "name": "newReserveA",
             "type": "u64"
           },
           {
-            "name": "new_reserve_b",
+            "name": "newReserveB",
             "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "UserLiquidityPosition",
+      "name": "userLiquidityPosition",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1991,19 +1997,19 @@
             "type": "pubkey"
           },
           {
-            "name": "lp_tokens",
+            "name": "lpTokens",
             "type": "u64"
           },
           {
-            "name": "deposit_timestamp",
+            "name": "depositTimestamp",
             "type": "i64"
           },
           {
-            "name": "last_claim_timestamp",
+            "name": "lastClaimTimestamp",
             "type": "i64"
           },
           {
-            "name": "total_rush_claimed",
+            "name": "totalRushClaimed",
             "type": "u64"
           },
           {
@@ -2014,4 +2020,4 @@
       }
     }
   ]
-}
+};
