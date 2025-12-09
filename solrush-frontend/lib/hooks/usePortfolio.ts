@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
-import { BN } from '@project-serum/anchor';
+import { BN } from '@coral-xyz/anchor';
 import { getReadOnlyProgram, fromBN } from '../anchor/setup';
 import { findPositionAddress } from '../anchor/pda';
 import { TOKENS, TOKEN_DECIMALS, TOKEN_LIST, getTokenSymbol } from '../constants';

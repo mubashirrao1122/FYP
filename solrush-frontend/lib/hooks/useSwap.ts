@@ -2,7 +2,7 @@
 
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { useState, useCallback } from 'react';
-import { BN } from '@project-serum/anchor';
+import { BN } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { getProgram, getReadOnlyProgram, toBN, fromBN } from '../anchor/setup';
 import { findPoolAddress } from '../anchor/pda';
@@ -49,22 +49,22 @@ export function useSwap() {
         console.warn("Program not available");
         return null;
       }
-      
+
       const inputMint = getTokenMint(inputToken);
       const outputMint = getTokenMint(outputToken);
-      
+
       const [poolAddress] = findPoolAddress(inputMint, outputMint);
-      
-      const poolAccount = await program.account.liquidityPool.fetch(poolAddress);
-      
+
+      const poolAccount = await (program.account as any).liquidityPool.fetch(poolAddress);
+
       // Check which direction we're swapping
       const isAToB = inputMint.toBuffer().compare(outputMint.toBuffer()) < 0;
-      
+
       return {
-        reserveA: (poolAccount.tokenAReserve as BN).toNumber(),
-        reserveB: (poolAccount.tokenBReserve as BN).toNumber(),
-        feeNumerator: (poolAccount.feeBasisPoints as number) || 25,
-        feeDenominator: 10000,
+        reserveA: (poolAccount.reserveA as BN).toNumber(),
+        reserveB: (poolAccount.reserveB as BN).toNumber(),
+        feeNumerator: (poolAccount.feeNumerator as BN).toNumber(),
+        feeDenominator: (poolAccount.feeDenominator as BN).toNumber(),
       };
     } catch (err) {
       console.error("Failed to fetch pool data:", err);
@@ -84,7 +84,7 @@ export function useSwap() {
   ): Promise<SwapQuote> => {
     // Try to fetch real pool data first
     const poolData = await fetchPoolData(inputToken, outputToken);
-    
+
     let reserveIn: number;
     let reserveOut: number;
     let feeNumerator: number;
@@ -95,7 +95,7 @@ export function useSwap() {
       const inputMint = getTokenMint(inputToken);
       const outputMint = getTokenMint(outputToken);
       const isAToB = inputMint.toBuffer().compare(outputMint.toBuffer()) < 0;
-      
+
       reserveIn = isAToB ? poolData.reserveA : poolData.reserveB;
       reserveOut = isAToB ? poolData.reserveB : poolData.reserveA;
       feeNumerator = poolData.feeNumerator;
@@ -179,8 +179,8 @@ export function useSwap() {
       const isAToB = inputMint.toBuffer().compare(outputMint.toBuffer()) < 0;
 
       // Fetch pool to get vault addresses
-      const poolAccount = await program.account.liquidityPool.fetch(poolAddress);
-      
+      const poolAccount = await (program.account as any).liquidityPool.fetch(poolAddress);
+
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
 
@@ -235,7 +235,7 @@ export function useSwap() {
     token: string
   ): Promise<number> => {
     if (!wallet.publicKey) return 0;
-    
+
     try {
       const mint = getTokenMint(token);
       const tokenAccount = await getAssociatedTokenAddress(mint, wallet.publicKey);

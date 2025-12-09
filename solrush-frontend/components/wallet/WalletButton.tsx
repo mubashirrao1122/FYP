@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Button } from '@/components/ui/button';
@@ -29,11 +31,25 @@ export function WalletButton() {
   const handleViewExplorer = () => {
     if (publicKey) {
       window.open(
-        `https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=devnet`,
+        `https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=custom&customUrl=http://localhost:8899`,
         '_blank'
       );
     }
   };
+
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Button className="bg-gradient-to-r from-purple-600 to-green-600 opacity-50 cursor-not-allowed">
+        Loading...
+      </Button>
+    );
+  }
 
   if (!publicKey) {
     return (

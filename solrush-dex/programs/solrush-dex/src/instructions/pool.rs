@@ -78,7 +78,9 @@ pub fn add_liquidity(
         CustomError::InsufficientBalance
     );
     let pool = &mut ctx.accounts.pool;
-    validate_ratio_imbalance(amount_a, amount_b, pool.reserve_a, pool.reserve_b)?;
+    if pool.total_lp_supply > 0 {
+        validate_ratio_imbalance(amount_a, amount_b, pool.reserve_a, pool.reserve_b)?;
+    }
     let lp_tokens_to_mint = calculate_lp_tokens_for_add_liquidity(
         amount_a,
         amount_b,
@@ -274,8 +276,53 @@ pub fn remove_liquidity(
     });
     Ok(())
 }
+
+pub fn close_pool(ctx: Context<ClosePool>) -> Result<()> {
+    let pool = &ctx.accounts.pool;
+    require!(pool.total_lp_supply == 0, CustomError::PoolNotEmpty);
+    require!(pool.reserve_a == 0, CustomError::PoolNotEmpty);
+    require!(pool.reserve_b == 0, CustomError::PoolNotEmpty);
+
+    let token_a_mint = pool.token_a_mint;
+    let token_b_mint = pool.token_b_mint;
+    let bump_seed = pool.bump;
+    let signer_seeds: &[&[&[u8]]] = &[&[
+        b"pool",
+        token_a_mint.as_ref(),
+        token_b_mint.as_ref(),
+        &[bump_seed],
+    ]];
+
+    // Close Token A Vault
+    anchor_spl::token::close_account(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            anchor_spl::token::CloseAccount {
+                account: ctx.accounts.token_a_vault.to_account_info(),
+                destination: ctx.accounts.authority.to_account_info(),
+                authority: pool.to_account_info(),
+            },
+            signer_seeds,
+        )
+    )?;
+
+    // Close Token B Vault
+    anchor_spl::token::close_account(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            anchor_spl::token::CloseAccount {
+                account: ctx.accounts.token_b_vault.to_account_info(),
+                destination: ctx.accounts.authority.to_account_info(),
+                authority: pool.to_account_info(),
+            },
+            signer_seeds,
+        )
+    )?;
+
+    Ok(())
+}
+
 #[derive(Accounts)]
-#[instruction(initial_deposit_a: u64, initial_deposit_b: u64)]
 pub struct InitializePool<'info> {
     #[account(
         init,
@@ -324,6 +371,28 @@ pub struct InitializePool<'info> {
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
+
+#[derive(Accounts)]
+pub struct ClosePool<'info> {
+    #[account(
+        mut,
+        close = authority,
+        has_one = authority,
+        has_one = token_a_vault,
+        has_one = token_b_vault,
+        seeds = [b"pool", pool.token_a_mint.as_ref(), pool.token_b_mint.as_ref()],
+        bump = pool.bump
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(mut)]
+    pub token_a_vault: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub token_b_vault: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+}
+
 #[derive(Accounts)]
 pub struct AddLiquidity<'info> {
     #[account(mut)]

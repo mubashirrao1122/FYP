@@ -11,25 +11,11 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown, Info, Plus, Settings, Loader2 } from 'lucide-react';
-import { usePool } from '@/lib/hooks/usePool';
-import { useToast } from '@/components/ui/use-toast';
-import { SolIcon, UsdcIcon, UsdtIcon } from '@/components/icons/TokenIcons';
-import { cn } from '@/lib/utils';
+import { useTransaction } from '@/lib/hooks/useTransaction';
+import { TransactionStatus } from '@/components/common/TransactionStatus';
 
-// Slippage presets in basis points
-const SLIPPAGE_PRESETS = [
-    { label: '0.1%', value: 10 },
-    { label: '0.5%', value: 50 },
-    { label: '1%', value: 100 },
-    { label: '5%', value: 500 },
-];
+// ... imports
 
-/**
- * AddLiquidity Component - Module 6.4
- * Allows users to provide liquidity to pools
- * Features dual token input, auto-calculation, LP token display, pool share percentage, and slippage settings
- */
 export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
   const { publicKey } = useWallet();
   const { toast } = useToast();
@@ -42,40 +28,13 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
   const [slippageBps, setSlippageBps] = useState(50); // Default 0.5%
   const [customSlippage, setCustomSlippage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { pool, loading, addLiquidity, calculateLPTokens, calculatePoolShare } =
     usePool(poolAddress);
 
-  // Auto-calculate second amount based on pool ratio (proportional amounts)
-  useEffect(() => {
-    if (amountA && parseFloat(amountA) > 0 && pool && pool.reserveA > 0) {
-      const ratio = pool.reserveB / pool.reserveA;
-      const calculated = (parseFloat(amountA) * ratio).toFixed(6);
-      setAmountB(calculated);
-    } else {
-      setAmountB('');
-    }
-  }, [amountA, pool]);
+  const { status, signature, error, sendTransaction, reset } = useTransaction();
 
-  // Handle custom slippage input
-  const handleCustomSlippage = (value: string) => {
-    setCustomSlippage(value);
-    const parsed = parseFloat(value);
-    if (!isNaN(parsed) && parsed > 0 && parsed <= 50) {
-      setSlippageBps(Math.floor(parsed * 100));
-    }
-  };
-
-  const lpTokensToReceive =
-    amountA && amountB
-      ? calculateLPTokens(parseFloat(amountA), parseFloat(amountB))
-      : 0;
-
-  const poolSharePercentage =
-    lpTokensToReceive > 0
-      ? calculatePoolShare(lpTokensToReceive)
-      : 0;
+  // ... effects and helpers
 
   const handleAddLiquidity = async () => {
     if (!publicKey) {
@@ -94,34 +53,32 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
       return;
     }
 
-    setIsSubmitting(true);
-    
     try {
-      const signature = await addLiquidity({
-        amountA: parseFloat(amountA),
-        amountB: parseFloat(amountB),
-      });
+      await sendTransaction(
+        () => addLiquidity({
+          amountA: parseFloat(amountA),
+          amountB: parseFloat(amountB),
+        }),
+        'add_liquidity'
+      );
 
       toast({
         title: 'Liquidity Added Successfully!',
-        description: `Received ${lpTokensToReceive.toFixed(2)} LP tokens. TX: ${signature.slice(0, 8)}...`,
+        description: `Received ${lpTokensToReceive.toFixed(2)} LP tokens`,
       });
 
       setAmountA('');
       setAmountB('');
     } catch (error: any) {
-      toast({
-        title: 'Failed to Add Liquidity',
-        description: error.message || 'Transaction failed.',
-      });
-    } finally {
-      setIsSubmitting(false);
+      // Error handled by TransactionStatus
+      console.error('Add liquidity failed:', error);
     }
   };
 
   const exchangeRate = pool ? pool.reserveB / pool.reserveA : 0;
 
   if (loading) {
+    // ... loading state
     return (
       <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
         <CardContent className="p-8 text-center">
@@ -132,6 +89,7 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
   }
 
   if (!pool) {
+    // ... error state
     return (
       <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
         <CardContent className="p-8 text-center">
@@ -144,6 +102,7 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
   return (
     <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
       <CardHeader>
+        {/* ... Header content ... */}
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-white">Add Liquidity</CardTitle>
@@ -340,15 +299,20 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
         {/* Add Liquidity Button */}
         <Button
           onClick={handleAddLiquidity}
-          disabled={!publicKey || loading || isSubmitting || !amountA || !amountB}
+          disabled={!publicKey || loading || status === 'pending' || status === 'confirming' || !amountA || !amountB}
           className="w-full h-14 text-lg bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {!publicKey ? (
             'Connect Wallet'
-          ) : isSubmitting ? (
+          ) : status === 'pending' ? (
             <span className="flex items-center justify-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
-              Adding Liquidity...
+              Approving...
+            </span>
+          ) : status === 'confirming' ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Confirming...
             </span>
           ) : loading ? (
             'Loading Pool...'
@@ -356,6 +320,17 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
             'Add Liquidity'
           )}
         </Button>
+
+        {/* Transaction Status */}
+        <TransactionStatus
+          status={status}
+          signature={signature}
+          error={error}
+          onRetry={() => {
+            reset();
+            handleAddLiquidity();
+          }}
+        />
       </CardContent>
     </Card>
   );

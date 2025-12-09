@@ -16,6 +16,15 @@ pub fn calculate_lp_tokens_for_add_liquidity(
     total_lp_supply: u64,
 ) -> Result<u64> {
     require!(amount_a > 0 && amount_b > 0, CustomError::InvalidAmount);
+    
+    if total_lp_supply == 0 {
+        // Initial liquidity provision
+        let product = (amount_a as u128)
+            .checked_mul(amount_b as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        return Ok(isqrt(product) as u64);
+    }
+
     require!(reserve_a > 0 && reserve_b > 0, CustomError::InsufficientLiquidity);
     let lp_from_a = (amount_a as u128)
         .checked_mul(total_lp_supply as u128)

@@ -21,15 +21,59 @@ export const formatPercentage = (value: number, decimals: number = 2): string =>
 /**
  * Format token amount
  */
-export const formatTokenAmount = (
+/**
+ * Format token amount with proper decimals and optional abbreviation
+ */
+export function formatTokenAmount(
   amount: number,
-  decimals: number = 6
-): string => {
-  return amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
+  decimals: number = 2,
+  abbreviate: boolean = false
+): string {
+  if (amount === 0) return '0';
+
+  // Abbreviate large numbers
+  if (abbreviate) {
+    if (amount >= 1e9) {
+      return `${(amount / 1e9).toFixed(decimals)}B`;
+    }
+    if (amount >= 1e6) {
+      return `${(amount / 1e6).toFixed(decimals)}M`;
+    }
+    if (amount >= 1e3) {
+      return `${(amount / 1e3).toFixed(decimals)}K`;
+    }
+  }
+
+  // Very small numbers - use scientific notation
+  if (amount < 0.0001 && amount > 0) {
+    return amount.toExponential(2);
+  }
+
+  // Format with commas and decimals
+  return amount.toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
-};
+}
+
+/**
+ * Format pool reserves for display
+ */
+export function formatReserves(
+  reserveA: number,
+  tokenA: string,
+  reserveB: number,
+  tokenB: string
+): string {
+  if (reserveA === 0 && reserveB === 0) {
+    return 'Empty pool';
+  }
+
+  const formattedA = formatTokenAmount(reserveA, 2, true);
+  const formattedB = formatTokenAmount(reserveB, 2, true);
+
+  return `${formattedA} ${tokenA} / ${formattedB} ${tokenB}`;
+}
 
 /**
  * Truncate address

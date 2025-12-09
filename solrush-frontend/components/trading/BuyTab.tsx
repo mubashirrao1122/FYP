@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { TokenSelect } from '@/components/ui/token-select';
 import { ArrowUpDown } from 'lucide-react';
 import { useSwap } from '@/lib/hooks/useSwap';
+import { useTokenBalance } from '@/lib/hooks/useBalance';
 import { useToast } from '@/components/ui/use-toast';
 
 interface BuyTabProps {
@@ -23,6 +24,10 @@ export function BuyTab({ slippageTolerance, onTokenChange }: BuyTabProps) {
     const [buyTokenSpend, setBuyTokenSpend] = useState('USDC');
     const [buyTokenReceive, setBuyTokenReceive] = useState('SOL');
     const [buyEstimatedAmount, setBuyEstimatedAmount] = useState('');
+
+    // Fetch real-time balances
+    const spendBalance = useTokenBalance(buyTokenSpend);
+    const receiveBalance = useTokenBalance(buyTokenReceive);
 
     useEffect(() => {
         onTokenChange?.(buyTokenSpend, buyTokenReceive);
@@ -105,10 +110,13 @@ export function BuyTab({ slippageTolerance, onTokenChange }: BuyTabProps) {
                             Spend
                         </label>
                         <div className="flex items-center gap-2 text-xs text-white/40">
-                            <span>Balance: 250 {buyTokenSpend}</span>
+                            <span>
+                                Balance: {!publicKey ? 'Connect wallet' : spendBalance.loading ? '...' : spendBalance.balance.toFixed(4)} {buyTokenSpend}
+                            </span>
                             <button
-                                onClick={() => setBuyAmount('250')}
-                                className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
+                                onClick={() => setBuyAmount(spendBalance.balance.toString())}
+                                disabled={!publicKey || spendBalance.loading || spendBalance.balance === 0}
+                                className="text-purple-400 hover:text-purple-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Max
                             </button>
@@ -155,7 +163,7 @@ export function BuyTab({ slippageTolerance, onTokenChange }: BuyTabProps) {
                             Receive
                         </label>
                         <div className="text-xs text-white/40">
-                            Balance: 2.5 {buyTokenReceive}
+                            Balance: {!publicKey ? 'Connect wallet' : receiveBalance.loading ? '...' : receiveBalance.balance.toFixed(4)} {buyTokenReceive}
                         </div>
                     </div>
                     <div className="flex items-center gap-4">

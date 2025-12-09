@@ -15,16 +15,16 @@ export const RPC_ENDPOINT = RPC_ENDPOINTS[NETWORK] || RPC_ENDPOINTS.devnet;
 
 // Program ID
 export const PROGRAM_ID = new PublicKey(
-    process.env.NEXT_PUBLIC_PROGRAM_ID || "HCkVnLDL76FR8JJ9fbWg67kr48AtNqDgsivSt19Dnu9c"
+    process.env.NEXT_PUBLIC_PROGRAM_ID || "BJfcNtEyhU4wArQsyXkHZ9jmR7KD7KPHAGUwUySNnA5z"
 );
 
 // Token Mints - Use environment variables for flexibility across networks
 export const TOKENS: Record<string, PublicKey> = {
-    SOL: new PublicKey("So11111111111111111111111111111111111111112"),
-    USDC: new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT || "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
-    USDT: new PublicKey(process.env.NEXT_PUBLIC_USDT_MINT || "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"),
+    SOL: new PublicKey(process.env.NEXT_PUBLIC_SOL_MINT || "4K4BTsa8jfwwF8UpJoftuhPKQbM5g8d3PqB7wytuEK8a"),
+    USDC: new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT || "CnBcjXBqAVrJDh9BUsAxfVpprWyU6MoD7Kcq13qYUhzn"),
+    USDT: new PublicKey(process.env.NEXT_PUBLIC_USDT_MINT || "CNP1MYZ1iF7h8d3E8fmzsDhUdxhuMJxaWv4YhKye6Soc"),
     WETH: new PublicKey(process.env.NEXT_PUBLIC_WETH_MINT || "7vfCXTUXx5WJV5JAWYwqBo7dropjUiWDPvR8Ch3HfFPc"),
-    RUSH: new PublicKey(process.env.NEXT_PUBLIC_RUSH_MINT || "11111111111111111111111111111111"),
+    RUSH: new PublicKey(process.env.NEXT_PUBLIC_RUSH_MINT || "9gdS2U5YeGh1yRbLu2jgApahXM8QmRNuWTvGEJwSbP9T"),
 };
 
 // Token Decimals

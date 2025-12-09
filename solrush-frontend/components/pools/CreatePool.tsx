@@ -3,9 +3,12 @@
 import React, { useState } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { SolIcon, UsdcIcon, UsdtIcon } from '@/components/icons/TokenIcons';
-import { TOKEN_LIST } from '@/lib/constants';
+import { TOKEN_LIST, getTokenMint } from '@/lib/constants';
+import { useCreatePool, usePool } from '@/lib/hooks/usePool';
+import { useTokenBalance } from '@/lib/hooks/useBalance';
+import { useToast } from '@/components/ui/use-toast';
 
 const getTokenIcon = (symbol: string) => {
     switch (symbol) {
@@ -19,14 +22,25 @@ const getTokenIcon = (symbol: string) => {
 export const CreatePool: React.FC = () => {
     const { connection } = useConnection();
     const { publicKey, connected } = useWallet();
+    const { toast } = useToast();
 
     const [tokenA, setTokenA] = useState('SOL');
     const [tokenB, setTokenB] = useState('USDC');
     const [amountA, setAmountA] = useState('');
     const [amountB, setAmountB] = useState('');
     const [feeTier, setFeeTier] = useState('0.3');
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<{ poolTx: string; liquidityTx: string } | null>(null);
+
+    // Hooks for pool creation and liquidity
+    const { createPool, checkPoolExists, loading: createLoading } = useCreatePool();
+    const { addLiquidity, loading: liquidityLoading } = usePool(undefined, tokenA, tokenB);
+
+    // Get token balances
+    const tokenABalance = useTokenBalance(tokenA);
+    const tokenBBalance = useTokenBalance(tokenB);
+
+    const loading = createLoading || liquidityLoading;
 
     const feeTiers = [
         { value: '0.1', label: '0.1% - Stable Pairs', description: 'Best for stable pairs like USDC/USDT' },
@@ -52,7 +66,10 @@ export const CreatePool: React.FC = () => {
             return;
         }
 
-        if (parseFloat(amountA) <= 0 || parseFloat(amountB) <= 0) {
+        const amountANum = parseFloat(amountA);
+        const amountBNum = parseFloat(amountB);
+
+        if (amountANum <= 0 || amountBNum <= 0) {
             setError('Amounts must be greater than zero');
             return;
         }
@@ -62,32 +79,88 @@ export const CreatePool: React.FC = () => {
             return;
         }
 
-        setLoading(true);
         setError(null);
+        setSuccess(null);
 
         try {
-            // TODO: Implement actual pool creation with Anchor program
-            // const program = getProgram(connection, wallet);
-            // await program.methods.initializePool(...)
+            // Get token mints
+            const tokenAMint = getTokenMint(tokenA);
+            const tokenBMint = getTokenMint(tokenB);
 
-            console.log('Creating pool:', {
-                tokenA,
-                tokenB,
-                amountA: parseFloat(amountA),
-                amountB: parseFloat(amountB),
-                feeTier: parseFloat(feeTier),
+            // Check if pool already exists
+            const poolExists = await checkPoolExists(tokenAMint, tokenBMint);
+            if (poolExists) {
+                setError(`Pool for ${tokenA}-${tokenB} already exists`);
+                return;
+            }
+
+            // Check balances
+            if (!tokenABalance.loading && tokenABalance.balance < amountANum) {
+                setError(`Insufficient ${tokenA} balance. You have ${tokenABalance.balance.toFixed(4)} but need ${amountANum}`);
+                return;
+            }
+
+            if (!tokenBBalance.loading && tokenBBalance.balance < amountBNum) {
+                setError(`Insufficient ${tokenB} balance. You have ${tokenBBalance.balance.toFixed(4)} but need ${amountBNum}`);
+                return;
+            }
+
+            // Step 1: Create the pool
+            toast({
+                title: 'Creating Pool',
+                description: `Initializing ${tokenA}-${tokenB} pool...`,
             });
 
-            // Placeholder for now
-            setTimeout(() => {
-                setError('Pool creation coming soon! Program integration required.');
-                setLoading(false);
-            }, 1000);
+            const poolTx = await createPool(tokenAMint, tokenBMint);
+            console.log('Pool created:', poolTx);
+
+            // Step 2: Add initial liquidity
+            toast({
+                title: 'Adding Initial Liquidity',
+                description: `Adding ${amountA} ${tokenA} and ${amountB} ${tokenB}...`,
+            });
+
+            const liquidityTx = await addLiquidity({
+                amountA: amountANum,
+                amountB: amountBNum,
+                minLpTokens: 0, // First liquidity provider doesn't need slippage protection
+            });
+            console.log('Liquidity added:', liquidityTx);
+
+            // Success!
+            setSuccess({ poolTx, liquidityTx });
+
+            toast({
+                title: 'Pool Created Successfully!',
+                description: `Pool: ${poolTx.slice(0, 8)}...${poolTx.slice(-8)} | Liquidity: ${liquidityTx.slice(0, 8)}...${liquidityTx.slice(-8)}`,
+            });
+
+            // Clear form
+            setAmountA('');
+            setAmountB('');
 
         } catch (err: any) {
             console.error('Failed to create pool:', err);
-            setError(err.message || 'Failed to create pool');
-            setLoading(false);
+
+            // Parse error message
+            let errorMessage = 'Failed to create pool';
+            if (err.message) {
+                if (err.message.includes('User rejected')) {
+                    errorMessage = 'Transaction was rejected';
+                } else if (err.message.includes('insufficient')) {
+                    errorMessage = 'Insufficient balance for transaction';
+                } else if (err.message.includes('already exists')) {
+                    errorMessage = 'Pool already exists';
+                } else {
+                    errorMessage = err.message;
+                }
+            }
+
+            setError(errorMessage);
+            toast({
+                title: 'Pool Creation Failed',
+                description: errorMessage,
+            });
         }
     };
 
@@ -194,8 +267,8 @@ export const CreatePool: React.FC = () => {
                                 key={tier.value}
                                 onClick={() => !loading && setFeeTier(tier.value)}
                                 className={`p-4 rounded-xl border cursor-pointer transition-all ${feeTier === tier.value
-                                        ? 'bg-purple-500/20 border-purple-500'
-                                        : 'bg-white/5 border-white/10 hover:border-white/20'
+                                    ? 'bg-purple-500/20 border-purple-500'
+                                    : 'bg-white/5 border-white/10 hover:border-white/20'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
@@ -204,8 +277,8 @@ export const CreatePool: React.FC = () => {
                                         <div className="text-white/40 text-sm">{tier.description}</div>
                                     </div>
                                     <div className={`w-5 h-5 rounded-full border-2 ${feeTier === tier.value
-                                            ? 'border-purple-500 bg-purple-500'
-                                            : 'border-white/20'
+                                        ? 'border-purple-500 bg-purple-500'
+                                        : 'border-white/20'
                                         }`}>
                                         {feeTier === tier.value && (
                                             <div className="w-full h-full rounded-full bg-white scale-50" />
@@ -225,13 +298,54 @@ export const CreatePool: React.FC = () => {
                     </div>
                 )}
 
+                {/* Success Message */}
+                {success && (
+                    <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg space-y-3">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-5 h-5 text-green-500" />
+                            <span className="text-sm font-semibold text-green-500">Pool Created Successfully!</span>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="text-white/60">Pool Creation:</span>
+                                <a
+                                    href={`https://explorer.solana.com/tx/${success.poolTx}?cluster=devnet`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                                >
+                                    {success.poolTx.slice(0, 8)}...{success.poolTx.slice(-8)}
+                                    <ExternalLink className="w-3 h-3" />
+                                </a>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-white/60">Initial Liquidity:</span>
+                                <a
+                                    href={`https://explorer.solana.com/tx/${success.liquidityTx}?cluster=devnet`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                                >
+                                    {success.liquidityTx.slice(0, 8)}...{success.liquidityTx.slice(-8)}
+                                    <ExternalLink className="w-3 h-3" />
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Create Button */}
                 <Button
                     onClick={handleCreatePool}
-                    disabled={loading || !connected}
+                    disabled={loading || !connected || tokenABalance.loading || tokenBBalance.loading}
                     className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {loading ? 'Creating Pool...' : connected ? 'Create Pool' : 'Connect Wallet'}
+                    {loading
+                        ? (createLoading ? 'Creating Pool...' : 'Adding Liquidity...')
+                        : connected
+                            ? 'Create Pool & Add Liquidity'
+                            : 'Connect Wallet'
+                    }
                 </Button>
 
                 {/* Information */}

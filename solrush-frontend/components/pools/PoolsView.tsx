@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatTokenAmount } from '@/lib/utils/formatters';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { AddLiquidity } from '@/components/liquidity/AddLiquidity';
@@ -63,13 +64,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
     const [sortBy, setSortBy] = useState<'tvl' | 'apy' | 'volume' | 'fee'>('tvl');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-    // Helper to format reserve display
-    const formatReserve = (pool: Pool, isTokenA: boolean) => {
-        if (isTokenA) {
-            return pool.formattedReserveA || pool.reserveA?.toLocaleString() || '0';
-        }
-        return pool.formattedReserveB || pool.reserveB?.toLocaleString() || '0';
-    };
+
 
     return (
         <div className="min-h-screen bg-black relative overflow-hidden selection:bg-purple-500/30">
@@ -236,12 +231,12 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                                 token1={{
                                                     symbol: pool.tokens[0],
                                                     icon: getTokenIcon(pool.tokens[0]),
-                                                    reserve: formatReserve(pool, true),
+                                                    reserve: formatTokenAmount(pool.reserveA || 0, 2, true),
                                                 }}
                                                 token2={{
                                                     symbol: pool.tokens[1],
                                                     icon: getTokenIcon(pool.tokens[1]),
-                                                    reserve: formatReserve(pool, false),
+                                                    reserve: formatTokenAmount(pool.reserveB || 0, 2, true),
                                                 }}
                                                 apy={`${pool.apy.toFixed(2)}%`}
                                                 tvl={pool.tvl >= 1000000

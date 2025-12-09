@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/button';
 import { TokenSelect } from '@/components/ui/token-select';
 import { ArrowUpDown } from 'lucide-react';
 import { useSwap } from '@/lib/hooks/useSwap';
+import { useTokenBalance } from '@/lib/hooks/useBalance';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 import { SwapQuote } from '@/lib/types';
+import { useTransaction } from '@/lib/hooks/useTransaction';
+import { TransactionStatus } from '@/components/common/TransactionStatus';
 
 interface SwapTabProps {
     slippageTolerance: number;
@@ -19,13 +22,18 @@ interface SwapTabProps {
 export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
     const { publicKey } = useWallet();
     const { toast } = useToast();
-    const { calculateQuote, executeSwap, loading } = useSwap();
+    const { calculateQuote, executeSwap, loading: swapLoading } = useSwap();
+    const { status, signature, error, sendTransaction, reset } = useTransaction();
 
     const [inputAmount, setInputAmount] = useState('');
     const [outputAmount, setOutputAmount] = useState('');
     const [inputToken, setInputToken] = useState('SOL');
     const [outputToken, setOutputToken] = useState('USDC');
     const [currentQuote, setCurrentQuote] = useState<SwapQuote | null>(null);
+
+    // Fetch real-time balances
+    const inputBalance = useTokenBalance(inputToken);
+    const outputBalance = useTokenBalance(outputToken);
 
     useEffect(() => {
         onTokenChange?.(inputToken, outputToken);
@@ -87,25 +95,26 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
                 slippageTolerance
             );
 
-            const signature = await executeSwap({
-                inputToken,
-                outputToken,
-                inputAmount: parseFloat(inputAmount),
-                minOutputAmount: quote.minReceived,
-            });
+            await sendTransaction(
+                () => executeSwap({
+                    inputToken,
+                    outputToken,
+                    inputAmount: parseFloat(inputAmount),
+                    minOutputAmount: quote.minReceived,
+                }),
+                'swap'
+            );
 
             toast({
                 title: 'Swap Successful!',
-                description: `Swapped ${inputAmount} ${inputToken} for ${outputAmount} ${outputToken}. TX: ${signature.slice(0, 8)}...`,
+                description: `Swapped ${inputAmount} ${inputToken} for ${outputAmount} ${outputToken}`,
             });
 
             setInputAmount('');
             setOutputAmount('');
         } catch (error: any) {
-            toast({
-                title: 'Swap Failed',
-                description: error.message || 'Transaction failed. Please try again.',
-            });
+            // Error is handled by TransactionStatus component
+            console.error('Swap failed:', error);
         }
     };
 
@@ -118,10 +127,13 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
                         You Pay
                     </label>
                     <div className="flex items-center gap-2 text-xs text-white/40">
-                        <span>Balance: 10.5 {inputToken}</span>
+                        <span>
+                            Balance: {!publicKey ? 'Connect wallet' : inputBalance.loading ? '...' : inputBalance.balance.toFixed(4)} {inputToken}
+                        </span>
                         <button
-                            onClick={() => setInputAmount('10.5')}
-                            className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
+                            onClick={() => setInputAmount(inputBalance.balance.toString())}
+                            disabled={!publicKey || inputBalance.loading || inputBalance.balance === 0}
+                            className="text-purple-400 hover:text-purple-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Max
                         </button>
@@ -168,7 +180,7 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
                         You Receive
                     </label>
                     <div className="text-xs text-white/40">
-                        Balance: 1000 {outputToken}
+                        Balance: {!publicKey ? 'Connect wallet' : outputBalance.loading ? '...' : outputBalance.balance.toFixed(4)} {outputToken}
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -234,12 +246,23 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
             {/* Swap Button */}
             <Button
                 onClick={handleSwap}
-                disabled={!publicKey || loading || !inputAmount}
+                disabled={!publicKey || swapLoading || status === 'pending' || status === 'confirming' || !inputAmount}
                 className="w-full h-14 text-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all"
                 size="lg"
             >
-                {!publicKey ? 'Connect Wallet' : loading ? 'Swapping...' : 'Swap Tokens'}
+                {!publicKey ? 'Connect Wallet' : status === 'pending' ? 'Approving...' : status === 'confirming' ? 'Confirming...' : 'Swap Tokens'}
             </Button>
+
+            {/* Transaction Status */}
+            <TransactionStatus
+                status={status}
+                signature={signature}
+                error={error}
+                onRetry={() => {
+                    reset();
+                    handleSwap();
+                }}
+            />
         </div>
     );
 }

@@ -20,6 +20,8 @@ pub enum CustomError {
     InvalidAmount,
     #[msg("Slippage tolerance exceeded")]
     SlippageTooHigh,
+    #[msg("Pool is not empty")]
+    PoolNotEmpty,
     #[msg("Insufficient user token balance")]
     InsufficientBalance,
     #[msg("Limit order not found")]

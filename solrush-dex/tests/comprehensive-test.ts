@@ -1,13 +1,13 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { 
-  PublicKey, 
-  Keypair, 
+import {
+  PublicKey,
+  Keypair,
 } from "@solana/web3.js";
-import { 
-  createMint, 
-  createAccount, 
-  mintTo, 
+import {
+  createMint,
+  createAccount,
+  mintTo,
   getAccount,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
@@ -29,19 +29,19 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
   // Token mints
   let tokenAMint: PublicKey;
   let tokenBMint: PublicKey;
-  
+
   // Pool accounts
   let poolPDA: PublicKey;
   let lpTokenMint: PublicKey;
   let tokenAVault: Keypair;
   let tokenBVault: Keypair;
-  
+
   // User accounts
   let userTokenA: PublicKey;
   let userTokenB: PublicKey;
   let userLpTokenAccount: PublicKey;
   let userPositionPDA: PublicKey;
-  
+
   // RUSH rewards
   let rushMint: Keypair;
   let rushConfig: PublicKey;
@@ -58,10 +58,10 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
   // =========================================================================
   // SETUP
   // =========================================================================
-  
+
   before(async () => {
     console.log("\n Setting up test environment...\n");
-    
+
     // Create Token A mint
     tokenAMint = await createMint(
       connection,
@@ -97,12 +97,12 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       [Buffer.from("pool"), tokenAMint.toBuffer(), tokenBMint.toBuffer()],
       program.programId
     );
-    
+
     [lpTokenMint] = PublicKey.findProgramAddressSync(
       [Buffer.from("lp_mint"), poolPDA.toBuffer()],
       program.programId
     );
-    
+
     [userPositionPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("position"), poolPDA.toBuffer(), wallet.publicKey.toBuffer()],
       program.programId
@@ -133,21 +133,16 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
   describe("1. Pool Initialization", () => {
     it("Should initialize a liquidity pool", async () => {
       console.log("\n Initializing pool...");
-      console.log("   Deposit A:", DEPOSIT_A / 10**DECIMALS);
-      console.log("   Deposit B:", DEPOSIT_B / 10**DECIMALS);
+      console.log("   Deposit A:", DEPOSIT_A / 10 ** DECIMALS);
+      console.log("   Deposit B:", DEPOSIT_B / 10 ** DECIMALS);
 
       const tx = await program.methods
-        .initializePool(
-          new anchor.BN(DEPOSIT_A),
-          new anchor.BN(DEPOSIT_B)
-        )
+        .initializePool()
         .accounts({
           tokenAMint: tokenAMint,
           tokenBMint: tokenBMint,
           tokenAVault: tokenAVault.publicKey,
           tokenBVault: tokenBVault.publicKey,
-          userTokenA: userTokenA,
-          userTokenB: userTokenB,
           authority: wallet.publicKey,
         })
         .signers([tokenAVault, tokenBVault])
@@ -159,9 +154,9 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       console.log("   Reserve A:", pool.reserveA.toString());
       console.log("   Reserve B:", pool.reserveB.toString());
       console.log("   LP Supply:", pool.totalLpSupply.toString());
-      
-      assert.equal(pool.reserveA.toString(), DEPOSIT_A.toString());
-      assert.equal(pool.reserveB.toString(), DEPOSIT_B.toString());
+
+      assert.equal(pool.reserveA.toString(), "0");
+      assert.equal(pool.reserveB.toString(), "0");
     });
   });
 
@@ -175,8 +170,8 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       const addB = 500 * 10 ** DECIMALS;
 
       console.log("\n Adding liquidity...");
-      console.log("   Amount A:", addA / 10**DECIMALS);
-      console.log("   Amount B:", addB / 10**DECIMALS);
+      console.log("   Amount A:", addA / 10 ** DECIMALS);
+      console.log("   Amount B:", addB / 10 ** DECIMALS);
 
       const tx = await program.methods
         .addLiquidity(
@@ -199,7 +194,7 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       console.log("Liquidity added! Tx:", tx);
 
       const lpBalance = await getAccount(connection, userLpTokenAccount);
-      console.log("   LP Tokens:", Number(lpBalance.amount) / 10**DECIMALS);
+      console.log("   LP Tokens:", Number(lpBalance.amount) / 10 ** DECIMALS);
       assert.isTrue(Number(lpBalance.amount) > 0);
     });
   });
@@ -214,7 +209,7 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       const deadline = Math.floor(Date.now() / 1000) + 3600;
 
       console.log("\n Swapping A to B...");
-      console.log("   Input:", swapAmount / 10**DECIMALS, "Token A");
+      console.log("   Input:", swapAmount / 10 ** DECIMALS, "Token A");
 
       const balanceBefore = await getAccount(connection, userTokenB);
 
@@ -239,7 +234,7 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
 
       const balanceAfter = await getAccount(connection, userTokenB);
       const received = Number(balanceAfter.amount) - Number(balanceBefore.amount);
-      console.log("   Received:", received / 10**DECIMALS, "Token B");
+      console.log("   Received:", received / 10 ** DECIMALS, "Token B");
       assert.isTrue(received > 0);
     });
 
@@ -248,7 +243,7 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       const deadline = Math.floor(Date.now() / 1000) + 3600;
 
       console.log("\n Swapping B to A...");
-      console.log("   Input:", swapAmount / 10**DECIMALS, "Token B");
+      console.log("   Input:", swapAmount / 10 ** DECIMALS, "Token B");
 
       const balanceBefore = await getAccount(connection, userTokenA);
 
@@ -273,7 +268,7 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
 
       const balanceAfter = await getAccount(connection, userTokenA);
       const received = Number(balanceAfter.amount) - Number(balanceBefore.amount);
-      console.log("   Received:", received / 10**DECIMALS, "Token A");
+      console.log("   Received:", received / 10 ** DECIMALS, "Token A");
       assert.isTrue(received > 0);
     });
   });
@@ -289,7 +284,7 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       const lpToRemove = Math.floor(Number(lpBalance.amount) / 20);
 
       console.log("\n Removing liquidity...");
-      console.log("   LP to burn:", lpToRemove / 10**DECIMALS);
+      console.log("   LP to burn:", lpToRemove / 10 ** DECIMALS);
 
       const tx = await program.methods
         .removeLiquidity(
@@ -323,7 +318,7 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       const deadline = Math.floor(Date.now() / 1000) + 3600;
 
       console.log("\n Market Buy...");
-      console.log("   Spending:", amount / 10**DECIMALS, "Token B");
+      console.log("   Spending:", amount / 10 ** DECIMALS, "Token B");
 
       const tx = await program.methods
         .marketBuy(
@@ -350,7 +345,7 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       const deadline = Math.floor(Date.now() / 1000) + 3600;
 
       console.log("\n Market Sell...");
-      console.log("   Selling:", amount / 10**DECIMALS, "Token A");
+      console.log("   Selling:", amount / 10 ** DECIMALS, "Token A");
 
       const tx = await program.methods
         .marketSell(
@@ -396,8 +391,8 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       );
 
       console.log("\n Creating limit order...");
-      console.log("   Sell:", sellAmount / 10**DECIMALS, "Token A");
-      console.log("   Target Price:", targetPrice / 10**DECIMALS);
+      console.log("   Sell:", sellAmount / 10 ** DECIMALS, "Token A");
+      console.log("   Target Price:", targetPrice / 10 ** DECIMALS);
 
       const tx = await program.methods
         .createLimitOrder(
@@ -520,8 +515,8 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       const price = pool.reserveB.toNumber() / pool.reserveA.toNumber();
 
       console.log("\nPool:", poolPDA.toBase58().substring(0, 20) + "...");
-      console.log("   Reserve A:", pool.reserveA.toNumber() / 10**DECIMALS);
-      console.log("   Reserve B:", pool.reserveB.toNumber() / 10**DECIMALS);
+      console.log("   Reserve A:", pool.reserveA.toNumber() / 10 ** DECIMALS);
+      console.log("   Reserve B:", pool.reserveB.toNumber() / 10 ** DECIMALS);
       console.log("   Price: 1 A =", price.toFixed(4), "B");
       console.log("   Fee:", pool.feeNumerator + "/" + pool.feeDenominator);
 
@@ -530,9 +525,9 @@ describe("SolRush DEX - Comprehensive MVP Test Suite", () => {
       const userLp = await getAccount(connection, userLpTokenAccount);
 
       console.log("\nUser Balances:");
-      console.log("   Token A:", Number(userA.amount) / 10**DECIMALS);
-      console.log("   Token B:", Number(userB.amount) / 10**DECIMALS);
-      console.log("   LP:", Number(userLp.amount) / 10**DECIMALS);
+      console.log("   Token A:", Number(userA.amount) / 10 ** DECIMALS);
+      console.log("   Token B:", Number(userB.amount) / 10 ** DECIMALS);
+      console.log("   LP:", Number(userLp.amount) / 10 ** DECIMALS);
 
       console.log("\n============================================================");
       console.log("ALL TESTS COMPLETE!");

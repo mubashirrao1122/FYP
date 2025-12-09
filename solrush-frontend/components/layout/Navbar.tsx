@@ -38,6 +38,7 @@ export function Navbar() {
     { href: '/swap', label: 'Swap' },
     { href: '/pools', label: 'Pools' },
     { href: '/rewards', label: 'Rewards' },
+    { href: '/history', label: 'History' },
   ];
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');

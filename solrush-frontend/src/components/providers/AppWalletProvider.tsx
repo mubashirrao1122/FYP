@@ -6,7 +6,7 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { WalletError } from '@solana/wallet-adapter-base';
-import { DEVNET_RPC, NETWORK } from '@/lib/solana/constants';
+import { RPC_ENDPOINT, NETWORK } from '@/lib/solana/constants';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -17,12 +17,12 @@ interface AppWalletProviderProps {
 
 export const AppWalletProvider: FC<AppWalletProviderProps> = ({ children }) => {
     // Determine network based on environment
-    const network = NETWORK === 'mainnet' 
-        ? WalletAdapterNetwork.Mainnet 
+    const network = NETWORK === 'mainnet'
+        ? WalletAdapterNetwork.Mainnet
         : WalletAdapterNetwork.Devnet;
-    
-    // Use environment variable for RPC endpoint
-    const endpoint = process.env.NEXT_PUBLIC_RPC_URL || DEVNET_RPC;
+
+    // Use centralized RPC endpoint
+    const endpoint = RPC_ENDPOINT;
 
     // Initialize wallets
     const wallets = useMemo(
@@ -41,12 +41,12 @@ export const AppWalletProvider: FC<AppWalletProviderProps> = ({ children }) => {
     }, []);
 
     return (
-        <ConnectionProvider 
+        <ConnectionProvider
             endpoint={endpoint}
             config={{ commitment: 'confirmed' }}
         >
-            <WalletProvider 
-                wallets={wallets} 
+            <WalletProvider
+                wallets={wallets}
                 autoConnect
                 onError={onError}
             >

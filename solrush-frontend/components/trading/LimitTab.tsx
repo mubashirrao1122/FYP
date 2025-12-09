@@ -7,31 +7,31 @@ import { Button } from '@/components/ui/button';
 import { TokenSelect } from '@/components/ui/token-select';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
-import { LimitOrderDisplay, OrderStatus } from '@/lib/types';
+import { OrderStatus } from '@/lib/types';
+import { useLimitOrders } from '@/lib/hooks/useLimitOrders';
+import { AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
 
 export function LimitTab() {
     const { publicKey } = useWallet();
     const { toast } = useToast();
-    const [loading, setLoading] = useState(false);
 
     const [limitTargetPrice, setLimitTargetPrice] = useState('');
     const [limitInputAmount, setLimitInputAmount] = useState('');
     const [limitInputToken, setLimitInputToken] = useState('SOL');
     const [limitOutputToken, setLimitOutputToken] = useState('USDC');
     const [limitExpiry, setLimitExpiry] = useState('1');
-    const [limitOrders, setLimitOrders] = useState<LimitOrderDisplay[]>([
-        {
-            id: '1',
-            inputToken: 'SOL',
-            outputToken: 'USDC',
-            inputAmount: 5,
-            targetPrice: 95,
-            minReceive: 450,
-            status: OrderStatus.Pending,
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-            createdAt: new Date(),
-        },
-    ]);
+
+    // Use blockchain limit orders hook
+    const {
+        orders: limitOrders,
+        pendingOrders,
+        loading,
+        error,
+        txSignature,
+        createOrder,
+        cancelOrder,
+        clearError,
+    } = useLimitOrders();
 
     const handleCreateLimitOrder = async () => {
         if (!publicKey) {
@@ -55,60 +55,79 @@ export function LimitTab() {
             return;
         }
 
-        setLoading(true);
         try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            const expiresAt = new Date();
-            expiresAt.setDate(expiresAt.getDate() + parseInt(limitExpiry));
-
-            const newOrder: LimitOrderDisplay = {
-                id: Date.now().toString(),
-                inputToken: limitInputToken,
-                outputToken: limitOutputToken,
-                inputAmount: parseFloat(limitInputAmount),
+            const tx = await createOrder({
+                tokenA: limitInputToken,
+                tokenB: limitOutputToken,
+                amount: parseFloat(limitInputAmount),
                 targetPrice: parseFloat(limitTargetPrice),
-                minReceive: parseFloat(limitInputAmount) * parseFloat(limitTargetPrice),
-                status: OrderStatus.Pending,
-                expiresAt,
-                createdAt: new Date(),
-            };
-
-            setLimitOrders([...limitOrders, newOrder]);
-
-            toast({
-                title: 'Limit Order Created',
-                description: `Order to sell ${limitInputAmount} ${limitInputToken} at ${limitTargetPrice} created.`,
+                expiryDays: parseInt(limitExpiry),
             });
 
+            toast({
+                title: 'Limit Order Created!',
+                description: `Order to sell ${limitInputAmount} ${limitInputToken} at ${limitTargetPrice}. TX: ${tx.slice(0, 8)}...`,
+            });
+
+            // Clear form
             setLimitInputAmount('');
             setLimitTargetPrice('');
         } catch (error: any) {
+            console.error('Create limit order error:', error);
             toast({
                 title: 'Order Creation Failed',
                 description: error.message || 'Failed to create order.',
             });
-        } finally {
-            setLoading(false);
         }
     };
 
-    const handleCancelLimitOrder = (orderId: string) => {
-        setLimitOrders(
-            limitOrders.map((order) =>
-                order.id === orderId ? { ...order, status: OrderStatus.Cancelled } : order
-            )
-        );
+    const handleCancelLimitOrder = async (orderId: string) => {
+        try {
+            const tx = await cancelOrder(orderId);
 
-        toast({
-            title: 'Order Cancelled',
-            description: 'Limit order has been cancelled.',
-        });
+            toast({
+                title: 'Order Cancelled!',
+                description: `Limit order cancelled. TX: ${tx.slice(0, 8)}...`,
+            });
+        } catch (error: any) {
+            console.error('Cancel order error:', error);
+            toast({
+                title: 'Cancellation Failed',
+                description: error.message || 'Failed to cancel order.',
+            });
+        }
     };
 
     return (
         <div className="space-y-4">
+            {/* Error Display */}
+            {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                    <span className="text-sm text-red-500">{error}</span>
+                    <button onClick={clearError} className="ml-auto text-red-500 hover:text-red-400">
+                        ✕
+                    </button>
+                </div>
+            )}
+
+            {/* Transaction Success */}
+            {txSignature && (
+                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-green-500">
+                        <span>Transaction successful!</span>
+                        <a
+                            href={`https://explorer.solana.com/tx/${txSignature}?cluster=devnet`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 hover:underline"
+                        >
+                            View on Explorer <ExternalLink className="w-3 h-3" />
+                        </a>
+                    </div>
+                </div>
+            )}
+
             {/* Limit Order Form */}
             <div className="space-y-3 p-4 bg-white/5 rounded-lg border border-white/10">
                 <h3 className="text-sm font-semibold text-white">Create Order</h3>
@@ -182,17 +201,31 @@ export function LimitTab() {
                 <Button
                     onClick={handleCreateLimitOrder}
                     disabled={!publicKey || !limitInputAmount || !limitTargetPrice || loading}
-                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:opacity-50"
                 >
-                    {loading ? 'Creating...' : 'Create Limit Order'}
+                    {loading ? (
+                        <span className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Creating...
+                        </span>
+                    ) : (
+                        'Create Limit Order'
+                    )}
                 </Button>
             </div>
 
             {/* Active Orders List */}
-            {limitOrders.length > 0 && (
-                <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-white">Active Orders</h3>
-                    {limitOrders.map((order) => (
+            <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-white">
+                        Your Orders {loading && <Loader2 className="inline w-4 h-4 ml-2 animate-spin" />}
+                    </h3>
+                    <span className="text-xs text-white/50">
+                        {limitOrders.length} total · {pendingOrders.length} pending
+                    </span>
+                </div>
+                {limitOrders.length > 0 ? (
+                    limitOrders.map((order) => (
                         <div
                             key={order.id}
                             className="p-3 bg-white/5 rounded-lg border border-white/10 text-sm"
@@ -234,9 +267,14 @@ export function LimitTab() {
                                 </Button>
                             )}
                         </div>
-                    ))}
-                </div>
-            )}
+                    ))
+                ) : (
+                    <div className="p-8 text-center text-white/40">
+                        <p className="text-sm">No limit orders yet</p>
+                        <p className="text-xs mt-1">Create your first order above</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

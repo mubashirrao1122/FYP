@@ -37,6 +37,9 @@ pub mod solrush_dex {
     ) -> Result<()> {
         instructions::pool::remove_liquidity(ctx, lp_tokens_to_burn, min_amount_a, min_amount_b)
     }
+    pub fn close_pool(ctx: Context<ClosePool>) -> Result<()> {
+        instructions::pool::close_pool(ctx)
+    }
     pub fn swap(
         ctx: Context<Swap>,
         amount_in: u64,

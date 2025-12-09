@@ -3,11 +3,13 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { useState, useEffect, useCallback } from 'react';
 import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
-import { BN } from '@project-serum/anchor';
+import { BN } from '@coral-xyz/anchor';
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { getProgram, getReadOnlyProgram, toBN, fromBN } from '../anchor/setup';
 import { findPoolAddress, findLpMintAddress, findPositionAddress } from '../anchor/pda';
 import { getTokenMint, TOKEN_DECIMALS } from '../constants';
+import { calculateFeeBasisPoints } from '../types/pool';
+import { getTokenPrice } from '../services/priceService';
 
 export interface PoolData {
   address: string;
@@ -44,6 +46,17 @@ interface RemoveLiquidityParams {
   minAmountB: number;
 }
 
+export interface UserPosition {
+  lpTokens: number;            // User's LP token balance
+  depositTimestamp: Date;      // When position was created
+  lastClaimTimestamp: Date;    // Last time rewards claimed
+  totalRushClaimed: number;    // Total RUSH rewards claimed
+  shareOfPool: number;         // Percentage ownership of pool
+  valueA: number;              // Current value in token A
+  valueB: number;              // Current value in token B
+  totalValueUSD: number;       // Total position value estimate
+}
+
 /**
  * Custom hook for pool data management and liquidity operations
  */
@@ -51,6 +64,7 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
   const { connection } = useConnection();
   const wallet = useWallet();
   const [pool, setPool] = useState<PoolData | null>(null);
+  const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
@@ -76,22 +90,26 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const tokenBMint = getTokenMint(tokenBSymbol);
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
 
-      const poolAccount = await program.account.liquidityPool.fetch(poolPda);
+      const poolAccount = await (program.account as any).liquidityPool.fetch(poolPda);
 
       // Get LP mint address
-      const lpMint = poolAccount.poolMint as PublicKey;
+      const lpMint = poolAccount.lpTokenMint as PublicKey;
 
       // Get reserves (convert from BN)
-      const reserveA = (poolAccount.tokenAReserve as BN).toNumber();
-      const reserveB = (poolAccount.tokenBReserve as BN).toNumber();
+      const reserveA = (poolAccount.reserveA as BN).toNumber();
+      const reserveB = (poolAccount.reserveB as BN).toNumber();
 
-      // Calculate TVL (simplified - assumes SOL price = $100 for demo)
-      const solPrice = 100;
+      // Fetch real token prices
       const decimalA = TOKEN_DECIMALS[tokenASymbol] || 9;
       const decimalB = TOKEN_DECIMALS[tokenBSymbol] || 6;
 
-      const valueA = (reserveA / Math.pow(10, decimalA)) * (tokenASymbol === 'SOL' ? solPrice : 1);
-      const valueB = (reserveB / Math.pow(10, decimalB)) * (tokenBSymbol === 'SOL' ? solPrice : 1);
+      const [priceA, priceB] = await Promise.all([
+        getTokenPrice(tokenASymbol),
+        getTokenPrice(tokenBSymbol),
+      ]);
+
+      const valueA = (reserveA / Math.pow(10, decimalA)) * priceA;
+      const valueB = (reserveB / Math.pow(10, decimalB)) * priceB;
       const tvl = valueA + valueB;
 
       // Get user's LP balance if connected
@@ -106,6 +124,12 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
         }
       }
 
+      // Calculate fee from numerator/denominator
+      const feeBasisPoints = calculateFeeBasisPoints(
+        poolAccount.feeNumerator as BN,
+        poolAccount.feeDenominator as BN
+      );
+
       const poolData: PoolData = {
         address: poolPda.toBase58(),
         tokenA: tokenASymbol,
@@ -116,8 +140,8 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
         reserveB,
         totalLPSupply: 0, // Will be fetched from mint
         lpTokenDecimals: 6,
-        fee: (poolAccount.feeBasisPoints as number) / 10000,
-        feeBasisPoints: poolAccount.feeBasisPoints as number,
+        fee: feeBasisPoints / 10000,
+        feeBasisPoints,
         tvl,
         apy: 0, // Calculate based on historical data
         userLpBalance,
@@ -139,6 +163,87 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       setLoading(false);
     }
   }, [connection, wallet.publicKey, tokenASymbol, tokenBSymbol]);
+
+  /**
+   * Fetch user's liquidity position from blockchain
+   */
+  const fetchUserPosition = useCallback(async (): Promise<UserPosition | null> => {
+    if (!wallet.publicKey || !tokenASymbol || !tokenBSymbol || !pool) {
+      setUserPosition(null);
+      return null;
+    }
+
+    try {
+      const program = getReadOnlyProgram(connection);
+      if (!program) {
+        throw new Error('Failed to initialize program');
+      }
+
+      const tokenAMint = getTokenMint(tokenASymbol);
+      const tokenBMint = getTokenMint(tokenBSymbol);
+      const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
+      const [positionPda] = findPositionAddress(poolPda, wallet.publicKey);
+
+      // Fetch position account (may not exist)
+      const positionAccount = await (program.account as any).userLiquidityPosition.fetchNullable(positionPda);
+
+      // Get user's LP token balance
+      const lpMint = pool.lpMint;
+      const userLpAccount = await getAssociatedTokenAddress(lpMint, wallet.publicKey);
+      let lpTokens = 0;
+      try {
+        const lpBalance = await connection.getTokenAccountBalance(userLpAccount);
+        lpTokens = parseFloat(lpBalance.value.uiAmountString || '0');
+      } catch {
+        // User doesn't have LP tokens yet
+      }
+
+      if (!positionAccount || lpTokens === 0) {
+        setUserPosition(null);
+        return null;
+      }
+
+      // Calculate share of pool
+      const totalLPSupply = pool.totalLPSupply || 1;
+      const shareOfPool = (lpTokens / totalLPSupply) * 100;
+
+      // Calculate current value using pool reserves
+      const shareDecimal = lpTokens / totalLPSupply;
+      const decimalA = TOKEN_DECIMALS[tokenASymbol] || 9;
+      const decimalB = TOKEN_DECIMALS[tokenBSymbol] || 6;
+
+      const valueA = pool.reserveA * shareDecimal;
+      const valueB = pool.reserveB * shareDecimal;
+
+      // Estimate USD value (simplified)
+      const solPrice = 100; // Mock price
+      const tokenAPrice = tokenASymbol === 'SOL' ? solPrice : 1;
+      const tokenBPrice = tokenBSymbol === 'SOL' ? solPrice : 1;
+
+      const totalValueUSD =
+        (valueA / Math.pow(10, decimalA)) * tokenAPrice +
+        (valueB / Math.pow(10, decimalB)) * tokenBPrice;
+
+      const position: UserPosition = {
+        lpTokens,
+        depositTimestamp: new Date((positionAccount.depositedAt as BN).toNumber() * 1000),
+        lastClaimTimestamp: new Date((positionAccount.lastClaim as BN).toNumber() * 1000),
+        totalRushClaimed: fromBN(positionAccount.totalRushClaimed as BN, 6),
+        shareOfPool,
+        valueA,
+        valueB,
+        totalValueUSD,
+      };
+
+      setUserPosition(position);
+      return position;
+    } catch (err: any) {
+      console.error('Failed to fetch user position:', err);
+      setUserPosition(null);
+      return null;
+    }
+  }, [connection, wallet.publicKey, tokenASymbol, tokenBSymbol, pool]);
+
 
   /**
    * Calculate LP tokens to receive when adding liquidity
@@ -196,9 +301,9 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
 
       // Fetch pool to get vault addresses
-      const poolAccount = await program.account.liquidityPool.fetch(poolPda);
+      const poolAccount = await (program.account as any).liquidityPool.fetch(poolPda);
 
-      const lpMint = poolAccount.poolMint as PublicKey;
+      const lpMint = poolAccount.lpTokenMint as PublicKey;
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
 
@@ -275,9 +380,9 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
 
       // Fetch pool to get vault addresses
-      const poolAccount = await program.account.liquidityPool.fetch(poolPda);
+      const poolAccount = await (program.account as any).liquidityPool.fetch(poolPda);
 
-      const lpMint = poolAccount.poolMint as PublicKey;
+      const lpMint = poolAccount.lpTokenMint as PublicKey;
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
 
@@ -330,6 +435,58 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
   }, [connection, wallet, tokenASymbol, tokenBSymbol, fetchPoolData]);
 
   /**
+   * Close the pool (only if empty)
+   */
+  const closePool = useCallback(async (): Promise<string> => {
+    if (!wallet.publicKey || !tokenASymbol || !tokenBSymbol) {
+      throw new Error('Wallet not connected or pool not specified');
+    }
+
+    setLoading(true);
+    setError(null);
+    setTxSignature(null);
+
+    try {
+      const program = getProgram(connection, wallet);
+      if (!program) {
+        throw new Error('Failed to initialize program');
+      }
+
+      const tokenAMint = getTokenMint(tokenASymbol);
+      const tokenBMint = getTokenMint(tokenBSymbol);
+      const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
+
+      // Fetch pool to get vault addresses
+      const poolAccount = await program.account.liquidityPool.fetch(poolPda);
+      const tokenAVault = poolAccount.tokenAVault as PublicKey;
+      const tokenBVault = poolAccount.tokenBVault as PublicKey;
+
+      const tx = await program.methods
+        .closePool()
+        .accounts({
+          pool: poolPda,
+          authority: wallet.publicKey,
+          tokenAVault,
+          tokenBVault,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+      setTxSignature(tx);
+      setPool(null); // Pool is closed
+
+      return tx;
+    } catch (err: any) {
+      console.error("Close pool error:", err);
+      const errorMsg = err.message || 'Failed to close pool';
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [connection, wallet, tokenASymbol, tokenBSymbol]);
+
+  /**
    * Calculate expected tokens when removing liquidity
    */
   const calculateRemoveAmounts = useCallback((lpAmount: number): { amountA: number; amountB: number } => {
@@ -369,14 +526,26 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
     return () => clearInterval(interval);
   }, [fetchPoolData, tokenASymbol, tokenBSymbol]);
 
+  // Fetch user position when pool or wallet changes
+  useEffect(() => {
+    if (pool && wallet.publicKey) {
+      fetchUserPosition();
+    } else {
+      setUserPosition(null);
+    }
+  }, [pool, wallet.publicKey, fetchUserPosition]);
+
   return {
     pool,
+    userPosition,
     loading,
     error,
     txSignature,
     fetchPoolData,
+    fetchUserPosition,
     addLiquidity,
     removeLiquidity,
+    closePool,
     calculateLPTokens,
     calculatePoolShare,
     calculateRemoveAmounts,

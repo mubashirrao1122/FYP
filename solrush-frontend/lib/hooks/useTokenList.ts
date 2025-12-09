@@ -26,6 +26,12 @@ export const useTokenList = () => {
                 setTokens(data);
             } catch (err: any) {
                 console.error('Error fetching token list:', err);
+                // Fallback to basic tokens for local dev
+                setTokens([
+                    { symbol: 'SOL', name: 'Solana', address: 'So11111111111111111111111111111111111111112', decimals: 9 },
+                    { symbol: 'USDC', name: 'USD Coin', address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', decimals: 6 },
+                    { symbol: 'USDT', name: 'Tether USD', address: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', decimals: 6 },
+                ]);
                 setError(err.message);
             } finally {
                 setLoading(false);

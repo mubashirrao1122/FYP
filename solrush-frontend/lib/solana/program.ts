@@ -1,5 +1,5 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-import { Program } from "@project-serum/anchor";
+import { Program } from "@coral-xyz/anchor";
 import { getProgram as getAnchorProgram, getReadOnlyProgram, PROGRAM_ID } from "../anchor/setup";
 
 // Anchor program instance cache

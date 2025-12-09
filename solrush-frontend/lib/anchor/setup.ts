@@ -1,4 +1,4 @@
-import { Program, Idl, AnchorProvider, setProvider, BN } from "@project-serum/anchor";
+import { Program, Idl, AnchorProvider, setProvider, BN } from "@coral-xyz/anchor";
 import { Connection, PublicKey, Commitment } from "@solana/web3.js";
 import rawIdl from "../solana/idl.json";
 
@@ -6,13 +6,13 @@ import rawIdl from "../solana/idl.json";
 const idl = {
     ...rawIdl,
     metadata: {
-        address: process.env.NEXT_PUBLIC_PROGRAM_ID || "HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp"
+        address: process.env.NEXT_PUBLIC_PROGRAM_ID || "BJfcNtEyhU4wArQsyXkHZ9jmR7KD7KPHAGUwUySNnA5z"
     }
 } as unknown as Idl;
 
 // Define the program ID - should match Anchor.toml
 export const PROGRAM_ID = new PublicKey(
-    process.env.NEXT_PUBLIC_PROGRAM_ID || "HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp"
+    process.env.NEXT_PUBLIC_PROGRAM_ID || "BJfcNtEyhU4wArQsyXkHZ9jmR7KD7KPHAGUwUySNnA5z"
 );
 
 // Network configuration
@@ -46,7 +46,7 @@ export const getProvider = (connection: Connection, wallet: any): AnchorProvider
 export const getProgram = (connection: Connection, wallet: any): Program | null => {
     try {
         const provider = getProvider(connection, wallet);
-        return new Program(idl, PROGRAM_ID, provider);
+        return new Program(idl, provider);
     } catch (error) {
         console.error("Failed to create program:", error);
         return null;
@@ -65,7 +65,7 @@ export const getReadOnlyProgram = (connection: Connection): Program | null => {
             signAllTransactions: async () => { throw new Error("Read-only"); },
         };
         const provider = new AnchorProvider(connection, readOnlyWallet as any, PROVIDER_OPTIONS);
-        return new Program(idl, PROGRAM_ID, provider);
+        return new Program(idl, provider);
     } catch (error) {
         console.error("Failed to create read-only program:", error);
         return null;

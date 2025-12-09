@@ -1,12 +1,17 @@
 import { PublicKey } from "@solana/web3.js";
 
 // Network Configuration - Use environment variables
+export const LOCALNET_RPC = "http://127.0.0.1:8899";
 export const DEVNET_RPC = process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com";
 export const MAINNET_RPC = process.env.NEXT_PUBLIC_MAINNET_RPC_URL || "https://api.mainnet-beta.solana.com";
 
 // Current Network
-export const NETWORK = process.env.NEXT_PUBLIC_NETWORK || "devnet";
-export const RPC_ENDPOINT = NETWORK === "mainnet" ? MAINNET_RPC : DEVNET_RPC;
+export const NETWORK = process.env.NEXT_PUBLIC_NETWORK || "localnet";
+
+export const RPC_ENDPOINT =
+  NETWORK === "mainnet" ? MAINNET_RPC :
+    NETWORK === "devnet" ? DEVNET_RPC :
+      LOCALNET_RPC;
 
 // Program ID
 export const PROGRAM_ID = new PublicKey(
@@ -71,7 +76,10 @@ export const TX_DEADLINE_SECONDS = 300; // 5 minutes
 
 // Explorer URLs
 export const EXPLORER_BASE_URL = "https://explorer.solana.com";
-export const EXPLORER_CLUSTER = NETWORK === "mainnet" ? "" : `?cluster=${NETWORK}`;
+export const EXPLORER_CLUSTER =
+  NETWORK === "mainnet" ? "" :
+    NETWORK === "devnet" ? "?cluster=devnet" :
+      "?cluster=custom&customUrl=" + encodeURIComponent(LOCALNET_RPC);
 
 export const getExplorerTxUrl = (signature: string): string => {
   return `${EXPLORER_BASE_URL}/tx/${signature}${EXPLORER_CLUSTER}`;

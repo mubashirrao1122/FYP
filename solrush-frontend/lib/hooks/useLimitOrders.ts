@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
-import { BN } from '@project-serum/anchor';
+import { BN } from '@coral-xyz/anchor';
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { getProgram, getReadOnlyProgram, toBN, fromBN } from '../anchor/setup';
 import { findPoolAddress, findLimitOrderAddress } from '../anchor/pda';
@@ -24,7 +24,7 @@ export interface CreateLimitOrderParams {
 export const useLimitOrders = () => {
     const { connection } = useConnection();
     const wallet = useWallet();
-    
+
     const [orders, setOrders] = useState<LimitOrderDisplay[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -79,7 +79,7 @@ export const useLimitOrders = () => {
 
             // Sort by creation date, newest first
             displayOrders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-            
+
             setOrders(displayOrders);
         } catch (err: any) {
             console.error('Failed to fetch limit orders:', err);
@@ -125,7 +125,7 @@ export const useLimitOrders = () => {
             // Calculate amounts
             const sellDecimals = TOKEN_DECIMALS[params.tokenA] || 9;
             const buyDecimals = TOKEN_DECIMALS[params.tokenB] || 6;
-            
+
             const sellAmountBN = toBN(params.amount, sellDecimals);
             const targetPriceBN = toBN(params.targetPrice, 6); // Price in 6 decimals
             const minimumReceiveBN = toBN(params.amount * params.targetPrice * 0.99, buyDecimals); // 1% slippage
@@ -156,7 +156,7 @@ export const useLimitOrders = () => {
                 .rpc();
 
             setTxSignature(tx);
-            
+
             // Refresh orders list
             await fetchOrders();
 
@@ -211,7 +211,7 @@ export const useLimitOrders = () => {
                 .rpc();
 
             setTxSignature(tx);
-            
+
             // Refresh orders list
             await fetchOrders();
 

@@ -12,13 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TokenSelect } from '@/components/ui/token-select';
-import { Settings } from 'lucide-react';
 import { useSwap } from '@/lib/hooks/useSwap';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 import { SwapTab } from './SwapTab';
 import { BuyTab } from './BuyTab';
 import { SellTab } from './SellTab';
+import { SlippageSettings } from '@/components/common/SlippageSettings';
 
 interface LimitOrder {
   id: string;
@@ -47,7 +47,6 @@ export function SwapInterface({ onTokenChange }: SwapInterfaceProps = {}) {
 
   // Swap state
   const [slippageTolerance, setSlippageTolerance] = useState(1.0);
-  const [showSlippageSettings, setShowSlippageSettings] = useState(false);
 
   // Limit order state
   const [limitTargetPrice, setLimitTargetPrice] = useState('');
@@ -142,52 +141,13 @@ export function SwapInterface({ onTokenChange }: SwapInterfaceProps = {}) {
           <div>
             <CardTitle className="text-xl font-bold text-white">Swap</CardTitle>
           </div>
-          <button
-            onClick={() => setShowSlippageSettings(!showSlippageSettings)}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors text-white/70 hover:text-white"
-            title="Slippage settings"
-          >
-            <Settings className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Slippage Settings */}
-        {showSlippageSettings && (
-          <div className="mt-4 p-4 bg-black/20 rounded-xl border border-white/5 animate-in slide-in-from-top-2">
-            <label className="text-xs font-bold text-white/50 uppercase tracking-wider block mb-3">
-              Slippage Tolerance
-            </label>
-            <div className="flex gap-2">
-              {[0.1, 0.5, 1.0, 3.0].map((value) => (
-                <button
-                  key={value}
-                  onClick={() => setSlippageTolerance(value)}
-                  className={cn(
-                    'flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all',
-                    slippageTolerance === value
-                      ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
-                      : 'bg-white/5 text-white/70 hover:bg-white/10'
-                  )}
-                >
-                  {value}%
-                </button>
-              ))}
-            </div>
-            <div className="relative mt-3">
-              <input
-                type="number"
-                min="0"
-                max="50"
-                step="0.1"
-                value={slippageTolerance}
-                onChange={(e) => setSlippageTolerance(parseFloat(e.target.value))}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
-                placeholder="Custom %"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 text-sm">%</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <SlippageSettings
+              slippage={slippageTolerance}
+              setSlippage={setSlippageTolerance}
+            />
           </div>
-        )}
+        </div>
       </CardHeader>
 
       <CardContent>

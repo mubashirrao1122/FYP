@@ -20,7 +20,7 @@ export interface TokenBalance {
 export function useBalance() {
     const { connection } = useConnection();
     const { publicKey } = useWallet();
-    
+
     const [balances, setBalances] = useState<Record<string, TokenBalance>>({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export function useBalance() {
      */
     const fetchSolBalance = useCallback(async (): Promise<number> => {
         if (!publicKey) return 0;
-        
+
         try {
             const balance = await connection.getBalance(publicKey);
             return balance / LAMPORTS_PER_SOL;
@@ -45,7 +45,7 @@ export function useBalance() {
      */
     const fetchTokenBalance = useCallback(async (symbol: string): Promise<number> => {
         if (!publicKey) return 0;
-        
+
         try {
             const mint = getTokenMint(symbol);
             const tokenAccount = await getAssociatedTokenAddress(mint, publicKey);
@@ -72,12 +72,12 @@ export function useBalance() {
         try {
             const tokenSymbols = Object.keys(TOKENS);
             const balancePromises = tokenSymbols.map(async (symbol) => {
-                const balance = symbol === 'SOL' 
+                const balance = symbol === 'SOL'
                     ? await fetchSolBalance()
                     : await fetchTokenBalance(symbol);
-                
+
                 const decimals = TOKEN_DECIMALS[symbol] || 9;
-                
+
                 return {
                     symbol,
                     balance,
@@ -88,7 +88,7 @@ export function useBalance() {
             });
 
             const results = await Promise.all(balancePromises);
-            
+
             const balanceMap: Record<string, TokenBalance> = {};
             results.forEach(result => {
                 balanceMap[result.symbol] = result;
@@ -174,3 +174,78 @@ export function useBalance() {
 }
 
 export default useBalance;
+
+/**
+ * Hook to fetch and manage a single token balance
+ * Optimized for individual token queries with auto-refresh
+ */
+export function useTokenBalance(tokenSymbol: string) {
+    const { connection } = useConnection();
+    const { publicKey } = useWallet();
+
+    const [balance, setBalance] = useState<number>(0);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchBalance = useCallback(async () => {
+        if (!publicKey) {
+            setBalance(0);
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            let balanceValue = 0;
+
+            if (tokenSymbol.toUpperCase() === 'SOL') {
+                // Fetch SOL balance
+                const solBalance = await connection.getBalance(publicKey);
+                balanceValue = solBalance / LAMPORTS_PER_SOL;
+            } else {
+                // Fetch SPL token balance
+                try {
+                    const mint = getTokenMint(tokenSymbol);
+                    const tokenAccount = await getAssociatedTokenAddress(mint, publicKey);
+                    const accountBalance = await connection.getTokenAccountBalance(tokenAccount);
+                    balanceValue = parseFloat(accountBalance.value.uiAmountString || '0');
+                } catch (err) {
+                    // Token account doesn't exist, balance is 0
+                    balanceValue = 0;
+                }
+            }
+
+            setBalance(balanceValue);
+        } catch (err: any) {
+            console.error(`Failed to fetch ${tokenSymbol} balance:`, err);
+            setError(err.message || 'Failed to fetch balance');
+            setBalance(0);
+        } finally {
+            setLoading(false);
+        }
+    }, [connection, publicKey, tokenSymbol]);
+
+    // Fetch balance on mount and when dependencies change
+    useEffect(() => {
+        fetchBalance();
+    }, [fetchBalance]);
+
+    // Auto-refresh balance every 10 seconds
+    useEffect(() => {
+        if (!publicKey) return;
+
+        const interval = setInterval(() => {
+            fetchBalance();
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, [publicKey, fetchBalance]);
+
+    return {
+        balance,
+        loading,
+        error,
+        refresh: fetchBalance,
+    };
+}
