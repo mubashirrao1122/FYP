@@ -62,16 +62,44 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
 
         setFetchingPositions(true);
         try {
-            // TODO: Implement actual LP balance fetching from blockchain
-            // For now, simulate some positions for demo
-            const mockPositions = pools.slice(0, 2).map(pool => ({
-                ...pool,
-                lpBalance: Math.random() * 1000,
-                userShare: Math.random() * 5, // 0-5%
-                positionValue: Math.random() * 10000,
-            }));
+            // Fetch real LP balances from blockchain for each pool
+            const { getAssociatedTokenAddress } = await import('@solana/spl-token');
+            const { PublicKey } = await import('@solana/web3.js');
+            
+            const positionsWithBalances: Pool[] = [];
+            
+            for (const pool of pools) {
+                try {
+                    if (!pool.lpMint) continue;
+                    
+                    const lpMintPubkey = new PublicKey(pool.lpMint);
+                    const userLpAccount = await getAssociatedTokenAddress(lpMintPubkey, publicKey);
+                    
+                    const balance = await connection.getTokenAccountBalance(userLpAccount);
+                    const lpBalance = parseFloat(balance.value.uiAmountString || '0');
+                    
+                    if (lpBalance > 0) {
+                        // Calculate user's share of the pool
+                        const totalLpSupply = pool.totalLPSupply || 1;
+                        const userShare = (lpBalance / totalLpSupply) * 100;
+                        
+                        // Calculate position value based on user's share
+                        const positionValue = pool.tvl * (userShare / 100);
+                        
+                        positionsWithBalances.push({
+                            ...pool,
+                            lpBalance,
+                            userShare,
+                            positionValue,
+                        });
+                    }
+                } catch (err) {
+                    // User doesn't have LP tokens for this pool
+                    console.log(`No LP tokens for pool ${pool.name}`);
+                }
+            }
 
-            setUserPositions(mockPositions);
+            setUserPositions(positionsWithBalances);
         } catch (error) {
             console.error('Failed to fetch user positions:', error);
             setUserPositions([]);

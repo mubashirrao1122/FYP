@@ -7,10 +7,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-solrush_dex = "HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp"
+solrush_dex = "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1"
 
 [programs.localnet]
-solrush_dex = "HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp"
+solrush_dex = "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1"
 
 [registry]
 url = "https://api.apr.dev"

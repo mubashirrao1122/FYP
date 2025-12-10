@@ -1,5 +1,5 @@
 {
-  "address": "HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp",
+  "address": "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1",
   "metadata": {
     "name": "solrush_dex",
     "version": "0.1.0",
@@ -312,6 +312,75 @@
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_pool",
+      "discriminator": [
+        140,
+        189,
+        209,
+        23,
+        239,
+        62,
+        239,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.token_a_mint",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool.token_b_mint",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "token_a_vault",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "token_b_vault",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
@@ -1302,76 +1371,81 @@
     },
     {
       "code": 6009,
+      "name": "PoolNotEmpty",
+      "msg": "Pool is not empty"
+    },
+    {
+      "code": 6010,
       "name": "InsufficientBalance",
       "msg": "Insufficient user token balance"
     },
     {
-      "code": 6010,
+      "code": 6011,
       "name": "OrderNotFound",
       "msg": "Limit order not found"
     },
     {
-      "code": 6011,
+      "code": 6012,
       "name": "InvalidOrderStatus",
       "msg": "Invalid order status for this operation"
     },
     {
-      "code": 6012,
+      "code": 6013,
       "name": "OrderExpired",
       "msg": "Limit order has expired"
     },
     {
-      "code": 6013,
+      "code": 6014,
       "name": "UnauthorizedOrderOwner",
       "msg": "Only order owner can cancel"
     },
     {
-      "code": 6014,
+      "code": 6015,
       "name": "PriceConditionNotMet",
       "msg": "Price condition not met for execution"
     },
     {
-      "code": 6015,
+      "code": 6016,
       "name": "InvalidExpiryTime",
       "msg": "Invalid expiry time"
     },
     {
-      "code": 6016,
+      "code": 6017,
       "name": "InvalidAuthority",
       "msg": "Invalid authority - must be configured authority"
     },
     {
-      "code": 6017,
+      "code": 6018,
       "name": "RewardsPaused",
       "msg": "RUSH rewards are currently paused"
     },
     {
-      "code": 6018,
+      "code": 6019,
       "name": "InvalidAPY",
       "msg": "Invalid APY configuration"
     },
     {
-      "code": 6019,
+      "code": 6020,
       "name": "SupplyExhausted",
       "msg": "RUSH token supply exhausted"
     },
     {
-      "code": 6020,
+      "code": 6021,
       "name": "DeadlineExceeded",
       "msg": "Transaction deadline exceeded"
     },
     {
-      "code": 6021,
+      "code": 6022,
       "name": "InvalidVault",
       "msg": "Invalid vault - must be pool's token vault"
     },
     {
-      "code": 6022,
+      "code": 6023,
       "name": "InvalidPool",
       "msg": "Invalid pool - order does not belong to this pool"
     },
     {
-      "code": 6023,
+      "code": 6024,
       "name": "InvalidMint",
       "msg": "Invalid LP mint - must be pool's LP token mint"
     }

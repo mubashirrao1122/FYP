@@ -51,19 +51,39 @@ export const usePoolsService = () => {
         setError(null);
 
         try {
+            console.log('[usePoolsService] fetchPools called');
+            console.log('[usePoolsService] connection:', connection);
+            console.log('[usePoolsService] connection.rpcEndpoint:', connection?.rpcEndpoint);
+            
+            if (!connection) {
+                console.error('[usePoolsService] No connection available');
+                setError('No connection available');
+                setLoading(false);
+                return;
+            }
+            
+            console.log('Fetching pools from blockchain...');
+            console.log('Connection endpoint:', connection.rpcEndpoint);
+            
             const program = getReadOnlyProgram(connection);
 
             if (!program) {
+                console.error('Program not available');
                 setError('Program not available. Check network connection and program deployment.');
                 setPools([]);
                 return;
             }
 
+            console.log('Program loaded, fetching liquidityPool accounts...');
+            
             // Fetch all LiquidityPool accounts from the blockchain
             const poolAccounts = await (program.account as any).liquidityPool.all();
+            
+            console.log('Found', poolAccounts.length, 'pools on blockchain');
 
             if (poolAccounts.length === 0) {
                 // Empty state is not an error - just no pools initialized yet
+                console.log('No pools found - empty state');
                 setPools([]);
                 return;
             }
@@ -77,8 +97,16 @@ export const usePoolsService = () => {
                     // Get token symbols from mints
                     const tokenAMint = (poolData.tokenAMint as PublicKey).toBase58();
                     const tokenBMint = (poolData.tokenBMint as PublicKey).toBase58();
+                    
+                    console.log('Processing pool:', poolAddress);
+                    console.log('  Token A Mint:', tokenAMint);
+                    console.log('  Token B Mint:', tokenBMint);
+                    
                     const tokenASymbol = getTokenSymbol(tokenAMint) || 'TOKEN_A';
                     const tokenBSymbol = getTokenSymbol(tokenBMint) || 'TOKEN_B';
+                    
+                    console.log('  Token A Symbol:', tokenASymbol);
+                    console.log('  Token B Symbol:', tokenBSymbol);
 
                     // Get decimals for proper conversion
                     const decimalsA = TOKEN_DECIMALS[tokenASymbol] || 9;

@@ -2,7 +2,7 @@
 
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { useState, useEffect, useCallback } from 'react';
-import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Keypair } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { getProgram, getReadOnlyProgram, toBN, fromBN } from '../anchor/setup';
@@ -300,42 +300,69 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const tokenBMint = getTokenMint(tokenBSymbol);
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
 
-      // Fetch pool to get vault addresses
+      // Fetch pool to get vault addresses and the actual mint order
       const poolAccount = await (program.account as any).liquidityPool.fetch(poolPda);
 
       const lpMint = poolAccount.lpTokenMint as PublicKey;
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
+      
+      // Get the actual mints stored in the pool (sorted order)
+      const poolTokenAMint = poolAccount.tokenAMint as PublicKey;
+      const poolTokenBMint = poolAccount.tokenBMint as PublicKey;
 
-      // Get user token accounts
-      const userTokenA = await getAssociatedTokenAddress(tokenAMint, wallet.publicKey);
-      const userTokenB = await getAssociatedTokenAddress(tokenBMint, wallet.publicKey);
+      // Determine if user's selected order matches pool's sorted order
+      const userSelectedAMatchesPoolA = tokenAMint.equals(poolTokenAMint);
+      
+      // Get user token accounts based on POOL's mint order (not user's selection)
+      const userTokenA = await getAssociatedTokenAddress(poolTokenAMint, wallet.publicKey);
+      const userTokenB = await getAssociatedTokenAddress(poolTokenBMint, wallet.publicKey);
       const userLpToken = await getAssociatedTokenAddress(lpMint, wallet.publicKey);
 
       // Get user position PDA
       const [userPosition] = findPositionAddress(poolPda, wallet.publicKey);
 
-      // Convert amounts
+      // Convert amounts - swap if user's order doesn't match pool's order
       const decimalA = TOKEN_DECIMALS[tokenASymbol] || 9;
       const decimalB = TOKEN_DECIMALS[tokenBSymbol] || 6;
+      
+      // Get the decimals for pool's token order
+      const poolDecimalA = poolAccount.tokenADecimals || 9;
+      const poolDecimalB = poolAccount.tokenBDecimals || 6;
 
-      const amountABN = toBN(params.amountA, decimalA);
-      const amountBBN = toBN(params.amountB, decimalB);
+      // If user selected A is pool's A, amounts stay same; otherwise swap
+      let amountABN: BN, amountBBN: BN;
+      if (userSelectedAMatchesPoolA) {
+        amountABN = toBN(params.amountA, poolDecimalA);
+        amountBBN = toBN(params.amountB, poolDecimalB);
+      } else {
+        // User's "A" is actually pool's "B" and vice versa
+        amountABN = toBN(params.amountB, poolDecimalA);
+        amountBBN = toBN(params.amountA, poolDecimalB);
+      }
 
+      console.log('Add liquidity with:', {
+        poolTokenAMint: poolTokenAMint.toBase58(),
+        poolTokenBMint: poolTokenBMint.toBase58(),
+        userSelectedAMatchesPoolA,
+        amountA: amountABN.toString(),
+        amountB: amountBBN.toString(),
+      });
+
+      // Use camelCase account names (Anchor SDK converts snake_case IDL to camelCase)
       const tx = await program.methods
-        .addLiquidity(amountABN, amountBBN)
+        .addLiquidity(amountABN, amountBBN, new BN(0)) // minLpTokens = 0
         .accounts({
-          user: wallet.publicKey,
           pool: poolPda,
-          userTokenA,
-          userTokenB,
-          tokenAVault,
-          tokenBVault,
           lpTokenMint: lpMint,
+          userPosition: userPosition,
+          tokenAVault: tokenAVault,
+          tokenBVault: tokenBVault,
+          userTokenA: userTokenA,
+          userTokenB: userTokenB,
           userLpTokenAccount: userLpToken,
-          userPosition,
+          user: wallet.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
         })
@@ -379,41 +406,49 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const tokenBMint = getTokenMint(tokenBSymbol);
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
 
-      // Fetch pool to get vault addresses
+      // Fetch pool to get vault addresses and actual mint order
       const poolAccount = await (program.account as any).liquidityPool.fetch(poolPda);
 
       const lpMint = poolAccount.lpTokenMint as PublicKey;
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
+      
+      // Get the actual mints stored in the pool (sorted order)
+      const poolTokenAMint = poolAccount.tokenAMint as PublicKey;
+      const poolTokenBMint = poolAccount.tokenBMint as PublicKey;
 
-      // Get user token accounts
-      const userTokenA = await getAssociatedTokenAddress(tokenAMint, wallet.publicKey);
-      const userTokenB = await getAssociatedTokenAddress(tokenBMint, wallet.publicKey);
+      // Get user token accounts based on POOL's mint order (not user's selection)
+      const userTokenA = await getAssociatedTokenAddress(poolTokenAMint, wallet.publicKey);
+      const userTokenB = await getAssociatedTokenAddress(poolTokenBMint, wallet.publicKey);
       const userLpToken = await getAssociatedTokenAddress(lpMint, wallet.publicKey);
 
       // Get user position PDA
       const [userPosition] = findPositionAddress(poolPda, wallet.publicKey);
 
-      // Convert amounts
-      const decimalA = TOKEN_DECIMALS[tokenASymbol] || 9;
-      const decimalB = TOKEN_DECIMALS[tokenBSymbol] || 6;
+      // LP tokens have 6 decimals, min amounts use 0 for simplicity
+      const lpAmountBN = toBN(params.lpTokenAmount, 6);
+      const minAmountABN = new BN(0); // Allow any output for now
+      const minAmountBBN = new BN(0);
 
-      const lpAmountBN = toBN(params.lpTokenAmount, 6); // LP tokens have 6 decimals
-      const minAmountABN = toBN(params.minAmountA, decimalA);
-      const minAmountBBN = toBN(params.minAmountB, decimalB);
+      console.log('Remove liquidity with:', {
+        poolTokenAMint: poolTokenAMint.toBase58(),
+        poolTokenBMint: poolTokenBMint.toBase58(),
+        lpAmount: lpAmountBN.toString(),
+      });
 
+      // Use camelCase account names (Anchor SDK converts snake_case IDL to camelCase)
       const tx = await program.methods
         .removeLiquidity(lpAmountBN, minAmountABN, minAmountBBN)
         .accounts({
-          user: wallet.publicKey,
           pool: poolPda,
           lpTokenMint: lpMint,
-          userPosition,
-          tokenAVault,
-          tokenBVault,
+          userPosition: userPosition,
+          tokenAVault: tokenAVault,
+          tokenBVault: tokenBVault,
           userLpTokenAccount: userLpToken,
-          userTokenA,
-          userTokenB,
+          userTokenA: userTokenA,
+          userTokenB: userTokenB,
+          user: wallet.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
@@ -593,33 +628,46 @@ export function useCreatePool() {
       const [poolPda] = findPoolAddress(mintA, mintB);
       const [lpMintPda] = findLpMintAddress(poolPda);
 
-      // Derive vault addresses (automatically created by program)
-      const tokenAVault = await getAssociatedTokenAddress(
-        mintA,
-        poolPda,
-        true // Allow owner off curve (PDA)
-      );
-      const tokenBVault = await getAssociatedTokenAddress(
-        mintB,
-        poolPda,
-        true
+      // Generate keypairs for vault accounts (they need to be initialized)
+      const tokenAVaultKeypair = Keypair.generate();
+      const tokenBVaultKeypair = Keypair.generate();
+
+      // Derive user's LP token account address
+      const userLpTokenAccount = await getAssociatedTokenAddress(
+        lpMintPda,
+        wallet.publicKey
       );
 
+      console.log('Creating pool with accounts:', {
+        pool: poolPda.toBase58(),
+        lpMint: lpMintPda.toBase58(),
+        tokenAMint: mintA.toBase58(),
+        tokenBMint: mintB.toBase58(),
+        tokenAVault: tokenAVaultKeypair.publicKey.toBase58(),
+        tokenBVault: tokenBVaultKeypair.publicKey.toBase58(),
+        lpTokenAccount: userLpTokenAccount.toBase58(),
+        authority: wallet.publicKey.toBase58(),
+      });
+
       // Call initializePool instruction with sorted mints
+      // Use camelCase account names (Anchor SDK converts snake_case IDL to camelCase)
       const tx = await program.methods
         .initializePool()
         .accounts({
-          authority: wallet.publicKey,
           pool: poolPda,
           tokenAMint: mintA,
           tokenBMint: mintB,
-          tokenAVault,
-          tokenBVault,
           lpTokenMint: lpMintPda,
+          tokenAVault: tokenAVaultKeypair.publicKey,
+          tokenBVault: tokenBVaultKeypair.publicKey,
+          lpTokenAccount: userLpTokenAccount,
+          authority: wallet.publicKey,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
         })
+        .signers([tokenAVaultKeypair, tokenBVaultKeypair])
         .rpc();
 
       setTxSignature(tx);

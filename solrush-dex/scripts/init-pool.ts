@@ -26,7 +26,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 const LOCALNET_URL = "http://127.0.0.1:8899";
-const PROGRAM_ID = new PublicKey("HCkVnLDL76FR8JJ9fbWg67kr48AtNqDgsivSt19Dnu9c");
+const PROGRAM_ID = new PublicKey("FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1");
 
 interface LocalnetConfig {
     mints: Record<string, string>;

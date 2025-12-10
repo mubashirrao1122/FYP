@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { SwapQuote } from '@/lib/types';
 import { useTransaction } from '@/lib/hooks/useTransaction';
 import { TransactionStatus } from '@/components/common/TransactionStatus';
+import { useGlobalStore } from '@/components/providers/GlobalStoreProvider';
 
 interface SwapTabProps {
     slippageTolerance: number;
@@ -24,6 +25,7 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
     const { toast } = useToast();
     const { calculateQuote, executeSwap, loading: swapLoading } = useSwap();
     const { status, signature, error, sendTransaction, reset } = useTransaction();
+    const { pools } = useGlobalStore();
 
     const [inputAmount, setInputAmount] = useState('');
     const [outputAmount, setOutputAmount] = useState('');
@@ -112,6 +114,9 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
 
             setInputAmount('');
             setOutputAmount('');
+            
+            // Refresh global pools to update reserves
+            pools.refreshPools();
         } catch (error: any) {
             // Error is handled by TransactionStatus component
             console.error('Swap failed:', error);

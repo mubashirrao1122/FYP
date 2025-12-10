@@ -8,7 +8,7 @@ import { CreatePool } from './CreatePool';
 import { MyPositions } from './MyPositions';
 import { PoolCard } from '@/components/ui/pool-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SolIcon, UsdcIcon, UsdtIcon } from '@/components/icons/TokenIcons';
+import { SolIcon, UsdcIcon, UsdtIcon, RushIcon, WethIcon } from '@/components/icons/TokenIcons';
 import { RefreshCw, AlertCircle, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -43,6 +43,8 @@ const getTokenIcon = (symbol: string) => {
         case 'SOL': return <SolIcon className="w-8 h-8" />;
         case 'USDC': return <UsdcIcon className="w-8 h-8" />;
         case 'USDT': return <UsdtIcon className="w-8 h-8" />;
+        case 'RUSH': return <RushIcon className="w-8 h-8" />;
+        case 'WETH': return <WethIcon className="w-8 h-8" />;
         default: return <span className="text-2xl">?</span>;
     }
 };
@@ -110,6 +112,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                     </p>
                 </div>
 
+               
                 <Tabs defaultValue="browse" className="w-full">
                     <TabsList className="grid w-full grid-cols-5 bg-white/5 border border-white/10 p-1 rounded-xl">
                         <TabsTrigger value="browse" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/60">Browse Pools</TabsTrigger>
@@ -169,6 +172,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                 <p className="text-white/20 text-sm mt-2">Initialize pools on-chain to see them here</p>
                             </div>
                         ) : (() => {
+                            console.log('[PoolsView Browse Tab] Entering render function, pools.length:', pools.length);
                             // Filter and sort pools
                             let filteredPools = pools.filter(pool => {
                                 if (!searchQuery) return true;
@@ -177,6 +181,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                     pool.tokens[1].toLowerCase().includes(query) ||
                                     pool.name.toLowerCase().includes(query);
                             });
+                            console.log('[PoolsView Browse Tab] filteredPools:', filteredPools);
 
                             // Sort pools
                             filteredPools = [...filteredPools].sort((a, b) => {
@@ -289,7 +294,10 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                 </div>
                             )}
                             {pools.length > 0 ? (
-                                <AddLiquidity poolAddress={pools[selectedPoolIndex]?.address || pools[0]?.address || ''} />
+                                <AddLiquidity 
+                                    poolAddress={pools[selectedPoolIndex]?.address || pools[0]?.address || ''} 
+                                    onSuccess={onRefresh}
+                                />
                             ) : (
                                 <div className="text-center text-gray-400 py-12">
                                     <Plus className="w-12 h-12 text-white/20 mx-auto mb-4" />
@@ -323,7 +331,10 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                 </div>
                             )}
                             {pools.length > 0 ? (
-                                <RemoveLiquidity poolAddress={pools[selectedPoolIndex]?.address || pools[0]?.address || ''} />
+                                <RemoveLiquidity 
+                                    poolAddress={pools[selectedPoolIndex]?.address || pools[0]?.address || ''} 
+                                    onSuccess={onRefresh}
+                                />
                             ) : (
                                 <div className="text-center text-gray-400 py-12">
                                     <AlertCircle className="w-12 h-12 text-white/20 mx-auto mb-4" />

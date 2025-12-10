@@ -6,17 +6,17 @@ import rawIdl from "../solana/idl.json";
 const idl = {
     ...rawIdl,
     metadata: {
-        address: process.env.NEXT_PUBLIC_PROGRAM_ID || "BJfcNtEyhU4wArQsyXkHZ9jmR7KD7KPHAGUwUySNnA5z"
+        address: process.env.NEXT_PUBLIC_PROGRAM_ID || "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1"
     }
 } as unknown as Idl;
 
 // Define the program ID - should match Anchor.toml
 export const PROGRAM_ID = new PublicKey(
-    process.env.NEXT_PUBLIC_PROGRAM_ID || "BJfcNtEyhU4wArQsyXkHZ9jmR7KD7KPHAGUwUySNnA5z"
+    process.env.NEXT_PUBLIC_PROGRAM_ID || "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1"
 );
 
-// Network configuration
-export const NETWORK = process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com";
+// Network configuration - defaults to localnet
+export const NETWORK = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8899";
 
 // Commitment level for transactions
 export const COMMITMENT: Commitment = "confirmed";

@@ -13,28 +13,95 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useTransaction } from '@/lib/hooks/useTransaction';
 import { TransactionStatus } from '@/components/common/TransactionStatus';
+import { usePool } from '@/lib/hooks/usePool';
+import { useGlobalStore } from '@/components/providers/GlobalStoreProvider';
+import { useTokenBalance } from '@/lib/hooks/useBalance';
+import { useToast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
+import { Settings, Plus, Info, Loader2 } from 'lucide-react';
+import { SolIcon, UsdcIcon, UsdtIcon, RushIcon, WethIcon } from '@/components/icons/TokenIcons';
+import { TOKEN_DECIMALS } from '@/lib/constants';
 
-// ... imports
+const SLIPPAGE_PRESETS = [
+  { label: '0.1%', value: 10 },
+  { label: '0.5%', value: 50 },
+  { label: '1%', value: 100 },
+];
 
-export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
+const getTokenIcon = (symbol: string) => {
+  switch (symbol) {
+    case 'SOL': return <SolIcon className="w-5 h-5" />;
+    case 'USDC': return <UsdcIcon className="w-5 h-5" />;
+    case 'USDT': return <UsdtIcon className="w-5 h-5" />;
+    case 'RUSH': return <RushIcon className="w-5 h-5" />;
+    case 'WETH': return <WethIcon className="w-5 h-5" />;
+    default: return <span className="text-sm">?</span>;
+  }
+};
+
+interface AddLiquidityProps {
+  poolAddress: string;
+  onSuccess?: () => void;
+}
+
+export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
   const { publicKey } = useWallet();
   const { toast } = useToast();
+  const { pools } = useGlobalStore();
+
+  // Get pool info from global store to determine token symbols
+  const poolInfo = pools.getPoolByAddress(poolAddress);
+  const tokenA = poolInfo?.tokens[0] || 'SOL';
+  const tokenB = poolInfo?.tokens[1] || 'USDC';
 
   const [amountA, setAmountA] = useState('');
   const [amountB, setAmountB] = useState('');
-  const [tokenA] = useState('SOL');
-  const [tokenB] = useState('USDC');
   const [showDetails, setShowDetails] = useState(false);
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
   const [slippageBps, setSlippageBps] = useState(50); // Default 0.5%
   const [customSlippage, setCustomSlippage] = useState('');
 
-  const { pool, loading, addLiquidity, calculateLPTokens, calculatePoolShare } =
-    usePool(poolAddress);
+  // Use the pool hook with token symbols
+  const { pool, loading, addLiquidity, calculateLPTokens, calculatePoolShare, fetchPoolData } =
+    usePool(poolAddress, tokenA, tokenB);
 
   const { status, signature, error, sendTransaction, reset } = useTransaction();
 
-  // ... effects and helpers
+  // Fetch real-time balances
+  const tokenABalance = useTokenBalance(tokenA);
+  const tokenBBalance = useTokenBalance(tokenB);
+
+  // Calculate LP tokens and pool share
+  const lpTokensToReceive = amountA && amountB ? calculateLPTokens(parseFloat(amountA), parseFloat(amountB)) : 0;
+  const poolSharePercentage = lpTokensToReceive ? calculatePoolShare(lpTokensToReceive) : 0;
+
+  // Get token decimals for normalization
+  const tokenADecimals = TOKEN_DECIMALS[tokenA] || 9;
+  const tokenBDecimals = TOKEN_DECIMALS[tokenB] || 6;
+
+  // Auto-calculate amount B based on pool ratio (normalized)
+  useEffect(() => {
+    if (amountA && pool && pool.reserveA > 0) {
+      // Normalize reserves to human-readable values before calculating ratio
+      const normalizedReserveA = pool.reserveA / Math.pow(10, tokenADecimals);
+      const normalizedReserveB = pool.reserveB / Math.pow(10, tokenBDecimals);
+      const ratio = normalizedReserveB / normalizedReserveA;
+      const calculatedB = parseFloat(amountA) * ratio;
+      setAmountB(calculatedB.toFixed(6));
+    } else if (!amountA) {
+      setAmountB('');
+    }
+  }, [amountA, pool, tokenADecimals, tokenBDecimals]);
+
+  const handleCustomSlippage = (value: string) => {
+    setCustomSlippage(value);
+    if (value) {
+      const bps = Math.round(parseFloat(value) * 100);
+      if (bps > 0 && bps <= 5000) {
+        setSlippageBps(bps);
+      }
+    }
+  };
 
   const handleAddLiquidity = async () => {
     if (!publicKey) {
@@ -64,24 +131,35 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
 
       toast({
         title: 'Liquidity Added Successfully!',
-        description: `Received ${lpTokensToReceive.toFixed(2)} LP tokens`,
+        description: `Received ${lpTokensToReceive.toFixed(4)} LP tokens`,
       });
 
       setAmountA('');
       setAmountB('');
+
+      // Refresh pool data after adding liquidity
+      await fetchPoolData();
+      
+      // Refresh global pools
+      pools.refreshPools();
+      
+      // Call success callback if provided
+      onSuccess?.();
     } catch (error: any) {
-      // Error handled by TransactionStatus
       console.error('Add liquidity failed:', error);
     }
   };
 
-  const exchangeRate = pool ? pool.reserveB / pool.reserveA : 0;
+  // Calculate normalized exchange rate
+  const exchangeRate = pool && pool.reserveA > 0 
+    ? (pool.reserveB / Math.pow(10, tokenBDecimals)) / (pool.reserveA / Math.pow(10, tokenADecimals)) 
+    : 0;
 
   if (loading) {
-    // ... loading state
     return (
       <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
         <CardContent className="p-8 text-center">
+          <Loader2 className="w-8 h-8 text-purple-500 animate-spin mx-auto mb-4" />
           <p className="text-white/40">Loading pool data...</p>
         </CardContent>
       </Card>
@@ -89,11 +167,10 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
   }
 
   if (!pool) {
-    // ... error state
     return (
       <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
         <CardContent className="p-8 text-center">
-          <p className="text-white/40">Pool not found</p>
+          <p className="text-white/40">Pool not found. Make sure the pool is created first.</p>
         </CardContent>
       </Card>
     );
@@ -102,12 +179,11 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
   return (
     <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
       <CardHeader>
-        {/* ... Header content ... */}
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-white">Add Liquidity</CardTitle>
             <CardDescription className="text-white/40">
-              Provide liquidity to earn rewards from trading fees
+              {tokenA}/{tokenB} Pool • Provide liquidity to earn trading fees
             </CardDescription>
           </div>
           <button
@@ -163,10 +239,17 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
         {/* Token A Input */}
         <div className="bg-black/20 rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-colors">
           <div className="flex justify-between mb-2">
-            <label className="text-sm font-medium text-white/40">
-              You Pay
-            </label>
-            <div className="text-xs text-white/40">Balance: 10.5 {tokenA}</div>
+            <label className="text-sm font-medium text-white/40">You Pay</label>
+            <div className="flex items-center gap-2 text-xs text-white/40">
+              <span>Balance: {tokenABalance.loading ? '...' : tokenABalance.balance.toFixed(4)} {tokenA}</span>
+              <button
+                onClick={() => setAmountA(tokenABalance.balance.toString())}
+                disabled={tokenABalance.loading || tokenABalance.balance === 0}
+                className="text-purple-400 hover:text-purple-300 font-medium transition-colors disabled:opacity-50"
+              >
+                Max
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <Input
@@ -177,7 +260,7 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
               className="bg-transparent border-none text-3xl font-bold h-auto focus:ring-0 px-0 placeholder:text-white/20 w-full text-white"
             />
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-white font-bold min-w-[100px] justify-center">
-              <SolIcon className="w-5 h-5" />
+              {getTokenIcon(tokenA)}
               {tokenA}
             </div>
           </div>
@@ -193,10 +276,10 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
         {/* Token B Input */}
         <div className="bg-black/20 rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-colors">
           <div className="flex justify-between mb-2">
-            <label className="text-sm font-medium text-white/40">
-              You Pay
-            </label>
-            <div className="text-xs text-white/40">Balance: 250 {tokenB}</div>
+            <label className="text-sm font-medium text-white/40">You Pay</label>
+            <div className="text-xs text-white/40">
+              Balance: {tokenBBalance.loading ? '...' : tokenBBalance.balance.toFixed(4)} {tokenB}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <Input
@@ -207,20 +290,18 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
               className="bg-transparent border-none text-3xl font-bold h-auto focus:ring-0 px-0 placeholder:text-white/20 w-full text-white"
             />
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-white font-bold min-w-[100px] justify-center">
-              <UsdcIcon className="w-5 h-5" />
+              {getTokenIcon(tokenB)}
               {tokenB}
             </div>
           </div>
         </div>
 
         {/* Pool Details */}
-        {amountA && (
+        {amountA && pool && (
           <div className="space-y-3 p-4 bg-white/5 rounded-xl border border-white/10">
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-3">
-                <h3 className="text-sm font-semibold text-white">
-                  Liquidity Details
-                </h3>
+                <h3 className="text-sm font-semibold text-white">Liquidity Details</h3>
                 <button
                   onClick={() => setShowDetails(!showDetails)}
                   className="text-white/40 hover:text-white transition-colors"
@@ -233,68 +314,43 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
                 <div className="flex justify-between">
                   <span className="text-white/40">Exchange Rate</span>
                   <span className="text-white font-medium">
-                    1 {tokenA} = {exchangeRate.toFixed(2)} {tokenB}
+                    1 {tokenA} = {exchangeRate.toFixed(4)} {tokenB}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-white/40">LP Tokens to Receive</span>
-                  <span className="text-white font-medium">
-                    {lpTokensToReceive.toFixed(4)}
-                  </span>
+                  <span className="text-white font-medium">{lpTokensToReceive.toFixed(4)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-white/40">Your Pool Share</span>
-                  <span className="text-green-400 font-medium">
-                    {poolSharePercentage.toFixed(4)}%
-                  </span>
+                  <span className="text-green-400 font-medium">{poolSharePercentage.toFixed(4)}%</span>
                 </div>
               </div>
             </div>
 
             {showDetails && (
               <div className="pt-3 border-t border-white/10 text-xs text-white/40 space-y-2">
-                <div>
-                  <strong className="text-white/70">Pool Info:</strong>
-                </div>
+                <div><strong className="text-white/70">Current Pool Reserves:</strong></div>
                 <div className="flex justify-between">
                   <span>{tokenA} Reserve:</span>
-                  <span className="text-white">
-                    {pool.reserveA.toFixed(2)}
-                  </span>
+                  <span className="text-white">{pool.reserveA.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>{tokenB} Reserve:</span>
-                  <span className="text-white">
-                    {pool.reserveB.toFixed(2)}
-                  </span>
+                  <span className="text-white">{pool.reserveB.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Total LP Supply:</span>
-                  <span className="text-white">
-                    {pool.totalLPSupply.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>APY:</span>
-                  <span className="text-green-400">{pool.apy}%</span>
+                  <span className="text-white">{pool.totalLPSupply.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>TVL:</span>
-                  <span className="text-white">
-                    ${pool.tvl.toLocaleString()}
-                  </span>
+                  <span className="text-white">${pool.tvl.toLocaleString()}</span>
                 </div>
               </div>
             )}
           </div>
         )}
-
-        {/* Warning about price range */}
-        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-200/80">
-          <strong>Note:</strong> Your liquidity is concentrated at the current
-          pool ratio. Consider adding liquidity at different price ranges for
-          better returns.
-        </div>
 
         {/* Add Liquidity Button */}
         <Button
@@ -317,7 +373,7 @@ export function AddLiquidity({ poolAddress }: { poolAddress: string }) {
           ) : loading ? (
             'Loading Pool...'
           ) : (
-            'Add Liquidity'
+            `Add Liquidity to ${tokenA}/${tokenB}`
           )}
         </Button>
 

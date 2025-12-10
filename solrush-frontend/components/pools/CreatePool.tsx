@@ -48,12 +48,8 @@ export const CreatePool: React.FC = () => {
         { value: '1.0', label: '1.0% - Volatile Pairs', description: 'For volatile or exotic pairs' },
     ];
 
-    const availableTokens = [
-        { symbol: 'SOL', name: 'Solana' },
-        { symbol: 'USDC', name: 'USD Coin' },
-        { symbol: 'USDT', name: 'Tether USD' },
-        ...TOKEN_LIST.map(t => ({ symbol: t.symbol, name: t.name }))
-    ];
+    // Use TOKEN_LIST directly to avoid duplicates
+    const availableTokens = TOKEN_LIST.map(t => ({ symbol: t.symbol, name: t.name }));
 
     const handleCreatePool = async () => {
         if (!connected || !publicKey) {

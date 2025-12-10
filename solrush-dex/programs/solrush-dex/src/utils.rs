@@ -98,37 +98,31 @@ pub fn calculate_output_amount(
         input_reserve > 0 && output_reserve > 0,
         CustomError::InsufficientLiquidity
     );
-    const PRECISION: u128 = 1_000_000_000_000_000_000;
-    let effective_numerator = (fee_denominator - fee_numerator) as u128;
-    let effective_denominator = fee_denominator as u128;
-    let amount_with_fee_scaled = (input_amount as u128)
-        .checked_mul(effective_numerator)
-        .ok_or(error!(CustomError::CalculationOverflow))?
-        .checked_mul(PRECISION)
-        .ok_or(error!(CustomError::CalculationOverflow))?
-        .checked_div(effective_denominator)
+    
+    // Standard AMM formula: output = (input * (1 - fee) * output_reserve) / (input_reserve + input * (1 - fee))
+    // Using x * y = k constant product formula
+    
+    // Calculate input amount after fee
+    let amount_in_with_fee = (input_amount as u128)
+        .checked_mul((fee_denominator - fee_numerator) as u128)
         .ok_or(error!(CustomError::CalculationOverflow))?;
-    let k_scaled = (input_reserve as u128)
+    
+    // Numerator: amount_in_with_fee * output_reserve
+    let numerator = amount_in_with_fee
         .checked_mul(output_reserve as u128)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+    
+    // Denominator: input_reserve * fee_denominator + amount_in_with_fee
+    let denominator = (input_reserve as u128)
+        .checked_mul(fee_denominator as u128)
         .ok_or(error!(CustomError::CalculationOverflow))?
-        .checked_mul(PRECISION)
+        .checked_add(amount_in_with_fee)
         .ok_or(error!(CustomError::CalculationOverflow))?;
-    let new_input_reserve_scaled = (input_reserve as u128)
-        .checked_mul(PRECISION)
-        .ok_or(error!(CustomError::CalculationOverflow))?
-        .checked_add(amount_with_fee_scaled)
+    
+    let output_amount = numerator
+        .checked_div(denominator)
         .ok_or(error!(CustomError::CalculationOverflow))?;
-    let new_output_reserve_scaled = k_scaled
-        .checked_div(new_input_reserve_scaled)
-        .ok_or(error!(CustomError::CalculationOverflow))?;
-    let output_amount_scaled = (output_reserve as u128)
-        .checked_mul(PRECISION)
-        .ok_or(error!(CustomError::CalculationOverflow))?
-        .checked_sub(new_output_reserve_scaled)
-        .ok_or(error!(CustomError::CalculationOverflow))?;
-    let output_amount = output_amount_scaled
-        .checked_div(PRECISION)
-        .ok_or(error!(CustomError::CalculationOverflow))?;
+    
     require!(output_amount > 0, CustomError::InsufficientLiquidity);
     Ok(output_amount as u64)
 }

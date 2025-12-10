@@ -56,15 +56,18 @@ export function useSwap() {
       const [poolAddress] = findPoolAddress(inputMint, outputMint);
 
       const poolAccount = await (program.account as any).liquidityPool.fetch(poolAddress);
+      
+      // Get the pool's stored mint order
+      const poolTokenAMint = poolAccount.tokenAMint as PublicKey;
 
-      // Check which direction we're swapping
-      const isAToB = inputMint.toBuffer().compare(outputMint.toBuffer()) < 0;
+      // Determine direction based on pool's stored mint order
+      const isAToB = inputMint.equals(poolTokenAMint);
 
       return {
         reserveA: (poolAccount.reserveA as BN).toNumber(),
         reserveB: (poolAccount.reserveB as BN).toNumber(),
-        feeNumerator: (poolAccount.feeNumerator as BN).toNumber(),
-        feeDenominator: (poolAccount.feeDenominator as BN).toNumber(),
+        feeNumerator: poolAccount.feeNumerator as number,
+        feeDenominator: poolAccount.feeDenominator as number,
       };
     } catch (err) {
       console.error("Failed to fetch pool data:", err);
@@ -91,13 +94,25 @@ export function useSwap() {
     let feeDenominator: number;
 
     if (poolData) {
-      // Use real pool data
+      // Use real pool data - determine direction properly
+      const program = getReadOnlyProgram(connection);
       const inputMint = getTokenMint(inputToken);
       const outputMint = getTokenMint(outputToken);
-      const isAToB = inputMint.toBuffer().compare(outputMint.toBuffer()) < 0;
-
-      reserveIn = isAToB ? poolData.reserveA : poolData.reserveB;
-      reserveOut = isAToB ? poolData.reserveB : poolData.reserveA;
+      const [poolAddress] = findPoolAddress(inputMint, outputMint);
+      
+      try {
+        const poolAccount = await (program!.account as any).liquidityPool.fetch(poolAddress);
+        const poolTokenAMint = poolAccount.tokenAMint as PublicKey;
+        const isAToB = inputMint.equals(poolTokenAMint);
+        
+        reserveIn = isAToB ? poolData.reserveA : poolData.reserveB;
+        reserveOut = isAToB ? poolData.reserveB : poolData.reserveA;
+      } catch {
+        // Fallback if fetch fails
+        reserveIn = poolData.reserveA;
+        reserveOut = poolData.reserveB;
+      }
+      
       feeNumerator = poolData.feeNumerator;
       feeDenominator = poolData.feeDenominator;
     } else {
@@ -120,16 +135,25 @@ export function useSwap() {
       feeDenominator = 10000;
     }
 
+    // Get decimals for proper conversion
+    const inputDecimals = TOKEN_DECIMALS[inputToken] || 9;
+    const outputDecimals = TOKEN_DECIMALS[outputToken] || 9;
+    
+    // Convert reserves from raw to human-readable for calculation
+    const reserveInNormalized = reserveIn / Math.pow(10, inputDecimals);
+    const reserveOutNormalized = reserveOut / Math.pow(10, outputDecimals);
+
     const FEE = feeNumerator / feeDenominator;
     const amountInWithFee = inputAmount * (1 - FEE);
 
     // AMM formula: outputAmount = (amountInWithFee * reserveOut) / (reserveIn + amountInWithFee)
-    const numerator = amountInWithFee * reserveOut;
-    const denominator = reserveIn + amountInWithFee;
+    // Using normalized (human-readable) values
+    const numerator = amountInWithFee * reserveOutNormalized;
+    const denominator = reserveInNormalized + amountInWithFee;
     const outputAmount = numerator / denominator;
 
-    // Calculate price impact
-    const initialPrice = reserveOut / reserveIn;
+    // Calculate price impact using normalized reserves
+    const initialPrice = reserveOutNormalized / reserveInNormalized;
     const executionPrice = outputAmount / inputAmount;
     const priceImpact = ((initialPrice - executionPrice) / initialPrice) * 100;
 
@@ -175,15 +199,19 @@ export function useSwap() {
 
       const [poolAddress] = findPoolAddress(inputMint, outputMint);
 
-      // Determine direction (A to B or B to A)
-      const isAToB = inputMint.toBuffer().compare(outputMint.toBuffer()) < 0;
-
-      // Fetch pool to get vault addresses
+      // Fetch pool to get vault addresses and actual mint order
       const poolAccount = await (program.account as any).liquidityPool.fetch(poolAddress);
 
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
+      const poolTokenAMint = poolAccount.tokenAMint as PublicKey;
+      const poolTokenBMint = poolAccount.tokenBMint as PublicKey;
 
+      // Determine direction based on pool's stored mint order
+      // isAToB = true when input is pool's token A, false when input is pool's token B
+      const isAToB = inputMint.equals(poolTokenAMint);
+
+      // User token accounts for their selected input/output
       const userTokenIn = await getAssociatedTokenAddress(inputMint, wallet.publicKey);
       const userTokenOut = await getAssociatedTokenAddress(outputMint, wallet.publicKey);
 
@@ -197,6 +225,17 @@ export function useSwap() {
       // Create deadline (5 minutes from now)
       const deadline = new BN(Math.floor(Date.now() / 1000) + 300);
 
+      console.log('Swap with:', {
+        inputMint: inputMint.toBase58(),
+        outputMint: outputMint.toBase58(),
+        poolTokenAMint: poolTokenAMint.toBase58(),
+        poolTokenBMint: poolTokenBMint.toBase58(),
+        isAToB,
+        amountIn: amountInBN.toString(),
+        minOut: minOutBN.toString(),
+      });
+
+      // Use camelCase account names (Anchor SDK converts snake_case IDL to camelCase)
       const tx = await program.methods
         .swap(
           amountInBN,
@@ -205,12 +244,12 @@ export function useSwap() {
           deadline
         )
         .accounts({
-          user: wallet.publicKey,
           pool: poolAddress,
-          userTokenIn,
-          userTokenOut,
+          userTokenIn: userTokenIn,
+          userTokenOut: userTokenOut,
           poolVaultIn: isAToB ? tokenAVault : tokenBVault,
           poolVaultOut: isAToB ? tokenBVault : tokenAVault,
+          user: wallet.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();

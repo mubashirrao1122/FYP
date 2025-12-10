@@ -7,16 +7,19 @@ import { Navbar } from '@/components/layout/Navbar';
 import { AddLiquidity } from '@/components/liquidity/AddLiquidity';
 import { RemoveLiquidity } from '@/components/liquidity/RemoveLiquidity';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SolIcon, UsdcIcon, UsdtIcon } from '@/components/icons/TokenIcons';
+import { SolIcon, UsdcIcon, UsdtIcon, RushIcon, WethIcon } from '@/components/icons/TokenIcons';
 import { ArrowLeft, RefreshCw, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const getTokenIcon = (symbol: string) => {
+const getTokenIcon = (symbol: string, size: 'sm' | 'lg' = 'lg') => {
+    const className = size === 'lg' ? "w-12 h-12" : "w-8 h-8";
     switch (symbol) {
-        case 'SOL': return <SolIcon className="w-12 h-12" />;
-        case 'USDC': return <UsdcIcon className="w-12 h-12" />;
-        case 'USDT': return <UsdtIcon className="w-12 h-12" />;
-        default: return <span className="text-4xl">?</span>;
+        case 'SOL': return <SolIcon className={className} />;
+        case 'USDC': return <UsdcIcon className={className} />;
+        case 'USDT': return <UsdtIcon className={className} />;
+        case 'RUSH': return <RushIcon className={className} />;
+        case 'WETH': return <WethIcon className={className} />;
+        default: return <span className={size === 'lg' ? "text-4xl" : "text-2xl"}>?</span>;
     }
 };
 
@@ -85,8 +88,8 @@ export default function PoolDetailPage() {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
                             <div className="flex items-center -space-x-4">
-                                {getTokenIcon(pool.tokens[0])}
-                                {getTokenIcon(pool.tokens[1])}
+                                {getTokenIcon(pool.tokens[0], 'lg')}
+                                {getTokenIcon(pool.tokens[1], 'lg')}
                             </div>
                             <div>
                                 <h1 className="text-4xl font-black text-white tracking-tight">
@@ -154,12 +157,12 @@ export default function PoolDetailPage() {
                         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    {getTokenIcon(pool.tokens[0])}
+                                    {getTokenIcon(pool.tokens[0], 'sm')}
                                     <span className="text-xl font-bold text-white">{pool.tokens[0]}</span>
                                 </div>
                             </div>
                             <div className="text-3xl font-black text-white">
-                                {pool.formattedReserveA || pool.reserveA.toLocaleString()}
+                                {pool.formattedReserveA || (pool.reserveA ?? 0).toLocaleString()}
                             </div>
                             <div className="text-white/40 text-sm mt-1">Pool Reserve</div>
                         </div>
@@ -167,12 +170,12 @@ export default function PoolDetailPage() {
                         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    {getTokenIcon(pool.tokens[1])}
+                                    {getTokenIcon(pool.tokens[1], 'sm')}
                                     <span className="text-xl font-bold text-white">{pool.tokens[1]}</span>
                                 </div>
                             </div>
                             <div className="text-3xl font-black text-white">
-                                {pool.formattedReserveB || pool.reserveB.toLocaleString()}
+                                {pool.formattedReserveB || (pool.reserveB ?? 0).toLocaleString()}
                             </div>
                             <div className="text-white/40 text-sm mt-1">Pool Reserve</div>
                         </div>
@@ -192,13 +195,13 @@ export default function PoolDetailPage() {
 
                     <TabsContent value="add" className="mt-8">
                         <div className="flex justify-center">
-                            <AddLiquidity poolAddress={pool.address} />
+                            <AddLiquidity poolAddress={pool.address} onSuccess={refreshPools} />
                         </div>
                     </TabsContent>
 
                     <TabsContent value="remove" className="mt-8">
                         <div className="flex justify-center">
-                            <RemoveLiquidity poolAddress={pool.address} />
+                            <RemoveLiquidity poolAddress={pool.address} onSuccess={refreshPools} />
                         </div>
                     </TabsContent>
                 </Tabs>

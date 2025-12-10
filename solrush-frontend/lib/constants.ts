@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 
 // Network Configuration - Use environment variables
-const NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'devnet';
+const NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'localnet';
 
 // Network-specific RPC endpoints
 const RPC_ENDPOINTS: Record<string, string> = {
@@ -11,11 +11,11 @@ const RPC_ENDPOINTS: Record<string, string> = {
 };
 
 export const CURRENT_NETWORK = NETWORK;
-export const RPC_ENDPOINT = RPC_ENDPOINTS[NETWORK] || RPC_ENDPOINTS.devnet;
+export const RPC_ENDPOINT = process.env.NEXT_PUBLIC_RPC_URL || RPC_ENDPOINTS[NETWORK] || RPC_ENDPOINTS.localnet;
 
-// Program ID
+// Program ID - matches Anchor.toml
 export const PROGRAM_ID = new PublicKey(
-    process.env.NEXT_PUBLIC_PROGRAM_ID || "BJfcNtEyhU4wArQsyXkHZ9jmR7KD7KPHAGUwUySNnA5z"
+    process.env.NEXT_PUBLIC_PROGRAM_ID || "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1"
 );
 
 // Token Mints - Use environment variables for flexibility across networks
@@ -49,6 +49,7 @@ export const TOKEN_LIST: TokenInfo[] = [
     { symbol: 'SOL', name: 'Solana', mint: TOKENS.SOL, decimals: 9 },
     { symbol: 'USDC', name: 'USD Coin', mint: TOKENS.USDC, decimals: 6 },
     { symbol: 'USDT', name: 'Tether USD', mint: TOKENS.USDT, decimals: 6 },
+    { symbol: 'WETH', name: 'Wrapped ETH', mint: TOKENS.WETH, decimals: 8 },
     { symbol: 'RUSH', name: 'Rush Token', mint: TOKENS.RUSH, decimals: 6 },
 ];
 
