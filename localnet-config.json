@@ -1,34 +1,24 @@
 {
   "network": "localnet",
   "rpcUrl": "http://127.0.0.1:8899",
-  "targetWallet": "8Qmx5CZtR22YRKvjXkCgfMXfg5n9BHMmJmwCAno4cxrf",
-  "mintAuthority": "9LW5JnrZfSymwaxCSKqqwvA9SWXZcASvsas5YAKFLLvp",
+  "walletPublicKey": "9LW5JnrZfSymwaxCSKqqwvA9SWXZcASvsas5YAKFLLvp",
   "mints": {
-    "SOL": "3vMqwHGJz235mid7qDi3wBvY2Sa5gKequm3twF1Q2Sm1",
-    "USDC": "4cvUrvooQFEKf4JBDfWL7HbckG7a8ddnsZ8nmDUMkCgi",
-    "USDT": "8rmNvwfZvu6Ys6DpxXpH7pxdfzcmFVzK7NN3YrBb5UB",
-    "WETH": "3bGyQHL2MYJpncPZbW1kXufrdrTf3nA1TRUpnRcAjFFb",
-    "RUSH": "2Bj61yXFCVaAP6STf91uLMd4p2fR3ziDW4dD5c2AGt8X"
+    "USDC": "7rwdY6qRSHPYtngasjuzz4cNqKaXgSMZE7FuekLFsyur",
+    "USDT": "J5Uvcwq75AobH5reSid8wLync1vZRiu4m46a9tCCoTkE",
+    "WETH": "27zpKhdcsxRwqnmt1QQDnCzGBCvVMv9iZSrgfZEkik7X",
+    "RUSH": "8cP4wNzke7CeHwHb2a3szTvG1Sj6SLP5Q9vfNMRPXMZv",
+    "SOL": "So11111111111111111111111111111111111111112"
   },
   "tokenAccounts": {
-    "SOL": "8W1qdAF4tgQra4AySqJGtACeWXGbkQBQGouLSNhi21Lb",
-    "USDC": "AthbP3X1BhbriCzAnMnsV9ZWrG9Swnef6BSHL9tJP9UH",
-    "USDT": "8pThdZGs3csRZqWh91Ntkxr1gwdvo5Qo197xdut4Ukvt",
-    "WETH": "6UbACJR2r78w9yYQWJ7cdHUXgg5mWwLRSVfzrAGWTDK9",
-    "RUSH": "64N92PRcF3uppyX2gwRPepGj97GnjkHZWiEgPWig5qit"
+    "USDC": "EetUi4HQUrQxLMDfBq1q3NyqPVMMB7gDVekxLv4bMx3s",
+    "USDT": "Ckrxyo5wc5GjPdCEhjpK1YMDvtf9EouwZwGCnazHChtC",
+    "WETH": "HdAqAhmEWULUWzBFqn3qSPsVuLDBy3n1PUiMiSSRqShz",
+    "RUSH": "6JgZ1CpaRaPmiZ7WPFE5y7jqhkVWc2gxoWDsFN63RPBL"
   },
   "decimals": {
-    "SOL": 9,
     "USDC": 6,
     "USDT": 6,
     "WETH": 8,
     "RUSH": 6
-  },
-  "mintedAmounts": {
-    "USDC": 1000000,
-    "USDT": 1000000,
-    "WETH": 100,
-    "RUSH": 10000000,
-    "SOL": 1000
   }
 }
