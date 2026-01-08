@@ -23,25 +23,28 @@ export default function SwapPage() {
   // Ensure client-side only rendering for chart
   useEffect(() => {
     setIsMounted(true);
+    const themeKey = 'solrush-theme';
+    const stored = window.localStorage.getItem(themeKey);
+    if (!stored) {
+      window.localStorage.setItem(themeKey, 'dark');
+      document.documentElement.classList.add('dark');
+    }
   }, []);
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden selection:bg-purple-500/30">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0E14] transition-colors duration-200 selection:bg-[#8B5CF6]/20">
       <Navbar />
-
-      {/* Background Glow */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Main Content - Added pt-24 to prevent navbar overlap */}
       <main className="relative z-10 min-h-screen pt-24 px-4 pb-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center space-y-2 mb-8">
-            <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
+            <h1 className="text-4xl sm:text-5xl font-semibold text-[#0F172A] dark:text-[#E5E7EB] tracking-tight">
               Trade
             </h1>
-            <p className="text-white/40 text-lg">
-              Swap, limit orders, buy, or sell tokens
+            <p className="text-[#475569] dark:text-[#9CA3AF] text-base sm:text-lg">
+              Swap, place limit orders, or execute routed trades with predictable pricing.
             </p>
           </div>
 
@@ -56,8 +59,8 @@ export default function SwapPage() {
                   outputToken={selectedOutputToken}
                 />
               ) : (
-                <div className="w-full h-[400px] bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 shadow-xl flex items-center justify-center">
-                  <div className="text-white/30">Loading chart...</div>
+                <div className="w-full h-[400px] bg-white dark:bg-[#121826] rounded-2xl border border-[#E2E8F0] dark:border-white/10 p-6 flex items-center justify-center transition-colors duration-200">
+                  <div className="text-[#94A3B8] dark:text-[#6B7280]">Loading chart...</div>
                 </div>
               )}
             </div>

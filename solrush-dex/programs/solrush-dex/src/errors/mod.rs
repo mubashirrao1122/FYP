@@ -52,4 +52,22 @@ pub enum CustomError {
     InvalidPool,
     #[msg("Invalid LP mint - must be pool's LP token mint")]
     InvalidMint,
+    #[msg("Perps global state is paused")]
+    PerpsPaused,
+    #[msg("Unauthorized admin")]
+    UnauthorizedAdmin,
+    #[msg("Invalid leverage")]
+    InvalidLeverage,
+    #[msg("Insufficient collateral")]
+    InsufficientCollateral,
+    #[msg("Position already open")]
+    PositionAlreadyOpen,
+    #[msg("No open position")]
+    NoOpenPosition,
+    #[msg("Order type not supported")]
+    OrderTypeNotSupported,
+    #[msg("Oracle price unavailable")]
+    OraclePriceUnavailable,
+    #[msg("Maintenance margin violation")]
+    MaintenanceMarginViolation,
 }

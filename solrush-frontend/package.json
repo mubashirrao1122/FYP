@@ -9,7 +9,10 @@
     "setup:devnet": "ts-node scripts/setup-devnet.ts",
     "init:rush": "ts-node scripts/init-rush.ts",
     "init:pool": "ts-node scripts/init-pool.ts",
-    "lint": "eslint"
+    "gen:idl": "ts-node scripts/gen-idl.ts",
+    "test:pyth": "ts-node scripts/test-pyth-parsing.ts",
+    "lint": "eslint",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",
@@ -27,6 +30,7 @@
     "@solana/wallet-adapter-react-ui": "^0.9.39",
     "@solana/wallet-adapter-wallets": "^0.19.37",
     "@solana/web3.js": "^1.98.4",
+    "bn.js": "^5.2.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lightweight-charts": "^5.0.9",
@@ -35,9 +39,11 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^3.25.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -18,9 +18,18 @@ interface PerpsViewProps {
   positions: PositionView[];
   loading?: boolean;
   error?: string | null;
+  warning?: string | null;
+  hasMarkets?: boolean;
 }
 
-export function PerpsView({ markets, positions, loading, error }: PerpsViewProps) {
+export function PerpsView({
+  markets,
+  positions,
+  loading,
+  error,
+  warning,
+  hasMarkets = false,
+}: PerpsViewProps) {
   const { publicKey } = useWallet();
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
   const selectedMarket = useMemo(
@@ -68,6 +77,15 @@ export function PerpsView({ markets, positions, loading, error }: PerpsViewProps
             />
           </div>
         )}
+        {warning && (
+          <div className="mb-6">
+            <StatusCard
+              title="Perps IDL warning"
+              message={warning}
+              details={warning}
+            />
+          </div>
+        )}
 
         <div className="mb-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -83,13 +101,14 @@ export function PerpsView({ markets, positions, loading, error }: PerpsViewProps
           </p>
         </div>
 
-        {markets.length === 0 && !loading && (
+        {markets.length === 0 && !loading && !warning && !hasMarkets ? (
           <div className="mt-6">
             <LaunchStatePanel connected={Boolean(publicKey)} />
           </div>
-        )}
+        ) : null}
 
-        <div className={markets.length === 0 ? 'mt-6 opacity-70' : 'mt-0'}>
+        {hasMarkets || warning ? (
+          <div className={markets.length === 0 ? 'mt-6 opacity-70' : 'mt-0'}>
           <div className="flex items-center justify-between mb-4">
             <MarketSelector
               markets={markets}
@@ -152,24 +171,25 @@ export function PerpsView({ markets, positions, loading, error }: PerpsViewProps
               )}
           </div>
 
-          <div className="grid grid-cols-12 gap-6 items-start">
-            <div className="col-span-12 lg:col-span-7">
-              <PerpsChart market={liveMarket} loading={loading} error={combinedError || undefined} />
+            <div className="grid grid-cols-12 gap-6 items-start">
+              <div className="col-span-12 lg:col-span-7">
+                <PerpsChart market={liveMarket} loading={loading} error={combinedError || undefined} />
+              </div>
+              <div className="col-span-12 lg:col-span-5">
+                <PerpsTradePanel
+                  market={liveMarket}
+                  disabled={loading || markets.length === 0 || Boolean(warning) || !hasMarkets}
+                  emptyState={markets.length === 0 || !hasMarkets}
+                  error={combinedError}
+                />
+              </div>
             </div>
-            <div className="col-span-12 lg:col-span-5">
-              <PerpsTradePanel
-                market={liveMarket}
-                disabled={loading || markets.length === 0}
-                emptyState={markets.length === 0}
-                error={combinedError}
-              />
-            </div>
-          </div>
 
-          <div className="mt-8">
-            <PerpsPositions positions={positions} markets={markets} loading={loading} />
+            <div className="mt-8">
+              <PerpsPositions positions={positions} markets={markets} loading={loading} />
+            </div>
           </div>
-        </div>
+        ) : null}
       </main>
     </div>
   );

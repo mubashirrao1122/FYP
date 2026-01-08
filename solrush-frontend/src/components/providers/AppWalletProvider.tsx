@@ -7,6 +7,7 @@ import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adap
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { WalletError } from '@solana/wallet-adapter-base';
 import { RPC_ENDPOINT, NETWORK } from '@/lib/solana/constants';
+import { MockWalletAdapter } from '@/lib/solana/mockWalletAdapter';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -24,14 +25,18 @@ export const AppWalletProvider: FC<AppWalletProviderProps> = ({ children }) => {
     // Use centralized RPC endpoint
     const endpoint = RPC_ENDPOINT;
 
+    const enableMockWallet =
+        process.env.NEXT_PUBLIC_E2E_WALLET === '1' &&
+        typeof window !== 'undefined' &&
+        !new URLSearchParams(window.location.search).has('wallet');
+
     // Initialize wallets
-    const wallets = useMemo(
-        () => [
-            new PhantomWalletAdapter(),
-            new SolflareWalletAdapter(),
-        ],
-        []
-    );
+    const wallets = useMemo(() => {
+        if (enableMockWallet) {
+            return [new MockWalletAdapter()];
+        }
+        return [new PhantomWalletAdapter(), new SolflareWalletAdapter()];
+    }, [enableMockWallet]);
 
     // Error handler for wallet errors
     const onError = useCallback((error: WalletError) => {

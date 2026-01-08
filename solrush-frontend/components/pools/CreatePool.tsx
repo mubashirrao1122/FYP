@@ -162,25 +162,30 @@ export const CreatePool: React.FC = () => {
 
     return (
         <div className="max-w-2xl mx-auto">
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8">
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                    <Plus className="w-6 h-6 text-purple-400" />
-                    Create New Pool
-                </h2>
+            <div className="bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-2xl p-8 transition-colors duration-200">
+                <div className="mb-6">
+                    <h2 className="text-2xl font-semibold text-[#0F172A] dark:text-[#E5E7EB] flex items-center gap-2">
+                        <Plus className="w-6 h-6 text-[#8B5CF6]" />
+                        Create New Pool
+                    </h2>
+                    <p className="text-sm text-[#475569] dark:text-[#9CA3AF] mt-2">
+                        Creating a pool initializes on-chain liquidity and defines the fee tier for all future trades.
+                    </p>
+                </div>
 
                 {/* Token A Selection */}
                 <div className="mb-6">
-                    <label className="block text-sm font-medium text-white/60 mb-2">
+                    <label className="block text-sm font-medium text-[#475569] dark:text-[#9CA3AF] mb-2">
                         Token A
                     </label>
                     <select
                         value={tokenA}
                         onChange={(e) => setTokenA(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
                         disabled={loading}
                     >
                         {availableTokens.map((token) => (
-                            <option key={token.symbol} value={token.symbol} className="bg-gray-900">
+                            <option key={token.symbol} value={token.symbol} className="bg-white dark:bg-[#121826]">
                                 {token.symbol} - {token.name}
                             </option>
                         ))}
@@ -189,7 +194,7 @@ export const CreatePool: React.FC = () => {
 
                 {/* Token A Amount */}
                 <div className="mb-6">
-                    <label className="block text-sm font-medium text-white/60 mb-2">
+                    <label className="block text-sm font-medium text-[#475569] dark:text-[#9CA3AF] mb-2">
                         Initial {tokenA} Amount
                     </label>
                     <div className="relative">
@@ -198,31 +203,31 @@ export const CreatePool: React.FC = () => {
                             value={amountA}
                             onChange={(e) => setAmountA(e.target.value)}
                             placeholder="0.0"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-right text-2xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] text-right text-2xl focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
                             disabled={loading}
                             min="0"
                             step="any"
                         />
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                             {getTokenIcon(tokenA)}
-                            <span className="text-white font-semibold">{tokenA}</span>
+                            <span className="text-[#0F172A] dark:text-[#E5E7EB] font-semibold">{tokenA}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Token B Selection */}
                 <div className="mb-6">
-                    <label className="block text-sm font-medium text-white/60 mb-2">
+                    <label className="block text-sm font-medium text-[#475569] dark:text-[#9CA3AF] mb-2">
                         Token B
                     </label>
                     <select
                         value={tokenB}
                         onChange={(e) => setTokenB(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
                         disabled={loading}
                     >
                         {availableTokens.map((token) => (
-                            <option key={token.symbol} value={token.symbol} className="bg-gray-900">
+                            <option key={token.symbol} value={token.symbol} className="bg-white dark:bg-[#121826]">
                                 {token.symbol} - {token.name}
                             </option>
                         ))}
@@ -231,7 +236,7 @@ export const CreatePool: React.FC = () => {
 
                 {/* Token B Amount */}
                 <div className="mb-6">
-                    <label className="block text-sm font-medium text-white/60 mb-2">
+                    <label className="block text-sm font-medium text-[#475569] dark:text-[#9CA3AF] mb-2">
                         Initial {tokenB} Amount
                     </label>
                     <div className="relative">
@@ -240,21 +245,21 @@ export const CreatePool: React.FC = () => {
                             value={amountB}
                             onChange={(e) => setAmountB(e.target.value)}
                             placeholder="0.0"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-right text-2xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] text-right text-2xl focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
                             disabled={loading}
                             min="0"
                             step="any"
                         />
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                             {getTokenIcon(tokenB)}
-                            <span className="text-white font-semibold">{tokenB}</span>
+                            <span className="text-[#0F172A] dark:text-[#E5E7EB] font-semibold">{tokenB}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Fee Tier Selection */}
                 <div className="mb-6">
-                    <label className="block text-sm font-medium text-white/60 mb-2">
+                    <label className="block text-sm font-medium text-[#475569] dark:text-[#9CA3AF] mb-2">
                         Fee Tier
                     </label>
                     <div className="space-y-2">
@@ -263,23 +268,19 @@ export const CreatePool: React.FC = () => {
                                 key={tier.value}
                                 onClick={() => !loading && setFeeTier(tier.value)}
                                 className={`p-4 rounded-xl border cursor-pointer transition-all ${feeTier === tier.value
-                                    ? 'bg-purple-500/20 border-purple-500'
-                                    : 'bg-white/5 border-white/10 hover:border-white/20'
+                                    ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]'
+                                    : 'bg-[#F1F5F9] dark:bg-[#161C2D] border-[#E2E8F0] dark:border-white/10 hover:border-[#8B5CF6]'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <div className="text-white font-semibold">{tier.label}</div>
-                                        <div className="text-white/40 text-sm">{tier.description}</div>
+                                        <div className="text-[#0F172A] dark:text-[#E5E7EB] font-semibold">{tier.label}</div>
+                                        <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm">{tier.description}</div>
                                     </div>
                                     <div className={`w-5 h-5 rounded-full border-2 ${feeTier === tier.value
-                                        ? 'border-purple-500 bg-purple-500'
-                                        : 'border-white/20'
-                                        }`}>
-                                        {feeTier === tier.value && (
-                                            <div className="w-full h-full rounded-full bg-white scale-50" />
-                                        )}
-                                    </div>
+                                        ? 'border-[#8B5CF6] bg-[#8B5CF6]'
+                                        : 'border-[#CBD5E1] dark:border-white/20'
+                                        }`} />
                                 </div>
                             </div>
                         ))}
@@ -288,39 +289,39 @@ export const CreatePool: React.FC = () => {
 
                 {/* Error Message */}
                 {error && (
-                    <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-red-500" />
-                        <span className="text-sm text-red-500">{error}</span>
+                    <div className="mb-6 p-3 bg-[#F1F5F9] dark:bg-[#161C2D] border border-[#E2E8F0] dark:border-white/10 rounded-lg flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-[#9CA3AF]" />
+                        <span className="text-sm text-[#475569] dark:text-[#9CA3AF]">{error}</span>
                     </div>
                 )}
 
                 {/* Success Message */}
                 {success && (
-                    <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg space-y-3">
+                    <div className="mb-6 p-4 bg-[#F1F5F9] dark:bg-[#161C2D] border border-[#E2E8F0] dark:border-white/10 rounded-lg space-y-3">
                         <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-green-500" />
-                            <span className="text-sm font-semibold text-green-500">Pool Created Successfully!</span>
+                            <CheckCircle2 className="w-5 h-5 text-[#22C55E]" />
+                            <span className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Pool created successfully</span>
                         </div>
                         <div className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
-                                <span className="text-white/60">Pool Creation:</span>
+                                <span className="text-[#94A3B8] dark:text-[#6B7280]">Pool Creation:</span>
                                 <a
                                     href={`https://explorer.solana.com/tx/${success.poolTx}?cluster=devnet`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                                    className="text-[#8B5CF6] hover:text-[#7C3AED] flex items-center gap-1"
                                 >
                                     {success.poolTx.slice(0, 8)}...{success.poolTx.slice(-8)}
                                     <ExternalLink className="w-3 h-3" />
                                 </a>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-white/60">Initial Liquidity:</span>
+                                <span className="text-[#94A3B8] dark:text-[#6B7280]">Initial Liquidity:</span>
                                 <a
                                     href={`https://explorer.solana.com/tx/${success.liquidityTx}?cluster=devnet`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                                    className="text-[#8B5CF6] hover:text-[#7C3AED] flex items-center gap-1"
                                 >
                                     {success.liquidityTx.slice(0, 8)}...{success.liquidityTx.slice(-8)}
                                     <ExternalLink className="w-3 h-3" />
@@ -334,7 +335,7 @@ export const CreatePool: React.FC = () => {
                 <Button
                     onClick={handleCreatePool}
                     disabled={loading || !connected || tokenABalance.loading || tokenBBalance.loading}
-                    className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {loading
                         ? (createLoading ? 'Creating Pool...' : 'Adding Liquidity...')
@@ -345,10 +346,9 @@ export const CreatePool: React.FC = () => {
                 </Button>
 
                 {/* Information */}
-                <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                    <p className="text-sm text-blue-300">
-                        <strong>Note:</strong> Creating a pool requires initial liquidity for both tokens.
-                        You'll be the first liquidity provider and will receive LP tokens representing your share.
+                <div className="mt-6 p-4 bg-[#F1F5F9] dark:bg-[#161C2D] border border-[#E2E8F0] dark:border-white/10 rounded-xl">
+                    <p className="text-sm text-[#475569] dark:text-[#9CA3AF]">
+                        You will be the first liquidity provider and receive LP tokens representing your share.
                     </p>
                 </div>
             </div>

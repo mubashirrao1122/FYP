@@ -118,9 +118,9 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
     if (!connected) {
         return (
             <div className="text-center py-12">
-                <Wallet className="w-16 h-16 text-white/20 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">Connect Your Wallet</h3>
-                <p className="text-white/40">
+                <Wallet className="w-16 h-16 text-[#94A3B8] dark:text-[#6B7280] mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-2">Connect your wallet</h3>
+                <p className="text-[#475569] dark:text-[#9CA3AF]">
                     Connect your wallet to view your liquidity positions
                 </p>
             </div>
@@ -129,9 +129,13 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
 
     if (loading || fetchingPositions) {
         return (
-            <div className="flex justify-center items-center py-12">
-                <RefreshCw className="w-8 h-8 text-purple-500 animate-spin" />
-                <span className="ml-3 text-white/60">Loading positions...</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-6">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                    <div
+                        key={idx}
+                        className="h-56 rounded-2xl border border-[#E2E8F0] dark:border-white/10 bg-white dark:bg-[#121826]"
+                    />
+                ))}
             </div>
         );
     }
@@ -139,15 +143,15 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
     if (userPositions.length === 0) {
         return (
             <div className="text-center py-12">
-                <TrendingUp className="w-16 h-16 text-white/20 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">No Positions Yet</h3>
-                <p className="text-white/40 mb-6">
-                    You don't have any liquidity positions. Add liquidity to a pool to start earning!
+                <TrendingUp className="w-16 h-16 text-[#94A3B8] dark:text-[#6B7280] mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-2">No positions yet</h3>
+                <p className="text-[#475569] dark:text-[#9CA3AF] mb-6">
+                    You don’t have any active liquidity positions. Add liquidity to start earning protocol fees.
                 </p>
                 <Button
                     onClick={() => router.push('/pools')}
                     variant="default"
-                    className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                    className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
                 >
                     Browse Pools
                 </Button>
@@ -159,23 +163,23 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
         <div>
             {/* Portfolio Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-                    <div className="text-white/40 text-sm mb-2">Total Position Value</div>
-                    <div className="text-3xl font-black text-white">
+                <div className="bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl p-6 transition-colors duration-200">
+                    <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-2">Total Position Value</div>
+                    <div className="text-2xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">
                         ${totalPositionValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </div>
                 </div>
 
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-                    <div className="text-white/40 text-sm mb-2">Daily Earnings (Est.)</div>
-                    <div className="text-3xl font-black text-green-400">
+                <div className="bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl p-6 transition-colors duration-200">
+                    <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-2">Daily Earnings (Est.)</div>
+                    <div className="text-2xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">
                         ${totalEarnings.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </div>
                 </div>
 
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-                    <div className="text-white/40 text-sm mb-2">Active Positions</div>
-                    <div className="text-3xl font-black text-white">
+                <div className="bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl p-6 transition-colors duration-200">
+                    <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-2">Active Positions</div>
+                    <div className="text-2xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">
                         {userPositions.length}
                     </div>
                 </div>
@@ -183,7 +187,7 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
 
             {/* Positions Grid */}
             <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-white">Your Positions</h3>
+                <h3 className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Your Positions</h3>
                 {onRefresh && (
                     <Button
                         variant="ghost"
@@ -192,7 +196,7 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
                             onRefresh();
                             fetchUserPositions();
                         }}
-                        className="text-white/40 hover:text-white"
+                        className="text-[#94A3B8] dark:text-[#6B7280] hover:text-[#0F172A] dark:hover:text-white"
                     >
                         <RefreshCw className="w-4 h-4" />
                     </Button>
@@ -203,7 +207,7 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
                 {userPositions.map((pool) => (
                     <div key={pool.id} className="relative">
                         {/* Position Badge */}
-                        <div className="absolute top-4 right-4 z-10 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                        <div className="absolute top-4 right-4 z-10 bg-[#8B5CF6] text-white text-xs font-semibold px-3 py-1 rounded-full">
                             {pool.userShare?.toFixed(2)}% Share
                         </div>
 
@@ -220,6 +224,14 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
                                 reserve: pool.formattedReserveB || (pool.reserveB ?? 0).toLocaleString(),
                             }}
                             apy={`${pool.apy.toFixed(2)}%`}
+                            volume24h={pool.volume24h
+                                ? pool.volume24h >= 1000000
+                                    ? `$${(pool.volume24h / 1000000).toFixed(2)}M`
+                                    : pool.volume24h >= 1000
+                                        ? `$${(pool.volume24h / 1000).toFixed(2)}K`
+                                        : `$${pool.volume24h.toFixed(2)}`
+                                : '—'
+                            }
                             tvl={pool.positionValue
                                 ? `$${pool.positionValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
                                 : `$${pool.tvl.toFixed(2)}`

@@ -40,6 +40,7 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
     const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
 
     const [isMounted, setIsMounted] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [timeframe, setTimeframe] = useState<'15m' | '1h' | '4h' | '1d'>('1h');
@@ -49,7 +50,21 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
 
     useEffect(() => {
         setIsMounted(true);
+        if (typeof document !== 'undefined') {
+            setIsDarkMode(document.documentElement.classList.contains('dark'));
+        }
     }, []);
+
+    useEffect(() => {
+        if (!isMounted || typeof document === 'undefined') return;
+
+        const observer = new MutationObserver(() => {
+            setIsDarkMode(document.documentElement.classList.contains('dark'));
+        });
+
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        return () => observer.disconnect();
+    }, [isMounted]);
 
     // Data fetching with race condition handling
     useEffect(() => {
@@ -68,21 +83,21 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
                 chart = createChart(chartContainerRef.current, {
                     layout: {
                         background: { type: ColorType.Solid, color: 'transparent' },
-                        textColor: '#9CA3AF',
+                        textColor: isDarkMode ? '#9CA3AF' : '#475569',
                     },
                     grid: {
-                        vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
-                        horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
+                        vertLines: { color: isDarkMode ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.08)' },
+                        horzLines: { color: isDarkMode ? 'rgba(255, 255, 255, 0.06)' : 'rgba(15, 23, 42, 0.08)' },
                     },
                     width: chartContainerRef.current.clientWidth,
                     height: 400,
                     timeScale: {
                         timeVisible: true,
                         secondsVisible: false,
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)',
                     },
                     rightPriceScale: {
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)',
                     },
                 });
 
@@ -194,53 +209,53 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
             chartRef.current = null;
             seriesRef.current = null;
         };
-    }, [isMounted, inputToken, outputToken, timeframe, retryTrigger]); // Added retryTrigger to dependencies
+    }, [isMounted, isDarkMode, inputToken, outputToken, timeframe, retryTrigger]); // Added retryTrigger to dependencies
 
     if (!isMounted) return null;
 
     return (
-        <div className={cn("w-full bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 shadow-xl relative", className)}>
+        <div className={cn("w-full bg-white dark:bg-[#121826] rounded-2xl border border-[#E2E8F0] dark:border-white/10 p-6 relative transition-colors duration-200", className)}>
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                 <div>
                     <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-bold text-white">{inputToken}/{outputToken}</h3>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 text-white/50 uppercase">
-                            GeckoTerminal
+                        <h3 className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">{inputToken}/{outputToken}</h3>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#F1F5F9] dark:bg-[#161C2D] text-[#475569] dark:text-[#9CA3AF] uppercase">
+                            Live · Solana
                         </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                         {currentPrice ? (
                             <>
-                                <span className="text-2xl font-bold text-white">
+                                <span className="text-2xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">
                                     ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 6 })}
                                 </span>
                                 {priceChange24h !== null && (
                                     <span className={cn(
                                         "text-sm font-medium px-2 py-0.5 rounded",
-                                        priceChange24h >= 0 ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                                        priceChange24h >= 0 ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
                                     )}>
                                         {priceChange24h >= 0 ? '+' : ''}{priceChange24h.toFixed(2)}%
                                     </span>
                                 )}
                             </>
                         ) : (
-                            <div className="h-8 w-32 bg-white/5 rounded animate-pulse" />
+                            <div className="h-8 w-32 bg-[#F1F5F9] dark:bg-[#161C2D] rounded animate-pulse" />
                         )}
                     </div>
                 </div>
 
                 {/* Timeframe Selector */}
-                <div className="flex bg-white/5 rounded-lg p-1 gap-1">
+                <div className="flex bg-[#F1F5F9] dark:bg-[#161C2D] rounded-lg p-1 gap-1">
                     {(['15m', '1h', '4h', '1d'] as const).map((tf) => (
                         <button
                             key={tf}
                             onClick={() => setTimeframe(tf)}
                             className={cn(
-                                "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                                "px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
                                 timeframe === tf
-                                    ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
-                                    : "text-white/50 hover:text-white hover:bg-white/5"
+                                    ? "bg-[#8B5CF6] text-white"
+                                    : "text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:hover:text-white hover:bg-white dark:hover:bg-[#0B0E14]"
                             )}
                         >
                             {tf.toUpperCase()}
@@ -250,21 +265,21 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
             </div>
 
             {/* Chart Area */}
-            <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-white/5 bg-black/20">
+            <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-[#E2E8F0] dark:border-white/10 bg-[#F1F5F9] dark:bg-[#161C2D] transition-colors duration-200">
                 <div ref={chartContainerRef} className="w-full h-full" />
 
                 {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-10">
-                        <Loader2 className="h-8 w-8 text-purple-500 animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#F1F5F9]/70 dark:bg-[#0B0E14]/70 backdrop-blur-sm z-10">
+                        <Loader2 className="h-8 w-8 text-[#8B5CF6] animate-spin" />
                     </div>
                 )}
 
                 {error && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm z-10 p-4 text-center">
-                        <p className="text-red-400 mb-2">{error}</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F1F5F9]/70 dark:bg-[#0B0E14]/70 backdrop-blur-sm z-10 p-4 text-center">
+                        <p className="text-red-500 mb-2">{error}</p>
                         <button
                             onClick={() => setRetryTrigger(prev => prev + 1)}
-                            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm text-white transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#121826] hover:bg-[#F1F5F9] dark:hover:bg-[#161C2D] rounded-lg text-sm text-[#0F172A] dark:text-[#E5E7EB] transition-colors"
                         >
                             <RefreshCw className="h-4 w-4" />
                             Retry

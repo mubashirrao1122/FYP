@@ -103,4 +103,42 @@ pub mod solrush_dex {
     pub fn pause_rush_rewards(ctx: Context<PauseRewards>) -> Result<()> {
         instructions::rewards::pause_rush_rewards(ctx)
     }
+    pub fn initialize_perps_global(ctx: Context<InitializePerpsGlobal>, fee_bps: u16) -> Result<()> {
+        instructions::perps::initialize_global(ctx, fee_bps)
+    }
+    pub fn create_perps_market(
+        ctx: Context<CreatePerpsMarket>,
+        pyth_feed_id: [u8; 32],
+        max_leverage: u16,
+        maintenance_margin_bps: u16,
+    ) -> Result<()> {
+        instructions::perps::create_market(ctx, pyth_feed_id, max_leverage, maintenance_margin_bps)
+    }
+    pub fn initialize_perps_oracle(ctx: Context<InitializeOraclePrice>, price_i64: i64) -> Result<()> {
+        instructions::perps::initialize_oracle_price(ctx, price_i64)
+    }
+    pub fn set_perps_oracle_price(ctx: Context<SetOraclePrice>, price_i64: i64) -> Result<()> {
+        instructions::perps::set_oracle_price(ctx, price_i64)
+    }
+    pub fn initialize_perps_user(ctx: Context<InitializePerpsUser>) -> Result<()> {
+        instructions::perps::initialize_user(ctx)
+    }
+    pub fn deposit_perps_collateral(ctx: Context<DepositCollateral>, amount: u64) -> Result<()> {
+        instructions::perps::deposit_collateral(ctx, amount)
+    }
+    pub fn open_perps_position(
+        ctx: Context<OpenPosition>,
+        side: PositionSide,
+        size_i64: i64,
+        leverage_u16: u16,
+        order_type: OrderType,
+    ) -> Result<()> {
+        instructions::perps::open_position(ctx, side, size_i64, leverage_u16, order_type)
+    }
+    pub fn close_perps_position(ctx: Context<ClosePosition>) -> Result<()> {
+        instructions::perps::close_position(ctx)
+    }
+    pub fn withdraw_perps_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
+        instructions::perps::withdraw_collateral(ctx, amount)
+    }
 }

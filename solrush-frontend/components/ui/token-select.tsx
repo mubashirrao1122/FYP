@@ -119,7 +119,7 @@ export function TokenSelect({
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "w-full flex items-center justify-between gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all hover:border-purple-500/30 group outline-none",
+            "w-full flex items-center justify-between gap-2 bg-white dark:bg-[#161C2D] hover:bg-[#F1F5F9] dark:hover:bg-[#1B2234] border border-[#E2E8F0] dark:border-white/10 rounded-2xl transition-all duration-200 hover:border-[#8B5CF6] group outline-none",
             compact ? "px-2 py-1.5" : "px-3 py-2",
             className
           )}
@@ -134,19 +134,19 @@ export function TokenSelect({
                   {renderIcon(selectedToken.icon, compact ? "w-5 h-5" : "w-8 h-8")}
                 </div>
                 <span className={cn(
-                  "font-bold text-white truncate",
+                  "font-semibold text-[#0F172A] dark:text-[#E5E7EB] truncate",
                   compact ? "text-sm" : "text-lg"
                 )}>
                   {selectedToken.symbol}
                 </span>
               </>
             ) : (
-              <span className="text-white/50">{placeholder}</span>
+              <span className="text-[#94A3B8] dark:text-[#6B7280]">{placeholder}</span>
             )}
           </div>
           <ChevronDown
             className={cn(
-              'text-white/50 transition-transform group-hover:text-white',
+              'text-[#94A3B8] dark:text-[#6B7280] transition-transform group-hover:text-[#0F172A] dark:group-hover:text-white',
               isOpen && 'rotate-180',
               compact ? "h-3 w-3" : "h-4 w-4"
             )}
@@ -155,20 +155,20 @@ export function TokenSelect({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="w-[300px] bg-[#0a0a1a] border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/20 backdrop-blur-xl p-0 overflow-hidden"
+        className="w-[300px] bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-2xl shadow-lg p-0 overflow-hidden"
         align="start"
         sideOffset={8}
       >
         {/* Search Input */}
-        <div className="p-3 border-b border-white/5">
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg">
-            <Search className="h-4 w-4 text-white/50" />
+        <div className="p-3 border-b border-[#E2E8F0] dark:border-white/10">
+          <div className="flex items-center gap-2 px-3 py-2 bg-[#F1F5F9] dark:bg-[#161C2D] rounded-lg">
+            <Search className="h-4 w-4 text-[#94A3B8] dark:text-[#6B7280]" />
             <input
               type="text"
               placeholder="Search tokens..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-white placeholder-white/30 text-sm"
+              className="flex-1 bg-transparent outline-none text-[#0F172A] dark:text-[#E5E7EB] placeholder:text-[#94A3B8] dark:placeholder:text-[#6B7280] text-sm"
               autoFocus
             />
           </div>
@@ -177,7 +177,7 @@ export function TokenSelect({
         {/* Token List */}
         <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
           {loading && filteredTokens.length === 0 ? (
-            <div className="px-4 py-8 text-center text-white/50">
+            <div className="px-4 py-8 text-center text-[#94A3B8] dark:text-[#6B7280]">
               Loading tokens...
             </div>
           ) : filteredTokens.length > 0 ? (
@@ -186,27 +186,27 @@ export function TokenSelect({
                 key={`${token.symbol}-${token.address || 'native'}`}
                 onClick={() => handleSelect(token)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors text-left',
+                  'w-full flex items-center gap-3 px-4 py-3 hover:bg-[#F1F5F9] dark:hover:bg-[#161C2D] transition-colors text-left',
                   selectedToken?.symbol === token.symbol &&
-                  'bg-purple-500/20 border-l-2 border-purple-500'
+                  'bg-[#F1F5F9] dark:bg-[#161C2D] border-l-2 border-[#8B5CF6]'
                 )}
               >
-                <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-white/5 flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-[#F1F5F9] dark:bg-[#161C2D] flex items-center justify-center">
                   {renderIcon(token.icon, "w-8 h-8")}
                 </div>
                 <div className="flex flex-col flex-1 overflow-hidden">
-                  <span className="font-semibold text-white truncate">
+                  <span className="font-semibold text-[#0F172A] dark:text-[#E5E7EB] truncate">
                     {token.symbol}
                   </span>
-                  <span className="text-xs text-white/50 truncate">{token.name}</span>
+                  <span className="text-xs text-[#94A3B8] dark:text-[#6B7280] truncate">{token.name}</span>
                 </div>
                 {selectedToken?.symbol === token.symbol && (
-                  <div className="h-2 w-2 bg-purple-500 rounded-full flex-shrink-0" />
+                  <div className="h-2 w-2 bg-[#8B5CF6] rounded-full flex-shrink-0" />
                 )}
               </button>
             ))
           ) : (
-            <div className="px-4 py-8 text-center text-white/50">
+            <div className="px-4 py-8 text-center text-[#94A3B8] dark:text-[#6B7280]">
               No tokens found
             </div>
           )}
