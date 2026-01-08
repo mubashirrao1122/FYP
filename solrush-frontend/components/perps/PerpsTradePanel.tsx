@@ -11,6 +11,7 @@ interface PerpsTradePanelProps {
   market?: MarketView | null;
   disabled?: boolean;
   error?: string | null;
+  emptyState?: boolean;
 }
 
 type TradeState = 'idle' | 'quoting' | 'ready' | 'submitting' | 'success' | 'error';
@@ -79,7 +80,7 @@ const initialTradeState: TradeMachine = {
   txSignature: null,
 };
 
-export function PerpsTradePanel({ market, disabled, error }: PerpsTradePanelProps) {
+export function PerpsTradePanel({ market, disabled, error, emptyState = false }: PerpsTradePanelProps) {
   const { publicKey } = useWallet();
   const [size, setSize] = React.useState('');
   const [leverage, setLeverage] = React.useState(5);
@@ -123,7 +124,9 @@ export function PerpsTradePanel({ market, disabled, error }: PerpsTradePanelProp
   const ctaLabel = !publicKey
     ? 'Connect Wallet'
     : !market
-      ? 'Select Market'
+      ? emptyState
+        ? 'Select a live market'
+        : 'Select Market'
       : !isFormValid
         ? 'Enter Size'
       : tradeState.state === 'quoting'
@@ -220,6 +223,7 @@ export function PerpsTradePanel({ market, disabled, error }: PerpsTradePanelProp
             <select
               value={collateral}
               onChange={(e) => setCollateral(e.target.value)}
+              disabled={disabled}
               className="w-full bg-transparent text-sm font-semibold text-[#E5E7EB] outline-none"
             >
               {Array.from(new Set([market?.quoteSymbol ?? 'USDC', 'USDC', 'USDT'])).map((symbol) => (
@@ -299,6 +303,7 @@ export function PerpsTradePanel({ market, disabled, error }: PerpsTradePanelProp
                 key={preset}
                 type="button"
                 onClick={() => setLeverage(preset)}
+                disabled={disabled || !market}
                 className={`text-[11px] font-semibold rounded-lg py-1.5 border transition-colors ${
                   leverage === preset
                     ? 'border-[#8B5CF6] text-[#E5E7EB]'

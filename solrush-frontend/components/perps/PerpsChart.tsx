@@ -83,8 +83,16 @@ export function PerpsChart({ market, loading = false, error }: PerpsChartProps) 
 
   if (!market) {
     return (
-      <div className="h-[420px] rounded-2xl border border-white/10 bg-[#121826] flex items-center justify-center text-sm text-[#9CA3AF]">
-        No market data yet.
+      <div className="rounded-2xl border border-white/10 bg-[#121826] p-5 transition-colors duration-200">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-lg font-semibold text-[#E5E7EB]">Market</div>
+          <div className="text-xs text-[#9CA3AF]">Chart</div>
+        </div>
+        <div className="relative h-[320px] rounded-xl border border-white/10 bg-[#0B0E14] overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-[#9CA3AF]">
+            Chart will appear once a market is initialized
+          </div>
+        </div>
       </div>
     );
   }
