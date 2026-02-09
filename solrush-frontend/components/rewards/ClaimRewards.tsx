@@ -28,7 +28,7 @@ export const ClaimRewards = () => {
     return (
       <Button
         disabled
-        className="w-full h-14 text-lg bg-white/5 text-white/40 font-bold rounded-xl border border-white/10"
+        className="w-full h-11 px-6 rounded-lg bg-[#F1F5F9] dark:bg-[#111827] text-[#94A3B8] dark:text-[#6B7280] font-medium border border-transparent dark:border-[#1F2937] transition-colors duration-200"
       >
         No Rewards to Claim
       </Button>
@@ -40,7 +40,7 @@ export const ClaimRewards = () => {
       <Button
         onClick={handleClaim}
         disabled={rewardsLoading || status === 'pending' || status === 'confirming'}
-        className="w-full h-14 text-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all"
+        className="w-full h-11 px-6 rounded-lg bg-[#2DD4BF] dark:bg-[#22C1AE] text-[#0F172A] text-[15px] font-medium transition-colors duration-200 ease-out hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] shadow-sm"
       >
         {status === 'pending'
           ? "Approving..."

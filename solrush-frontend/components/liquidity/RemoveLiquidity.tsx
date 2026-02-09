@@ -187,7 +187,7 @@ export function RemoveLiquidity({ poolAddress, onSuccess }: RemoveLiquidityProps
     return (
       <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
         <CardContent className="p-8 text-center">
-          <Loader2 className="w-8 h-8 text-purple-500 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 text-#2DD4BF animate-spin mx-auto mb-4" />
           <p className="text-white/40">Loading pool data...</p>
         </CardContent>
       </Card>
@@ -223,7 +223,7 @@ export function RemoveLiquidity({ poolAddress, onSuccess }: RemoveLiquidityProps
           </div>
         ) : loadingBalance ? (
           <div className="text-center py-8">
-            <Loader2 className="w-8 h-8 text-purple-500 animate-spin mx-auto mb-4" />
+            <Loader2 className="w-8 h-8 text-#2DD4BF animate-spin mx-auto mb-4" />
             <p className="text-white/40">Loading your position...</p>
           </div>
         ) : !hasPosition ? (
@@ -271,7 +271,7 @@ export function RemoveLiquidity({ poolAddress, onSuccess }: RemoveLiquidityProps
                     className={cn(
                       "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
                       percentage === pct
-                        ? "bg-purple-600 text-white"
+                        ? "bg-#22C1AE text-white"
                         : "bg-white/10 text-white/60 hover:bg-white/20"
                     )}
                   >

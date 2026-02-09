@@ -165,7 +165,7 @@ export const CreatePool: React.FC = () => {
             <div className="bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-2xl p-8 transition-colors duration-200">
                 <div className="mb-6">
                     <h2 className="text-2xl font-semibold text-[#0F172A] dark:text-[#E5E7EB] flex items-center gap-2">
-                        <Plus className="w-6 h-6 text-[#8B5CF6]" />
+                        <Plus className="w-6 h-6 text-[#2DD4BF]" />
                         Create New Pool
                     </h2>
                     <p className="text-sm text-[#475569] dark:text-[#9CA3AF] mt-2">
@@ -181,7 +181,7 @@ export const CreatePool: React.FC = () => {
                     <select
                         value={tokenA}
                         onChange={(e) => setTokenA(e.target.value)}
-                        className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                        className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF]"
                         disabled={loading}
                     >
                         {availableTokens.map((token) => (
@@ -203,7 +203,7 @@ export const CreatePool: React.FC = () => {
                             value={amountA}
                             onChange={(e) => setAmountA(e.target.value)}
                             placeholder="0.0"
-                            className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] text-right text-2xl focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                            className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] text-right text-2xl focus:outline-none focus:ring-2 focus:ring-[#2DD4BF]"
                             disabled={loading}
                             min="0"
                             step="any"
@@ -223,7 +223,7 @@ export const CreatePool: React.FC = () => {
                     <select
                         value={tokenB}
                         onChange={(e) => setTokenB(e.target.value)}
-                        className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                        className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF]"
                         disabled={loading}
                     >
                         {availableTokens.map((token) => (
@@ -245,7 +245,7 @@ export const CreatePool: React.FC = () => {
                             value={amountB}
                             onChange={(e) => setAmountB(e.target.value)}
                             placeholder="0.0"
-                            className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] text-right text-2xl focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                            className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] text-right text-2xl focus:outline-none focus:ring-2 focus:ring-[#2DD4BF]"
                             disabled={loading}
                             min="0"
                             step="any"
@@ -268,8 +268,8 @@ export const CreatePool: React.FC = () => {
                                 key={tier.value}
                                 onClick={() => !loading && setFeeTier(tier.value)}
                                 className={`p-4 rounded-xl border cursor-pointer transition-all ${feeTier === tier.value
-                                    ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]'
-                                    : 'bg-[#F1F5F9] dark:bg-[#161C2D] border-[#E2E8F0] dark:border-white/10 hover:border-[#8B5CF6]'
+                                    ? 'bg-[#2DD4BF]/10 border-[#2DD4BF]'
+                                    : 'bg-[#F1F5F9] dark:bg-[#161C2D] border-[#E2E8F0] dark:border-white/10 hover:border-[#2DD4BF]'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
@@ -278,7 +278,7 @@ export const CreatePool: React.FC = () => {
                                         <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm">{tier.description}</div>
                                     </div>
                                     <div className={`w-5 h-5 rounded-full border-2 ${feeTier === tier.value
-                                        ? 'border-[#8B5CF6] bg-[#8B5CF6]'
+                                        ? 'border-[#2DD4BF] bg-[#2DD4BF]'
                                         : 'border-[#CBD5E1] dark:border-white/20'
                                         }`} />
                                 </div>
@@ -309,7 +309,7 @@ export const CreatePool: React.FC = () => {
                                     href={`https://explorer.solana.com/tx/${success.poolTx}?cluster=devnet`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-[#8B5CF6] hover:text-[#7C3AED] flex items-center gap-1"
+                                    className="text-[#2DD4BF] hover:text-[#22C1AE] flex items-center gap-1"
                                 >
                                     {success.poolTx.slice(0, 8)}...{success.poolTx.slice(-8)}
                                     <ExternalLink className="w-3 h-3" />
@@ -321,7 +321,7 @@ export const CreatePool: React.FC = () => {
                                     href={`https://explorer.solana.com/tx/${success.liquidityTx}?cluster=devnet`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-[#8B5CF6] hover:text-[#7C3AED] flex items-center gap-1"
+                                    className="text-[#2DD4BF] hover:text-[#22C1AE] flex items-center gap-1"
                                 >
                                     {success.liquidityTx.slice(0, 8)}...{success.liquidityTx.slice(-8)}
                                     <ExternalLink className="w-3 h-3" />
@@ -335,7 +335,7 @@ export const CreatePool: React.FC = () => {
                 <Button
                     onClick={handleCreatePool}
                     disabled={loading || !connected || tokenABalance.loading || tokenBBalance.loading}
-                    className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#2DD4BF] hover:bg-[#22C1AE] text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {loading
                         ? (createLoading ? 'Creating Pool...' : 'Adding Liquidity...')

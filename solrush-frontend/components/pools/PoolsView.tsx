@@ -71,7 +71,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
     const updatedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0E14] transition-colors duration-200 selection:bg-[#8B5CF6]/20">
+        <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0E14] transition-colors duration-200 selection:bg-[#2DD4BF]/20">
             <Navbar />
 
             {/* Main Content */}
@@ -102,7 +102,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                         </h1>
                         <Button
                             onClick={() => router.push('/pools/new-position')}
-                            className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-2"
+                            className="bg-[#2DD4BF] hover:bg-[#22C1AE] text-white gap-2"
                         >
                             <Plus className="w-5 h-5" />
                             New Position
@@ -172,7 +172,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                     placeholder="Search pools by token symbol..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl pl-12 pr-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] placeholder:text-[#94A3B8] dark:placeholder:text-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] transition-colors duration-200"
+                                    className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl pl-12 pr-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] placeholder:text-[#94A3B8] dark:placeholder:text-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF] transition-colors duration-200"
                                 />
                             </div>
 
@@ -180,7 +180,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value as any)}
-                                className="bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] transition-colors duration-200"
+                                className="bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF] transition-colors duration-200"
                             >
                                 <option value="tvl" className="bg-white dark:bg-[#121826]">Sort by TVL</option>
                                 <option value="apy" className="bg-white dark:bg-[#121826]">Sort by APY</option>
@@ -216,7 +216,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                 </p>
                                 <Button
                                     onClick={() => router.push('/pools/new-position')}
-                                    className="mt-4 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
+                                    className="mt-4 bg-[#2DD4BF] dark:bg-[#22C1AE] hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] text-[#0F172A] font-medium"
                                 >
                                     Create Pool
                                 </Button>
@@ -263,7 +263,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                         <Button
                                             variant="ghost"
                                             onClick={() => setSearchQuery('')}
-                                            className="mt-4 text-[#8B5CF6]"
+                                            className="mt-4 text-[#2DD4BF]"
                                         >
                                             Clear search
                                         </Button>
@@ -337,7 +337,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                     <select
                                         value={selectedPoolIndex}
                                         onChange={(e) => setSelectedPoolIndex(Number(e.target.value))}
-                                        className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                                        className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF]"
                                     >
                                         {pools.map((pool, index) => (
                                             <option key={pool.address} value={index} className="bg-white dark:bg-[#121826]">
@@ -348,8 +348,8 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                 </div>
                             )}
                             {pools.length > 0 ? (
-                                <AddLiquidity 
-                                    poolAddress={pools[selectedPoolIndex]?.address || pools[0]?.address || ''} 
+                                <AddLiquidity
+                                    poolAddress={pools[selectedPoolIndex]?.address || pools[0]?.address || ''}
                                     onSuccess={onRefresh}
                                 />
                             ) : (
@@ -359,7 +359,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                     <p className="text-sm mt-2">Create or browse pools to continue.</p>
                                     <Button
                                         onClick={() => router.push('/pools/new-position')}
-                                        className="mt-4 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
+                                        className="mt-4 bg-[#2DD4BF] hover:bg-[#22C1AE] text-white"
                                     >
                                         Create Pool
                                     </Button>
@@ -380,7 +380,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                     <select
                                         value={selectedPoolIndex}
                                         onChange={(e) => setSelectedPoolIndex(Number(e.target.value))}
-                                        className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                                        className="w-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF]"
                                     >
                                         {pools.map((pool, index) => (
                                             <option key={pool.address} value={index} className="bg-white dark:bg-[#121826]">
@@ -391,8 +391,8 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                 </div>
                             )}
                             {pools.length > 0 ? (
-                                <RemoveLiquidity 
-                                    poolAddress={pools[selectedPoolIndex]?.address || pools[0]?.address || ''} 
+                                <RemoveLiquidity
+                                    poolAddress={pools[selectedPoolIndex]?.address || pools[0]?.address || ''}
                                     onSuccess={onRefresh}
                                 />
                             ) : (
@@ -402,7 +402,7 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                     <p className="text-sm mt-2">Create or browse pools to continue.</p>
                                     <Button
                                         onClick={() => router.push('/pools')}
-                                        className="mt-4 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
+                                        className="mt-4 bg-[#2DD4BF] hover:bg-[#22C1AE] text-white"
                                     >
                                         Browse Pools
                                     </Button>

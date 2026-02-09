@@ -62,17 +62,17 @@ export function PerpsChart({ market, loading = false, error }: PerpsChartProps) 
     } else {
       buildWidget();
     }
-  }, [market, widgetKey, isDark]);
+  }, [widgetKey, isDark]); // Removed 'market' dependency - only rebuild when market ID or theme changes
 
   if (loading) {
     return (
-      <div className="h-[420px] rounded-2xl border border-white/10 bg-[#121826] animate-pulse" />
+      <div className="h-[420px] rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#111827] animate-pulse transition-colors duration-200" />
     );
   }
 
   if (error) {
     return (
-      <div className="h-[420px] rounded-2xl border border-white/10 bg-[#121826] flex items-center justify-center text-sm text-[#9CA3AF]">
+      <div className="h-[420px] rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] flex items-center justify-center text-sm text-[#475569] dark:text-[#9CA3AF] transition-colors duration-200">
         <div className="flex items-center gap-2">
           <AlertCircle className="h-4 w-4" />
           <span>{error}</span>
@@ -83,13 +83,13 @@ export function PerpsChart({ market, loading = false, error }: PerpsChartProps) 
 
   if (!market) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-[#121826] p-5 transition-colors duration-200">
+      <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] p-5 shadow-sm transition-colors duration-200">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-lg font-semibold text-[#E5E7EB]">Market</div>
-          <div className="text-xs text-[#9CA3AF]">Chart</div>
+          <div className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Market</div>
+          <div className="text-xs text-[#475569] dark:text-[#9CA3AF]">Chart</div>
         </div>
-        <div className="relative h-[320px] rounded-xl border border-white/10 bg-[#0B0E14] overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-[#9CA3AF]">
+        <div className="relative h-[320px] rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-[#475569] dark:text-[#9CA3AF]">
             Chart will appear once a market is initialized
           </div>
         </div>
@@ -109,17 +109,17 @@ export function PerpsChart({ market, loading = false, error }: PerpsChartProps) 
       : `$${market.markPrice.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#121826] p-5 transition-colors duration-200">
+    <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] p-5 shadow-sm transition-colors duration-200">
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-[#E5E7EB]">{market.symbol}</h3>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-[#161C2D] text-[#9CA3AF]">
+            <h3 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB]">{market.symbol}</h3>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-[#F1F5F9] dark:bg-[#161C2D] text-[#475569] dark:text-[#9CA3AF] border border-[#E2E8F0] dark:border-[#1F2937]">
               Live · Solana
             </span>
           </div>
           <div className="mt-2 flex items-center gap-3">
-            <span className="text-2xl font-semibold text-[#E5E7EB] tabular-nums">{formattedPrice}</span>
+            <span className="text-2xl font-semibold text-[#0F172A] dark:text-[#E5E7EB] tabular-nums">{formattedPrice}</span>
             <span
               className={`text-sm font-medium ${changeColor}`}
               title={market.change24h === null ? 'Available after first trades' : undefined}
@@ -128,16 +128,15 @@ export function PerpsChart({ market, loading = false, error }: PerpsChartProps) 
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-[#9CA3AF]">
+        <div className="flex items-center gap-2 text-xs text-[#475569] dark:text-[#9CA3AF]">
           {['5m', '15m', '1h', '4h', '1d'].map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
-              className={`px-2 py-1 rounded-lg border ${
-                timeframe === tf
-                  ? 'border-[#8B5CF6] text-[#E5E7EB]'
-                  : 'border-white/10 text-[#9CA3AF]'
-              }`}
+              className={`px-2 py-1 rounded-lg border transition-colors ${timeframe === tf
+                ? 'border-[#2DD4BF] dark:border-[#22C1AE] text-[#0F172A] dark:text-[#E5E7EB] bg-[#2DD4BF]/10 dark:bg-[#22C1AE]/10'
+                : 'border-[#E2E8F0] dark:border-[#1F2937] text-[#475569] dark:text-[#9CA3AF] hover:border-[#2DD4BF] dark:hover:border-[#22C1AE]'
+                }`}
             >
               {tf}
             </button>
@@ -148,10 +147,10 @@ export function PerpsChart({ market, loading = false, error }: PerpsChartProps) 
       <div
         ref={containerRef}
         id={widgetKey}
-        className="relative h-[320px] rounded-xl border border-white/10 bg-[#0B0E14] overflow-hidden"
+        className="relative h-[320px] rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] overflow-hidden"
       >
         {market.markPrice === null && (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-[#9CA3AF] bg-[#0B0E14]/70">
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-[#475569] dark:text-[#9CA3AF] bg-[#F8FAFC]/70 dark:bg-[#0B1220]/70">
             Chart available once market data streams are connected
           </div>
         )}

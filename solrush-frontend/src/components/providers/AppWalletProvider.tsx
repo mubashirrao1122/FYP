@@ -22,8 +22,13 @@ export const AppWalletProvider: FC<AppWalletProviderProps> = ({ children }) => {
         ? WalletAdapterNetwork.Mainnet
         : WalletAdapterNetwork.Devnet;
 
-    // Use centralized RPC endpoint
-    const endpoint = RPC_ENDPOINT;
+    // Use centralized RPC endpoint with fallback
+    const endpoint = useMemo(() => {
+        if (process.env.NEXT_PUBLIC_RPC_URL) {
+            return process.env.NEXT_PUBLIC_RPC_URL;
+        }
+        return 'https://api.devnet.solana.com';
+    }, []);
 
     const enableMockWallet =
         process.env.NEXT_PUBLIC_E2E_WALLET === '1' &&

@@ -73,6 +73,39 @@ export function usePerps(): UsePerpsResult {
         }
         setError(null);
 
+        // Check if mock mode is enabled
+        const useMock = process.env.NEXT_PUBLIC_USE_MOCK_PERPS === 'true';
+
+        if (useMock) {
+          // Use mock data
+          const { getMockMarkets, updateAllPrices } = await import('@/lib/perps/mockData');
+          const { getPositions, checkLiquidations } = await import('@/lib/perps/mockPositions');
+
+          // Update prices
+          updateAllPrices();
+
+          // Get markets
+          const mockMarkets = getMockMarkets();
+          setHasMarkets(mockMarkets.length > 0);
+          setMarkets(mockMarkets);
+
+          // Get positions if wallet connected
+          if (publicKey) {
+            const mockPositions = getPositions(publicKey.toBase58());
+            setPositions(mockPositions);
+
+            // Check for liquidations
+            checkLiquidations(publicKey.toBase58());
+          } else {
+            setPositions([]);
+          }
+
+          if (!active) return;
+          setLoading(false);
+          initialLoad.current = false;
+          return;
+        }
+
         if (!idl) {
           const exists = await fetchPerpsMarketExists(connection);
           if (!active) return;

@@ -125,7 +125,7 @@ export const PriceRangeControl: React.FC<PriceRangeControlProps> = ({
                                 value={minPrice}
                                 onChange={(e) => onMinPriceChange(e.target.value)}
                                 placeholder="0"
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-28 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-28 text-white focus:outline-none focus:ring-2 focus:ring-#2DD4BF"
                             />
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/40 pointer-events-none">
                                 {tokenB}/{tokenA}
@@ -142,7 +142,7 @@ export const PriceRangeControl: React.FC<PriceRangeControlProps> = ({
                                 value={maxPrice}
                                 onChange={(e) => onMaxPriceChange(e.target.value)}
                                 placeholder="∞"
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-28 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-28 text-white focus:outline-none focus:ring-2 focus:ring-#2DD4BF"
                             />
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/40 pointer-events-none">
                                 {tokenB}/{tokenA}
@@ -160,7 +160,7 @@ export const PriceRangeControl: React.FC<PriceRangeControlProps> = ({
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                     <div className="text-sm text-white/60 mb-3">Price range visualization</div>
                     <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-purple-400" style={{
+                        <div className="absolute inset-0 bg-gradient-to-r from-#22C1AE to-#2DD4BF" style={{
                             left: minPrice === '0' ? '0%' : '20%',
                             right: maxPrice === '∞' ? '0%' : '20%',
                         }} />

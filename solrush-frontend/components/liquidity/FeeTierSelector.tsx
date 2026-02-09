@@ -113,7 +113,7 @@ export const FeeTierSelector: React.FC<FeeTierSelectorProps> = ({
                                 setShowAll(false);
                             }}
                             className={`p-4 rounded-xl border cursor-pointer transition-all hover:scale-105 ${selected === tier.fee
-                                    ? 'bg-white/10 border-white/30 ring-2 ring-purple-500'
+                                    ? 'bg-white/10 border-white/30 ring-2 ring-#2DD4BF'
                                     : 'bg-white/5 border-white/10 hover:border-white/20'
                                 }`}
                         >

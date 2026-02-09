@@ -41,7 +41,7 @@ export const TokenPairSelector: React.FC<TokenPairSelectorProps> = ({
                     <select
                         value={tokenA}
                         onChange={(e) => onTokenAChange(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-16 text-white appearance-none cursor-pointer hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-16 text-white appearance-none cursor-pointer hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-#2DD4BF"
                     >
                         {tokens.map((token) => (
                             <option key={token.symbol} value={token.symbol} className="bg-gray-900">
@@ -61,7 +61,7 @@ export const TokenPairSelector: React.FC<TokenPairSelectorProps> = ({
                     <select
                         value={tokenB}
                         onChange={(e) => onTokenBChange(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-16 text-white appearance-none cursor-pointer hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-16 text-white appearance-none cursor-pointer hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-#2DD4BF"
                     >
                         {tokens.map((token) => (
                             <option key={token.symbol} value={token.symbol} className="bg-gray-900">

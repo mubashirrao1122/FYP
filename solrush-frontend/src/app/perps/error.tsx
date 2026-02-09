@@ -14,7 +14,7 @@ export default function PerpsError({ error, reset }: { error: Error; reset: () =
         </p>
         <button
           onClick={reset}
-          className="mt-4 w-full h-10 rounded-xl bg-[#8B5CF6] text-white text-sm font-semibold hover:bg-[#7C3AED] transition-colors"
+          className="mt-4 w-full h-10 rounded-lg bg-[#2DD4BF] dark:bg-[#22C1AE] text-[#0F172A] text-sm font-medium hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] transition-colors duration-200"
         >
           Retry
         </button>

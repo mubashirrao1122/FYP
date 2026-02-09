@@ -4,14 +4,14 @@ import React, { useMemo, useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { PerpsChart } from '@/components/perps/PerpsChart';
 import { PerpsTradePanel } from '@/components/perps/PerpsTradePanel';
-import { PerpsPositions } from '@/components/perps/PerpsPositions';
-import { StatusCard } from '@/components/perps/StatusCard';
+import { OrderBook } from '@/components/perps/OrderBook';
+import { RecentTrades } from '@/components/perps/RecentTrades';
 import { MarketSelector } from '@/components/perps/MarketSelector';
-import { MetricPill } from '@/components/perps/MetricPill';
-import { LaunchStatePanel } from '@/components/perps/LaunchStatePanel';
 import type { MarketView, PositionView } from '@/lib/perps/types';
 import { usePythPrice } from '@/lib/perps/usePythPrice';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { Wallet, ChevronDown, Monitor, Clock, List } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PerpsViewProps {
   markets: MarketView[];
@@ -32,12 +32,15 @@ export function PerpsView({
 }: PerpsViewProps) {
   const { publicKey } = useWallet();
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
+
   const selectedMarket = useMemo(
     () => markets.find((m) => m.id === selectedMarketId) || markets[0] || null,
     [markets, selectedMarketId]
   );
+
   const livePrice = usePythPrice(selectedMarket?.oraclePriceId);
   const combinedError = error || livePrice.error;
+
   const liveMarket = useMemo(() => {
     if (!selectedMarket) return null;
     if (!livePrice.price) return selectedMarket;
@@ -49,148 +52,174 @@ export function PerpsView({
     };
   }, [selectedMarket, livePrice.price]);
 
-  const formatValue = (value: number | null, options?: Intl.NumberFormatOptions) =>
-    value === null ? '—' : value.toLocaleString(undefined, options);
-  const formatPrice = (value: number | null) =>
-    value === null ? '—' : `$${value.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
+  const formatCurrency = (value: number | null) =>
+    value === null ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+
   const formatPercent = (value: number | null) =>
-    value === null ? '—' : `${value.toFixed(4)}%`;
-  const updatedAgo = liveMarket?.lastUpdated
-    ? `${Math.max(0, Math.floor((Date.now() / 1000 - liveMarket.lastUpdated)))}s ago`
-    : '—';
-  const tooltipFor = (value: number | null) =>
-    value === null ? 'Available after first trades' : undefined;
+    value === null ? '—' : `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
 
   return (
-    <div className="min-h-screen bg-[#0B0E14] transition-colors duration-200 selection:bg-[#8B5CF6]/20">
-      <Navbar />
+    <div className="flex flex-col h-screen overflow-hidden bg-[#0B1220] text-[#E5E7EB]">
+      <div className="shrink-0">
+        <Navbar />
+      </div>
 
-      <main className="relative z-10 max-w-[1320px] mx-auto px-6 pt-16 pb-12">
-        {combinedError && (
-          <div className="mb-6">
-            <StatusCard
-              title="Perps failed to load"
-              message={combinedError}
-              actionLabel="Retry"
-              onAction={() => window.location.reload()}
-              details={combinedError}
-            />
-          </div>
-        )}
-        {warning && (
-          <div className="mb-6">
-            <StatusCard
-              title="Perps IDL warning"
-              message={warning}
-              details={warning}
-            />
-          </div>
-        )}
-
-        <div className="mb-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl sm:text-4xl font-semibold text-[#E5E7EB] tracking-tight">
-              Perpetuals
-            </h1>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-[#161C2D] text-[#9CA3AF]">
-              Initializing
-            </span>
-          </div>
-          <p className="text-[#9CA3AF] text-sm sm:text-base max-w-2xl mt-2">
-            Trade perpetual markets with transparent funding, margin, and on-chain settlement.
-          </p>
+      {/* Stats Bar */}
+      <div className="h-14 border-b border-[#1F2937] flex items-center px-4 bg-[#0F172A] shrink-0 z-20 gap-6">
+        <div className="flex items-center gap-2 mr-2">
+          <MarketSelector
+            markets={markets}
+            selectedId={selectedMarketId}
+            onChange={setSelectedMarketId}
+          />
         </div>
 
-        {markets.length === 0 && !loading && !warning && !hasMarkets ? (
-          <div className="mt-6">
-            <LaunchStatePanel connected={Boolean(publicKey)} />
-          </div>
-        ) : null}
+        <div className="h-8 w-px bg-[#1F2937]" />
 
-        {hasMarkets || warning ? (
-          <div className={markets.length === 0 ? 'mt-6 opacity-70' : 'mt-0'}>
-          <div className="flex items-center justify-between mb-4">
-            <MarketSelector
-              markets={markets}
-              selectedId={selectedMarketId}
-              onChange={setSelectedMarketId}
+        <div className="flex items-center gap-6 text-xs overflow-x-auto no-scrollbar mask-gradient-right flex-1">
+          <div className="flex flex-col">
+            <span className="text-[#9CA3AF] text-[10px] uppercase font-medium">Mark Price</span>
+            <span className={`font-mono text-sm font-medium ${liveMarket?.change24h && liveMarket.change24h >= 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+              {liveMarket?.markPrice ? formatCurrency(liveMarket.markPrice) : '-'}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[#9CA3AF] text-[10px] uppercase font-medium">24h Change</span>
+            <span className={`font-mono text-sm font-medium ${liveMarket?.change24h && liveMarket.change24h >= 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+              {liveMarket?.change24h ? formatPercent(liveMarket.change24h) : '-'}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[#9CA3AF] text-[10px] uppercase font-medium">24h Volume</span>
+            <span className="text-[#E5E7EB] font-mono text-sm">{liveMarket?.volume24h ? formatCurrency(liveMarket.volume24h) : '-'}</span>
+          </div>
+          <div className="flex flex-col hidden sm:flex">
+            <span className="text-[#9CA3AF] text-[10px] uppercase font-medium">Open Interest</span>
+            <span className="text-[#E5E7EB] font-mono text-sm">{liveMarket?.openInterest ? formatCurrency(liveMarket.openInterest) : '-'}</span>
+          </div>
+          <div className="flex flex-col hidden lg:flex">
+            <span className="text-[#9CA3AF] text-[10px] uppercase font-medium">Funding / 1h</span>
+            <span className="text-[#F59E0B] font-mono text-sm">0.0012%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Column: Chart & Positions */}
+        <div className="flex-1 flex flex-col min-w-0 border-r border-[#1F2937]">
+          {/* Chart Area */}
+          <div className="flex-1 relative min-h-[400px]">
+            <PerpsChart
+              market={liveMarket}
+              loading={loading}
+              error={combinedError || undefined}
+              height="100%"
+              isDark={true}
             />
-            <div className="text-xs text-[#6B7280]">Updated {updatedAgo}</div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-            {loading
-              ? Array.from({ length: 6 }).map((_, index) => (
-                  <div
-                    key={`metric-skeleton-${index}`}
-                    className="rounded-xl border border-white/10 bg-[#121826] px-3 py-3 animate-pulse"
-                  >
-                    <div className="h-3 w-16 bg-white/5 rounded" />
-                    <div className="mt-2 h-4 w-20 bg-white/5 rounded" />
-                  </div>
-                ))
-              : (
-                <>
-                  <MetricPill
-                    label="Mark"
-                    value={liveMarket ? formatPrice(liveMarket.markPrice) : '—'}
-                    tooltip={markets.length === 0 ? 'Available once a market is live' : tooltipFor(liveMarket?.markPrice ?? null)}
-                    testId="perps-metric-mark"
-                  />
-                  <MetricPill
-                    label="24h Change"
-                    value={liveMarket ? formatPercent(liveMarket.change24h) : '—'}
-                    tooltip="Available once a market is live"
-                    testId="perps-metric-24h-change"
-                  />
-                  <MetricPill
-                    label="24h Volume"
-                    value={liveMarket ? formatValue(liveMarket.volume24h) : '—'}
-                    tooltip="Available once a market is live"
-                    testId="perps-metric-24h-volume"
-                  />
-                  <MetricPill
-                    label="Funding"
-                    value={liveMarket ? formatPercent(liveMarket.fundingRate) : '—'}
-                    tooltip={markets.length === 0 ? 'Available once a market is live' : tooltipFor(liveMarket?.fundingRate ?? null)}
-                    testId="perps-metric-funding"
-                  />
-                  <MetricPill
-                    label="Open Interest"
-                    value={liveMarket ? formatValue(liveMarket.openInterest) : '—'}
-                    tooltip={markets.length === 0 ? 'Available once a market is live' : tooltipFor(liveMarket?.openInterest ?? null)}
-                    testId="perps-metric-open-interest"
-                  />
-                  <MetricPill
-                    label="Borrow Rate"
-                    value={liveMarket ? formatPercent(liveMarket.borrowRate) : '—'}
-                    tooltip="Available once a market is live"
-                    testId="perps-metric-borrow-rate"
-                  />
-                </>
-              )}
-          </div>
-
-            <div className="grid grid-cols-12 gap-6 items-start">
-              <div className="col-span-12 lg:col-span-7">
-                <PerpsChart market={liveMarket} loading={loading} error={combinedError || undefined} />
+          {/* Bottom Tabs: Positions/Orders */}
+          <div className="h-[280px] border-t border-[#1F2937] bg-[#0F172A] flex flex-col shrink-0">
+            <Tabs defaultValue="positions" className="flex flex-col h-full">
+              <div className="px-4 border-b border-[#1F2937] flex items-center justify-between bg-[#111827]">
+                <TabsList className="h-9 bg-transparent p-0 gap-6">
+                  <TabsTrigger value="positions" className="h-full px-0 data-[state=active]:text-[#2DD4BF] data-[state=active]:border-b-2 data-[state=active]:border-[#2DD4BF] rounded-none bg-transparent">
+                    Positions {positions.length > 0 && `(${positions.length})`}
+                  </TabsTrigger>
+                  <TabsTrigger value="orders" className="h-full px-0 data-[state=active]:text-[#2DD4BF] data-[state=active]:border-b-2 data-[state=active]:border-[#2DD4BF] rounded-none bg-transparent">
+                    Orders (0)
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="h-full px-0 data-[state=active]:text-[#2DD4BF] data-[state=active]:border-b-2 data-[state=active]:border-[#2DD4BF] rounded-none bg-transparent">
+                    History
+                  </TabsTrigger>
+                  <TabsTrigger value="pnl" className="h-full px-0 data-[state=active]:text-[#2DD4BF] data-[state=active]:border-b-2 data-[state=active]:border-[#2DD4BF] rounded-none bg-transparent">
+                    P&L Analysis
+                  </TabsTrigger>
+                </TabsList>
               </div>
-              <div className="col-span-12 lg:col-span-5">
-                <PerpsTradePanel
-                  market={liveMarket}
-                  disabled={loading || markets.length === 0 || Boolean(warning) || !hasMarkets}
-                  emptyState={markets.length === 0 || !hasMarkets}
-                  error={combinedError}
-                />
-              </div>
-            </div>
 
-            <div className="mt-8">
-              <PerpsPositions positions={positions} markets={markets} loading={loading} />
+              <div className="flex-1 overflow-auto bg-[#0B1220] no-scrollbar">
+                <TabsContent value="positions" className="h-full mt-0 p-0">
+                  {positions.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-[#64748B] gap-2">
+                      <div className="p-3 rounded-full bg-[#1F2937]/50">
+                        <Wallet className="w-6 h-6 opacity-50" />
+                      </div>
+                      <p className="text-sm">No open positions</p>
+                    </div>
+                  ) : (
+                    <table className="w-full text-xs text-left">
+                      <thead className="text-[#6B7280] uppercase bg-[#111827] sticky top-0 z-10">
+                        <tr>
+                          <th className="px-4 py-2 font-medium">Market</th>
+                          <th className="px-4 py-2 font-medium">Side</th>
+                          <th className="px-4 py-2 font-medium text-right">Size (USD)</th>
+                          <th className="px-4 py-2 font-medium text-right">Net Value</th>
+                          <th className="px-4 py-2 font-medium text-right">Entry Price</th>
+                          <th className="px-4 py-2 font-medium text-right">Mark Price</th>
+                          <th className="px-4 py-2 font-medium text-right">Liq. Price</th>
+                          <th className="px-4 py-2 font-medium text-right">PnL</th>
+                          <th className="px-4 py-2 font-medium text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1F2937]">
+                        {positions.map((position) => (
+                          <tr key={position.id} className="hover:bg-[#1F2937]/50 transition-colors">
+                            <td className="px-4 py-2 font-medium text-[#E5E7EB]">{position.marketId}</td>
+                            <td className={`px-4 py-2 font-medium ${position.side === 'long' ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                              {position.side.toUpperCase()} {position.leverage}x
+                            </td>
+                            <td className="px-4 py-2 text-right text-[#E5E7EB]">{formatCurrency(position.sizeUsd)}</td>
+                            <td className="px-4 py-2 text-right text-[#E5E7EB]">{formatCurrency(position.collateralUsd)}</td>
+                            <td className="px-4 py-2 text-right text-[#E5E7EB]">{formatCurrency(position.entryPrice)}</td>
+                            <td className="px-4 py-2 text-right text-[#E5E7EB]">{formatCurrency(liveMarket?.markPrice || 0)}</td>
+                            <td className="px-4 py-2 text-right text-[#F59E0B]">{formatCurrency(position.liquidationPrice)}</td>
+                            <td className={`px-4 py-2 text-right font-medium ${position.unrealizedPnl >= 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                              {position.unrealizedPnl >= 0 ? '+' : ''}{formatCurrency(position.unrealizedPnl)}
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              <button className="text-[10px] bg-[#1F2937] hover:bg-[#374151] text-[#E5E7EB] px-2 py-1 rounded border border-[#374151]">
+                                Close
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </TabsContent>
+                {/* Other tabs placeholders */}
+                <TabsContent value="orders" className="h-full mt-0 flex items-center justify-center text-[#64748B]">No open orders</TabsContent>
+                <TabsContent value="history" className="h-full mt-0 flex items-center justify-center text-[#64748B]">No trade history</TabsContent>
+                <TabsContent value="pnl" className="h-full mt-0 flex items-center justify-center text-[#64748B]">No P&L data available</TabsContent>
+              </div>
+            </Tabs>
+          </div>
+        </div>
+
+        {/* Middle Column: Order Book & Trades (Fixed Width) */}
+        <div className="w-[280px] flex flex-col border-r border-[#1F2937] shrink-0 hidden md:flex bg-[#0B1220]">
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 min-h-0 border-b border-[#1F2937]">
+              <OrderBook currentPrice={liveMarket?.markPrice || 0} />
+            </div>
+            <div className="h-[40%] min-h-0">
+              <RecentTrades currentPrice={liveMarket?.markPrice || 0} />
             </div>
           </div>
-        ) : null}
-      </main>
+        </div>
+
+        {/* Right Column: Trade Form (Fixed Width) */}
+        <div className="w-[320px] bg-[#0F172A] shrink-0 flex flex-col border-l border-[#1F2937] z-10 overflow-y-auto no-scrollbar">
+          <PerpsTradePanel
+            market={liveMarket}
+            disabled={loading || markets.length === 0 || Boolean(warning) || !hasMarkets}
+            emptyState={markets.length === 0 || !hasMarkets}
+            error={combinedError}
+          />
+        </div>
+      </div>
     </div>
   );
 }

@@ -46,11 +46,14 @@ export interface Transaction {
     };
 }
 
+import { PnLService, PnLSummary } from '../services/pnlService';
+
 export interface PortfolioData {
     totalValue: number;
     tokenHoldings: TokenHolding[];
     liquidityPositions: LiquidityPosition[];
     transactions: Transaction[];
+    pnl: PnLSummary;
 }
 
 /**
@@ -68,6 +71,16 @@ export const usePortfolio = () => {
         tokenHoldings: [],
         liquidityPositions: [],
         transactions: [],
+        pnl: {
+            realizedPnL: 0,
+            unrealizedPnL: 0,
+            totalPnL: 0,
+            winCount: 0,
+            lossCount: 0,
+            winRate: 0,
+            bestTrade: null,
+            worstTrade: null,
+        }
     });
 
     /**
@@ -254,6 +267,16 @@ export const usePortfolio = () => {
                 tokenHoldings: [],
                 liquidityPositions: [],
                 transactions: [],
+                pnl: {
+                    realizedPnL: 0,
+                    unrealizedPnL: 0,
+                    totalPnL: 0,
+                    winCount: 0,
+                    lossCount: 0,
+                    winRate: 0,
+                    bestTrade: null,
+                    worstTrade: null,
+                }
             });
             setLoading(false);
             return;
@@ -274,11 +297,16 @@ export const usePortfolio = () => {
             const lpValue = liquidityPositions.reduce((sum, p) => sum + p.usdValue, 0);
             const totalValue = tokenValue + lpValue;
 
+            // Calculate PnL
+            // For now passing empty price map, in production would pass current token prices
+            const pnl = PnLService.calculatePnL(transactions, {});
+
             setPortfolio({
                 totalValue,
                 tokenHoldings,
                 liquidityPositions,
                 transactions,
+                pnl,
             });
         } catch (err: any) {
             console.error('Failed to fetch portfolio:', err);

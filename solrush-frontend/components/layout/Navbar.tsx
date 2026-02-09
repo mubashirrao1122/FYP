@@ -43,6 +43,7 @@ export function Navbar() {
   const navLinks = [
     { href: '/swap', label: 'Swap' },
     { href: '/perps', label: 'Perps' },
+    { href: '/portfolio', label: 'Portfolio' },
     { href: '/pools', label: 'Pools' },
     { href: '/rewards', label: 'Rewards' },
     { href: '/history', label: 'History' },
@@ -78,7 +79,7 @@ export function Navbar() {
                 className={cn(
                   'px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                   isActive(link.href)
-                    ? 'text-[#0F172A] dark:text-[#E5E7EB] bg-[#F1F5F9] dark:bg-[#161C2D] border border-[#8B5CF6]'
+                    ? 'text-[#0F172A] dark:text-[#E5E7EB] bg-[#F1F5F9] dark:bg-[#161C2D] border border-[#2DD4BF] dark:border-[#22C1AE]'
                     : 'text-[#475569] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:hover:text-[#E5E7EB] hover:bg-[#F1F5F9] dark:hover:bg-[#161C2D]'
                 )}
               >
@@ -123,7 +124,7 @@ export function Navbar() {
                 className={cn(
                   'block px-4 py-2 rounded-lg font-medium transition-all duration-200',
                   isActive(link.href)
-                    ? 'text-[#0F172A] dark:text-[#E5E7EB] bg-[#F1F5F9] dark:bg-[#161C2D] border border-[#8B5CF6]'
+                    ? 'text-[#0F172A] dark:text-[#E5E7EB] bg-[#F1F5F9] dark:bg-[#161C2D] border border-[#2DD4BF] dark:border-[#22C1AE]'
                     : 'text-[#475569] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:hover:text-[#E5E7EB] hover:bg-[#F1F5F9] dark:hover:bg-[#161C2D]'
                 )}
               >

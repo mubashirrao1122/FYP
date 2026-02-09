@@ -65,11 +65,8 @@ export default function NewPositionPage() {
     const canContinueStep2 = (rangeType === 'full' || (minPrice && maxPrice)) && amountA && amountB && !isSubmitting;
 
     return (
-        <div className="min-h-screen bg-black relative overflow-hidden">
+        <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B1220] transition-colors duration-200">
             <Navbar />
-
-            {/* Background Glow */}
-            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
 
             {/* Main Content */}
             <main className="relative z-10 max-w-4xl mx-auto px-6 pt-24 pb-12">
@@ -77,7 +74,7 @@ export default function NewPositionPage() {
                 <Button
                     variant="ghost"
                     onClick={() => router.push('/pools')}
-                    className="mb-6 text-white/60 hover:text-white"
+                    className="mb-6 text-[#475569] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:hover:text-[#E5E7EB]"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Back to Pools
@@ -86,14 +83,14 @@ export default function NewPositionPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <div className="text-sm text-white/40 mb-1">Your positions › New position</div>
-                        <h1 className="text-4xl font-black text-white tracking-tight">New position</h1>
+                        <div className="text-sm text-[#94A3B8] dark:text-[#6B7280] mb-1">Your positions › New position</div>
+                        <h1 className="text-4xl font-semibold text-[#0F172A] dark:text-[#E5E7EB] tracking-tight">New position</h1>
                     </div>
                     <div className="flex items-center gap-3">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="text-white/60 border-white/20"
+                            className="text-[#475569] dark:text-[#9CA3AF] border-[#E2E8F0] dark:border-[#1F2937]"
                         >
                             v3 position
                         </Button>
@@ -101,7 +98,7 @@ export default function NewPositionPage() {
                             variant="ghost"
                             size="sm"
                             onClick={handleReset}
-                            className="text-white/40 hover:text-white"
+                            className="text-[#475569] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:hover:text-[#E5E7EB]"
                         >
                             <RotateCcw className="w-4 h-4 mr-2" />
                             Reset
@@ -109,7 +106,7 @@ export default function NewPositionPage() {
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="text-white/40 hover:text-white"
+                            className="text-[#475569] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:hover:text-[#E5E7EB]"
                         >
                             <Settings className="w-5 h-5" />
                         </Button>
@@ -117,32 +114,32 @@ export default function NewPositionPage() {
                 </div>
 
                 {/* Step Navigation */}
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 mb-6">
+                <div className="bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#1F2937] rounded-2xl p-8 mb-6 shadow-sm transition-colors duration-200">
                     <div className="flex items-center gap-8 mb-8">
                         {/* Step 1 */}
                         <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 1 ? 'bg-white text-black' : 'bg-white/10 text-white/40'
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${currentStep === 1 ? 'bg-[#2DD4BF] dark:bg-[#22C1AE] text-[#0F172A]' : 'bg-[#F1F5F9] dark:bg-[#161C2D] text-[#94A3B8] dark:text-[#6B7280]'
                                 }`}>
                                 1
                             </div>
                             <div>
-                                <div className={`text-sm font-semibold ${currentStep === 1 ? 'text-white' : 'text-white/40'}`}>
+                                <div className={`text-sm font-semibold ${currentStep === 1 ? 'text-[#0F172A] dark:text-[#E5E7EB]' : 'text-[#94A3B8] dark:text-[#6B7280]'}`}>
                                     Select token pair and fees
                                 </div>
                             </div>
                         </div>
 
                         {/* Divider */}
-                        <div className="flex-1 h-px bg-white/10" />
+                        <div className="flex-1 h-px bg-[#E2E8F0] dark:bg-[#1F2937]" />
 
                         {/* Step 2 */}
                         <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 2 ? 'bg-white text-black' : 'bg-white/10 text-white/40'
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${currentStep === 2 ? 'bg-[#2DD4BF] dark:bg-[#22C1AE] text-[#0F172A]' : 'bg-[#F1F5F9] dark:bg-[#161C2D] text-[#94A3B8] dark:text-[#6B7280]'
                                 }`}>
                                 2
                             </div>
                             <div>
-                                <div className={`text-sm font-semibold ${currentStep === 2 ? 'text-white' : 'text-white/40'}`}>
+                                <div className={`text-sm font-semibold ${currentStep === 2 ? 'text-[#0F172A] dark:text-[#E5E7EB]' : 'text-[#94A3B8] dark:text-[#6B7280]'}`}>
                                     Set price range and deposit amounts
                                 </div>
                             </div>
@@ -167,7 +164,7 @@ export default function NewPositionPage() {
                             <Button
                                 onClick={() => setCurrentStep(2)}
                                 disabled={!canContinueStep1}
-                                className="w-full h-14 bg-white hover:bg-white/90 text-black font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full h-14 bg-[#2DD4BF] dark:bg-[#22C1AE] hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] text-[#0F172A] font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Continue
                             </Button>
@@ -199,14 +196,14 @@ export default function NewPositionPage() {
                                     onClick={() => setCurrentStep(1)}
                                     variant="outline"
                                     disabled={isSubmitting}
-                                    className="flex-1 h-14 text-white border-white/20 font-semibold"
+                                    className="flex-1 h-14 text-[#0F172A] dark:text-[#E5E7EB] border-[#E2E8F0] dark:border-[#1F2937] font-medium"
                                 >
                                     Back
                                 </Button>
                                 <Button
                                     onClick={handleCreatePosition}
                                     disabled={!canContinueStep2}
-                                    className="flex-1 h-14 bg-white hover:bg-white/90 text-black font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 h-14 bg-[#2DD4BF] dark:bg-[#22C1AE] hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] text-[#0F172A] font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isSubmitting ? (
                                         <><RefreshCw className="w-5 h-5 mr-2 animate-spin" /> Creating Position...</>
@@ -219,23 +216,23 @@ export default function NewPositionPage() {
                     )}
                 </div>
 
-                {/* Stats Panel (matching SolRush design) */}
+                {/* Stats Panel */}
                 <div className="grid grid-cols-4 gap-4">
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                        <div className="text-white/40 text-sm mb-1">Total Value Locked</div>
-                        <div className="text-xl font-bold text-white">$0</div>
+                    <div className="bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#1F2937] rounded-xl p-4 shadow-sm transition-colors duration-200">
+                        <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-1">Total Value Locked</div>
+                        <div className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">$0</div>
                     </div>
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                        <div className="text-white/40 text-sm mb-1">24h Volume</div>
-                        <div className="text-xl font-bold text-white">$0</div>
+                    <div className="bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#1F2937] rounded-xl p-4 shadow-sm transition-colors duration-200">
+                        <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-1">24h Volume</div>
+                        <div className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">$0</div>
                     </div>
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                        <div className="text-white/40 text-sm mb-1">Active Pools</div>
-                        <div className="text-xl font-bold text-white">0</div>
+                    <div className="bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#1F2937] rounded-xl p-4 shadow-sm transition-colors duration-200">
+                        <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-1">Active Pools</div>
+                        <div className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">0</div>
                     </div>
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                        <div className="text-white/40 text-sm mb-1">Average APY</div>
-                        <div className="text-xl font-bold text-green-400">0.0%</div>
+                    <div className="bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#1F2937] rounded-xl p-4 shadow-sm transition-colors duration-200">
+                        <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-1">Average APY</div>
+                        <div className="text-xl font-semibold text-[#22C55E]">0.0%</div>
                     </div>
                 </div>
             </main>
