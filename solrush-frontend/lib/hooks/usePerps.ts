@@ -167,17 +167,21 @@ export function usePerps(): UsePerpsResult {
             marketId: position.market,
             side: position.side,
             size: position.size,
+            sizeUsd: position.size * (markPrice || 0),
             entryPrice,
             markPrice,
-            pnl: null,
+            unrealizedPnl: 0, // Computed below
             leverage: position.leverage || null,
             margin: position.collateral || null,
+            collateralUsd: position.collateral || 0,
             liquidationPrice: null,
           };
 
+          const pnl = computePnl(base, markPrice) || 0;
+
           return {
             ...base,
-            pnl: computePnl(base, markPrice),
+            unrealizedPnl: pnl,
             liquidationPrice: computeLiquidationPrice(base, market?.maintenanceMarginBps ?? null),
           };
         });

@@ -2,7 +2,7 @@
 import { FC, useMemo } from 'react';
 
 // Price level in the order book
-interface OrderLevel {
+export interface OrderLevel {
     price: number;
     size: number;
     total: number;
@@ -10,43 +10,11 @@ interface OrderLevel {
 
 interface OrderBookProps {
     currentPrice: number;
-    depth?: number;
+    bids: OrderLevel[];
+    asks: OrderLevel[];
 }
 
-export const OrderBook: FC<OrderBookProps> = ({ currentPrice, depth = 12 }) => {
-    // Generate mock order book data based on current price
-    const { asks, bids } = useMemo(() => {
-        const askData: OrderLevel[] = [];
-        const bidData: OrderLevel[] = [];
-
-        // Generate asks (sell orders) - prices above current
-        let currentTotal = 0;
-        for (let i = 0; i < depth; i++) {
-            const price = currentPrice * (1 + (i + 1) * 0.0005 + Math.random() * 0.001);
-            const size = Math.random() * 100 + 10;
-            currentTotal += size;
-            askData.push({
-                price,
-                size,
-                total: currentTotal
-            });
-        }
-
-        // Generate bids (buy orders) - prices below current
-        currentTotal = 0;
-        for (let i = 0; i < depth; i++) {
-            const price = currentPrice * (1 - (i + 1) * 0.0005 - Math.random() * 0.001);
-            const size = Math.random() * 100 + 10;
-            currentTotal += size;
-            bidData.push({
-                price,
-                size,
-                total: currentTotal
-            });
-        }
-
-        return { asks: askData.reverse(), bids: bidData };
-    }, [currentPrice, depth]);
+export const OrderBook: FC<OrderBookProps> = ({ currentPrice, bids, asks }) => {
 
     const maxTotal = Math.max(
         asks[0]?.total || 0,

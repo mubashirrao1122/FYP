@@ -8,28 +8,25 @@
   },
   "instructions": [
     {
-      "name": "add_liquidity",
+      "name": "create_market",
       "discriminator": [
-        181,
-        157,
-        89,
-        67,
-        143,
-        182,
-        52,
-        72
+        103,
+        226,
+        97,
+        235,
+        200,
+        188,
+        248,
+        242
       ],
       "accounts": [
         {
-          "name": "pool",
-          "writable": true
+          "name": "admin",
+          "writable": true,
+          "signer": true
         },
         {
-          "name": "lp_token_mint",
-          "writable": true
-        },
-        {
-          "name": "user_position",
+          "name": "global",
           "writable": true,
           "pda": {
             "seeds": [
@@ -37,58 +34,75 @@
                 "kind": "const",
                 "value": [
                   112,
-                  111,
+                  101,
+                  114,
+                  112,
                   115,
-                  105,
-                  116,
-                  105,
+                  95,
+                  103,
+                  108,
                   111,
-                  110
+                  98,
+                  97,
+                  108
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              },
-              {
-                "kind": "account",
-                "path": "user"
               }
             ]
           }
         },
         {
-          "name": "token_a_vault",
-          "writable": true
+          "name": "base_mint"
         },
         {
-          "name": "token_b_vault",
-          "writable": true
+          "name": "quote_mint"
         },
         {
-          "name": "user_token_a",
-          "writable": true
+          "name": "oracle_price_account"
         },
         {
-          "name": "user_token_b",
-          "writable": true
-        },
-        {
-          "name": "user_lp_token_account",
-          "writable": true
-        },
-        {
-          "name": "user",
+          "name": "market",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "base_mint"
+              },
+              {
+                "kind": "account",
+                "path": "quote_mint"
+              }
+            ]
+          }
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "collateral_vault",
+          "writable": true
         },
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "rent",
@@ -97,240 +111,44 @@
       ],
       "args": [
         {
-          "name": "amount_a",
-          "type": "u64"
+          "name": "pyth_feed_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
-          "name": "amount_b",
-          "type": "u64"
+          "name": "max_leverage",
+          "type": "u16"
         },
         {
-          "name": "min_lp_tokens",
-          "type": "u64"
+          "name": "maintenance_margin_bps",
+          "type": "u16"
         }
       ]
     },
     {
-      "name": "calculate_pending_rewards",
+      "name": "initialize_user",
       "discriminator": [
-        56,
-        207,
-        218,
-        85,
-        139,
-        115,
-        80,
-        43
+        111,
+        17,
+        185,
+        250,
+        60,
+        122,
+        38,
+        254
       ],
       "accounts": [
         {
-          "name": "position"
-        },
-        {
-          "name": "pool"
-        },
-        {
-          "name": "rush_config"
-        },
-        {
-          "name": "user",
-          "signer": true
-        }
-      ],
-      "args": [],
-      "returns": "u64"
-    },
-    {
-      "name": "cancel_limit_order",
-      "discriminator": [
-        132,
-        156,
-        132,
-        31,
-        67,
-        40,
-        232,
-        97
-      ],
-      "accounts": [
-        {
-          "name": "limit_order",
-          "writable": true
-        },
-        {
-          "name": "order_vault",
-          "writable": true
-        },
-        {
-          "name": "user_token_in",
-          "writable": true
-        },
-        {
-          "name": "user",
+          "name": "owner",
           "writable": true,
           "signer": true
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "claim_rush_rewards",
-      "discriminator": [
-        214,
-        101,
-        86,
-        179,
-        137,
-        158,
-        23,
-        51
-      ],
-      "accounts": [
-        {
-          "name": "position",
-          "writable": true
-        },
-        {
-          "name": "pool",
-          "writable": true
-        },
-        {
-          "name": "rush_config",
-          "writable": true
-        },
-        {
-          "name": "rush_mint",
-          "writable": true
-        },
-        {
-          "name": "user_rush_account",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "user"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "rush_mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
           "name": "user",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "close_pool",
-      "discriminator": [
-        140,
-        189,
-        209,
-        23,
-        239,
-        62,
-        239,
-        11
-      ],
-      "accounts": [
-        {
-          "name": "pool",
           "writable": true,
           "pda": {
             "seeds": [
@@ -338,634 +156,273 @@
                 "kind": "const",
                 "value": [
                   112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "pool.token_a_mint",
-                "account": "LiquidityPool"
-              },
-              {
-                "kind": "account",
-                "path": "pool.token_b_mint",
-                "account": "LiquidityPool"
-              }
-            ]
-          }
-        },
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true,
-          "relations": [
-            "pool"
-          ]
-        },
-        {
-          "name": "token_a_vault",
-          "writable": true,
-          "relations": [
-            "pool"
-          ]
-        },
-        {
-          "name": "token_b_vault",
-          "writable": true,
-          "relations": [
-            "pool"
-          ]
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "create_limit_order",
-      "discriminator": [
-        76,
-        161,
-        70,
-        122,
-        82,
-        20,
-        142,
-        75
-      ],
-      "accounts": [
-        {
-          "name": "pool",
-          "writable": true
-        },
-        {
-          "name": "limit_order",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  105,
-                  109,
-                  105,
-                  116,
-                  95,
-                  111,
+                  101,
                   114,
-                  100,
+                  112,
+                  115,
+                  95,
+                  117,
+                  115,
                   101,
                   114
                 ]
               },
               {
                 "kind": "account",
-                "path": "pool"
-              },
-              {
-                "kind": "account",
-                "path": "user"
-              },
-              {
-                "kind": "arg",
-                "path": "order_id"
+                "path": "owner"
               }
             ]
           }
         },
         {
-          "name": "sell_token_mint"
-        },
-        {
-          "name": "user_token_in",
-          "writable": true
-        },
-        {
-          "name": "user_token_out",
-          "writable": true
-        },
-        {
-          "name": "order_vault",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "user",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "rent",
-          "address": "SysvarRent111111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "sell_amount",
-          "type": "u64"
-        },
-        {
-          "name": "target_price",
-          "type": "u64"
-        },
-        {
-          "name": "minimum_receive",
-          "type": "u64"
-        },
-        {
-          "name": "expiry_days",
-          "type": "i64"
-        },
-        {
-          "name": "order_id",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "execute_limit_order",
-      "discriminator": [
-        52,
-        33,
-        60,
-        30,
-        47,
-        100,
-        40,
-        22
-      ],
-      "accounts": [
-        {
-          "name": "pool",
-          "writable": true
-        },
-        {
-          "name": "limit_order",
-          "writable": true
-        },
-        {
-          "name": "order_vault",
-          "writable": true
-        },
-        {
-          "name": "pool_vault_in",
-          "writable": true
-        },
-        {
-          "name": "user_token_out",
-          "writable": true
-        },
-        {
-          "name": "pool_vault_out",
-          "writable": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
     },
     {
-      "name": "initialize_pool",
+      "name": "deposit_collateral",
       "discriminator": [
-        95,
-        180,
-        10,
-        172,
-        84,
-        174,
-        232,
-        40
+        21,
+        169,
+        14,
+        69,
+        150,
+        189,
+        213,
+        163
       ],
       "accounts": [
         {
-          "name": "pool",
+          "name": "owner",
           "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global",
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
                   112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  103,
+                  108,
                   111,
-                  111,
+                  98,
+                  97,
                   108
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "token_a_mint"
-              },
-              {
-                "kind": "account",
-                "path": "token_b_mint"
               }
             ]
           }
         },
         {
-          "name": "token_a_mint"
-        },
-        {
-          "name": "token_b_mint"
-        },
-        {
-          "name": "lp_token_mint",
+          "name": "user",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  108,
                   112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  117,
+                  115,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
                   95,
                   109,
-                  105,
-                  110,
+                  97,
+                  114,
+                  107,
+                  101,
                   116
                 ]
               },
               {
                 "kind": "account",
-                "path": "pool"
+                "path": "market.base_mint"
+              },
+              {
+                "kind": "account",
+                "path": "market.quote_mint"
               }
             ]
           }
         },
         {
-          "name": "token_a_vault",
-          "writable": true,
-          "signer": true
+          "name": "user_quote_ata",
+          "writable": true
         },
         {
-          "name": "token_b_vault",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "lp_token_account",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "authority"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "lp_token_mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+          "name": "collateral_vault",
+          "writable": true
         },
         {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "rent",
-          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     },
     {
-      "name": "initialize_rush_token",
+      "name": "open_position",
       "discriminator": [
-        240,
-        162,
-        50,
-        178,
-        129,
-        215,
-        170,
-        144
+        138,
+        224,
+        179,
+        235,
+        202,
+        210,
+        139,
+        11
       ],
       "accounts": [
         {
-          "name": "rush_config",
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
+                  112,
+                  101,
                   114,
+                  112,
+                  115,
+                  95,
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
                   117,
                   115,
-                  104,
-                  95,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
+                  101,
+                  114
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
               }
             ]
           }
         },
         {
-          "name": "rush_mint",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "rent",
-          "address": "SysvarRent111111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "market_buy",
-      "discriminator": [
-        90,
-        236,
-        106,
-        220,
-        221,
-        81,
-        108,
-        140
-      ],
-      "accounts": [
-        {
-          "name": "pool",
-          "writable": true
-        },
-        {
-          "name": "user_token_in",
-          "writable": true
-        },
-        {
-          "name": "user_token_out",
-          "writable": true
-        },
-        {
-          "name": "pool_vault_in",
-          "writable": true
-        },
-        {
-          "name": "pool_vault_out",
-          "writable": true
-        },
-        {
-          "name": "user",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "amount_b_in",
-          "type": "u64"
-        },
-        {
-          "name": "min_a_received",
-          "type": "u64"
-        },
-        {
-          "name": "deadline",
-          "type": "i64"
-        }
-      ]
-    },
-    {
-      "name": "market_sell",
-      "discriminator": [
-        11,
-        224,
-        159,
-        119,
-        129,
-        127,
-        145,
-        237
-      ],
-      "accounts": [
-        {
-          "name": "pool",
-          "writable": true
-        },
-        {
-          "name": "user_token_in",
-          "writable": true
-        },
-        {
-          "name": "user_token_out",
-          "writable": true
-        },
-        {
-          "name": "pool_vault_in",
-          "writable": true
-        },
-        {
-          "name": "pool_vault_out",
-          "writable": true
-        },
-        {
-          "name": "user",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "amount_a_in",
-          "type": "u64"
-        },
-        {
-          "name": "min_b_received",
-          "type": "u64"
-        },
-        {
-          "name": "deadline",
-          "type": "i64"
-        }
-      ]
-    },
-    {
-      "name": "pause_rush_rewards",
-      "discriminator": [
-        124,
-        156,
-        220,
-        127,
-        0,
-        42,
-        225,
-        64
-      ],
-      "accounts": [
-        {
-          "name": "rush_config",
-          "writable": true
-        },
-        {
-          "name": "authority",
-          "signer": true
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "remove_liquidity",
-      "discriminator": [
-        80,
-        85,
-        209,
-        72,
-        24,
-        206,
-        177,
-        108
-      ],
-      "accounts": [
-        {
-          "name": "pool",
-          "writable": true
-        },
-        {
-          "name": "lp_token_mint",
-          "writable": true
-        },
-        {
-          "name": "user_position",
+          "name": "market",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.base_mint"
+              },
+              {
+                "kind": "account",
+                "path": "market.quote_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_price_account"
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
                   112,
                   111,
                   115,
@@ -978,147 +435,310 @@
               },
               {
                 "kind": "account",
-                "path": "pool"
+                "path": "owner"
               },
               {
                 "kind": "account",
-                "path": "user"
+                "path": "market"
               }
             ]
           }
         },
         {
-          "name": "token_a_vault",
-          "writable": true
-        },
-        {
-          "name": "token_b_vault",
-          "writable": true
-        },
-        {
-          "name": "user_lp_token_account",
-          "writable": true
-        },
-        {
-          "name": "user_token_a",
-          "writable": true
-        },
-        {
-          "name": "user_token_b",
-          "writable": true
-        },
-        {
-          "name": "user",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "lp_tokens_to_burn",
-          "type": "u64"
+          "name": "side",
+          "type": {
+            "defined": {
+              "name": "PositionSide"
+            }
+          }
         },
         {
-          "name": "min_amount_a",
-          "type": "u64"
-        },
-        {
-          "name": "min_amount_b",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "swap",
-      "discriminator": [
-        248,
-        198,
-        158,
-        145,
-        225,
-        117,
-        135,
-        200
-      ],
-      "accounts": [
-        {
-          "name": "pool",
-          "writable": true
-        },
-        {
-          "name": "user_token_in",
-          "writable": true
-        },
-        {
-          "name": "user_token_out",
-          "writable": true
-        },
-        {
-          "name": "pool_vault_in",
-          "writable": true
-        },
-        {
-          "name": "pool_vault_out",
-          "writable": true
-        },
-        {
-          "name": "user",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": [
-        {
-          "name": "amount_in",
-          "type": "u64"
-        },
-        {
-          "name": "minimum_amount_out",
-          "type": "u64"
-        },
-        {
-          "name": "is_a_to_b",
-          "type": "bool"
-        },
-        {
-          "name": "deadline",
+          "name": "size_i64",
           "type": "i64"
+        },
+        {
+          "name": "leverage_u16",
+          "type": "u16"
+        },
+        {
+          "name": "order_type",
+          "type": {
+            "defined": {
+              "name": "OrderType"
+            }
+          }
         }
       ]
     },
     {
-      "name": "update_rush_apy",
+      "name": "close_position",
       "discriminator": [
-        17,
-        148,
-        68,
-        101,
-        127,
+        123,
+        229,
         186,
-        119,
-        147
+        28,
+        16,
+        185,
+        107,
+        101
       ],
       "accounts": [
         {
-          "name": "rush_config",
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  117,
+                  115,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.base_mint"
+              },
+              {
+                "kind": "account",
+                "path": "market.quote_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_price_account"
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdraw_collateral",
+      "discriminator": [
+        174,
+        42,
+        42,
+        183,
+        50,
+        110,
+        169,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  117,
+                  115,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.base_mint"
+              },
+              {
+                "kind": "account",
+                "path": "market.quote_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_quote_ata",
           "writable": true
         },
         {
-          "name": "authority",
-          "signer": true
+          "name": "collateral_vault",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
         {
-          "name": "new_apy",
+          "name": "amount",
           "type": "u64"
         }
       ]
@@ -1126,966 +746,244 @@
   ],
   "accounts": [
     {
-      "name": "LimitOrder",
-      "discriminator": [
-        137,
-        183,
-        212,
-        91,
-        115,
-        29,
-        141,
-        227
-      ]
+      "name": "PerpsGlobalState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
     },
     {
-      "name": "LiquidityPool",
-      "discriminator": [
-        66,
-        38,
-        17,
-        64,
-        188,
-        80,
-        68,
-        129
-      ]
+      "name": "PerpsMarket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "baseMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "quoteMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "pythFeedId",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "oraclePriceAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "maxLeverage",
+            "type": "u16"
+          },
+          {
+            "name": "maintenanceMarginBps",
+            "type": "u16"
+          },
+          {
+            "name": "fundingRateI64",
+            "type": "i64"
+          },
+          {
+            "name": "openInterestI128",
+            "type": "i128"
+          },
+          {
+            "name": "cumulativeFundingI128",
+            "type": "i128"
+          },
+          {
+            "name": "lastFundingTs",
+            "type": "i64"
+          },
+          {
+            "name": "collateralVault",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
     },
     {
-      "name": "RushConfig",
-      "discriminator": [
-        84,
-        79,
-        197,
-        243,
-        74,
-        243,
-        89,
-        223
-      ]
+      "name": "PerpsUserAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateralQuoteU64",
+            "type": "u64"
+          },
+          {
+            "name": "positionsCountU8",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
     },
     {
-      "name": "UserLiquidityPosition",
-      "discriminator": [
-        220,
-        156,
-        226,
-        70,
-        90,
-        4,
-        201,
-        39
-      ]
+      "name": "PerpsPosition",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "sizeI64",
+            "type": "i64"
+          },
+          {
+            "name": "entryPriceI64",
+            "type": "i64"
+          },
+          {
+            "name": "collateralU64",
+            "type": "u64"
+          },
+          {
+            "name": "leverageU16",
+            "type": "u16"
+          },
+          {
+            "name": "lastFundingI128",
+            "type": "i128"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
     }
   ],
-  "events": [
+  "types": [
     {
-      "name": "LimitOrderCancelled",
-      "discriminator": [
-        244,
-        219,
-        115,
-        91,
-        20,
-        209,
-        47,
-        209
-      ]
+      "name": "OrderType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Market"
+          },
+          {
+            "name": "Limit"
+          }
+        ]
+      }
     },
     {
-      "name": "LimitOrderCreated",
-      "discriminator": [
-        90,
-        152,
-        6,
-        18,
-        137,
-        223,
-        10,
-        110
-      ]
-    },
-    {
-      "name": "LimitOrderExecuted",
-      "discriminator": [
-        230,
-        96,
-        79,
-        110,
-        208,
-        225,
-        214,
-        243
-      ]
-    },
-    {
-      "name": "LiquidityAdded",
-      "discriminator": [
-        154,
-        26,
-        221,
-        108,
-        238,
-        64,
-        217,
-        161
-      ]
-    },
-    {
-      "name": "LiquidityRemoved",
-      "discriminator": [
-        225,
-        105,
-        216,
-        39,
-        124,
-        116,
-        169,
-        189
-      ]
-    },
-    {
-      "name": "PoolCreated",
-      "discriminator": [
-        202,
-        44,
-        41,
-        88,
-        104,
-        220,
-        157,
-        82
-      ]
-    },
-    {
-      "name": "RewardsClaimed",
-      "discriminator": [
-        75,
-        98,
-        88,
-        18,
-        219,
-        112,
-        88,
-        121
-      ]
-    },
-    {
-      "name": "RewardsConfigUpdated",
-      "discriminator": [
-        104,
-        85,
-        46,
-        239,
-        155,
-        224,
-        9,
-        57
-      ]
-    },
-    {
-      "name": "RewardsPaused",
-      "discriminator": [
-        127,
-        0,
-        46,
-        254,
-        176,
-        222,
-        51,
-        158
-      ]
-    },
-    {
-      "name": "RushTokenInitialized",
-      "discriminator": [
-        96,
-        232,
-        1,
-        153,
-        204,
-        207,
-        190,
-        92
-      ]
-    },
-    {
-      "name": "SwapExecuted",
-      "discriminator": [
-        150,
-        166,
-        26,
-        225,
-        28,
-        89,
-        38,
-        79
-      ]
+      "name": "PositionSide",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Long"
+          },
+          {
+            "name": "Short"
+          }
+        ]
+      }
     }
   ],
   "errors": [
     {
       "code": 6000,
-      "name": "InvalidInitialDeposit",
-      "msg": "Initial deposits must be greater than zero"
+      "name": "UnauthorizedAdmin",
+      "msg": "Unauthorized admin"
     },
     {
       "code": 6001,
-      "name": "InsufficientLiquidity",
-      "msg": "Insufficient liquidity in pool"
+      "name": "PerpsPaused",
+      "msg": "Perps trading is paused"
     },
     {
       "code": 6002,
-      "name": "InvalidFeeParameters",
-      "msg": "Invalid fee parameters"
+      "name": "InvalidLeverage",
+      "msg": "Invalid leverage"
     },
     {
       "code": 6003,
-      "name": "InsufficientPoolReserves",
-      "msg": "Insufficient pool reserves"
+      "name": "OraclePriceUnavailable",
+      "msg": "Oracle price unavailable"
     },
     {
       "code": 6004,
       "name": "CalculationOverflow",
-      "msg": "Overflow detected in calculation"
+      "msg": "Calculation overflow"
     },
     {
       "code": 6005,
-      "name": "RatioImbalance",
-      "msg": "Pool ratio imbalance exceeds tolerance"
+      "name": "InvalidAmount",
+      "msg": "Invalid amount"
     },
     {
       "code": 6006,
-      "name": "InsufficientLPBalance",
-      "msg": "Insufficient LP token balance"
+      "name": "InsufficientCollateral",
+      "msg": "Insufficient collateral"
     },
     {
       "code": 6007,
-      "name": "InvalidAmount",
-      "msg": "Invalid amount: must be greater than zero"
+      "name": "PositionAlreadyOpen",
+      "msg": "Position already open for this market"
     },
     {
       "code": 6008,
-      "name": "SlippageTooHigh",
-      "msg": "Slippage tolerance exceeded"
+      "name": "NoOpenPosition",
+      "msg": "No open position to close"
     },
     {
       "code": 6009,
-      "name": "PoolNotEmpty",
-      "msg": "Pool is not empty"
+      "name": "OrderTypeNotSupported",
+      "msg": "Order type not supported"
     },
     {
       "code": 6010,
-      "name": "InsufficientBalance",
-      "msg": "Insufficient user token balance"
-    },
-    {
-      "code": 6011,
-      "name": "OrderNotFound",
-      "msg": "Limit order not found"
-    },
-    {
-      "code": 6012,
-      "name": "InvalidOrderStatus",
-      "msg": "Invalid order status for this operation"
-    },
-    {
-      "code": 6013,
-      "name": "OrderExpired",
-      "msg": "Limit order has expired"
-    },
-    {
-      "code": 6014,
-      "name": "UnauthorizedOrderOwner",
-      "msg": "Only order owner can cancel"
-    },
-    {
-      "code": 6015,
-      "name": "PriceConditionNotMet",
-      "msg": "Price condition not met for execution"
-    },
-    {
-      "code": 6016,
-      "name": "InvalidExpiryTime",
-      "msg": "Invalid expiry time"
-    },
-    {
-      "code": 6017,
-      "name": "InvalidAuthority",
-      "msg": "Invalid authority - must be configured authority"
-    },
-    {
-      "code": 6018,
-      "name": "RewardsPaused",
-      "msg": "RUSH rewards are currently paused"
-    },
-    {
-      "code": 6019,
-      "name": "InvalidAPY",
-      "msg": "Invalid APY configuration"
-    },
-    {
-      "code": 6020,
-      "name": "SupplyExhausted",
-      "msg": "RUSH token supply exhausted"
-    },
-    {
-      "code": 6021,
-      "name": "DeadlineExceeded",
-      "msg": "Transaction deadline exceeded"
-    },
-    {
-      "code": 6022,
-      "name": "InvalidVault",
-      "msg": "Invalid vault - must be pool's token vault"
-    },
-    {
-      "code": 6023,
-      "name": "InvalidPool",
-      "msg": "Invalid pool - order does not belong to this pool"
-    },
-    {
-      "code": 6024,
-      "name": "InvalidMint",
-      "msg": "Invalid LP mint - must be pool's LP token mint"
-    }
-  ],
-  "types": [
-    {
-      "name": "LimitOrder",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "sell_token",
-            "type": "pubkey"
-          },
-          {
-            "name": "buy_token",
-            "type": "pubkey"
-          },
-          {
-            "name": "sell_amount",
-            "type": "u64"
-          },
-          {
-            "name": "target_price",
-            "type": "u64"
-          },
-          {
-            "name": "minimum_receive",
-            "type": "u64"
-          },
-          {
-            "name": "created_at",
-            "type": "i64"
-          },
-          {
-            "name": "expires_at",
-            "type": "i64"
-          },
-          {
-            "name": "status",
-            "type": {
-              "defined": {
-                "name": "OrderStatus"
-              }
-            }
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "order_id",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "LimitOrderCancelled",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "order",
-            "type": "pubkey"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "refunded_amount",
-            "type": "u64"
-          },
-          {
-            "name": "cancelled_at",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "LimitOrderCreated",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "order",
-            "type": "pubkey"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "sell_token",
-            "type": "pubkey"
-          },
-          {
-            "name": "buy_token",
-            "type": "pubkey"
-          },
-          {
-            "name": "sell_amount",
-            "type": "u64"
-          },
-          {
-            "name": "target_price",
-            "type": "u64"
-          },
-          {
-            "name": "minimum_receive",
-            "type": "u64"
-          },
-          {
-            "name": "expires_at",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "LimitOrderExecuted",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "order",
-            "type": "pubkey"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "sell_amount",
-            "type": "u64"
-          },
-          {
-            "name": "receive_amount",
-            "type": "u64"
-          },
-          {
-            "name": "execution_price",
-            "type": "u64"
-          },
-          {
-            "name": "executed_at",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "LiquidityAdded",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "user",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "amount_a",
-            "type": "u64"
-          },
-          {
-            "name": "amount_b",
-            "type": "u64"
-          },
-          {
-            "name": "lp_tokens_minted",
-            "type": "u64"
-          },
-          {
-            "name": "new_reserve_a",
-            "type": "u64"
-          },
-          {
-            "name": "new_reserve_b",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "LiquidityPool",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "authority",
-            "type": "pubkey"
-          },
-          {
-            "name": "token_a_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "token_b_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "token_a_vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "token_b_vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "lp_token_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "reserve_a",
-            "type": "u64"
-          },
-          {
-            "name": "reserve_b",
-            "type": "u64"
-          },
-          {
-            "name": "total_lp_supply",
-            "type": "u64"
-          },
-          {
-            "name": "fee_numerator",
-            "type": "u64"
-          },
-          {
-            "name": "fee_denominator",
-            "type": "u64"
-          },
-          {
-            "name": "token_a_decimals",
-            "type": "u8"
-          },
-          {
-            "name": "token_b_decimals",
-            "type": "u8"
-          },
-          {
-            "name": "is_stablecoin_pool",
-            "type": "bool"
-          },
-          {
-            "name": "created_at",
-            "type": "i64"
-          },
-          {
-            "name": "total_volume_a",
-            "type": "u64"
-          },
-          {
-            "name": "total_volume_b",
-            "type": "u64"
-          },
-          {
-            "name": "locked_liquidity",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "LiquidityRemoved",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "user",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "lp_tokens_burned",
-            "type": "u64"
-          },
-          {
-            "name": "amount_a_received",
-            "type": "u64"
-          },
-          {
-            "name": "amount_b_received",
-            "type": "u64"
-          },
-          {
-            "name": "new_reserve_a",
-            "type": "u64"
-          },
-          {
-            "name": "new_reserve_b",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "OrderStatus",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Pending"
-          },
-          {
-            "name": "Executed"
-          },
-          {
-            "name": "Cancelled"
-          },
-          {
-            "name": "Expired"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PoolCreated",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "token_a_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "token_b_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "reserve_a",
-            "type": "u64"
-          },
-          {
-            "name": "reserve_b",
-            "type": "u64"
-          },
-          {
-            "name": "lp_token_supply",
-            "type": "u64"
-          },
-          {
-            "name": "authority",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "RewardsClaimed",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "user",
-            "type": "pubkey"
-          },
-          {
-            "name": "position",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "rewards_amount",
-            "type": "u64"
-          },
-          {
-            "name": "rewards_display",
-            "type": "f64"
-          },
-          {
-            "name": "time_elapsed",
-            "type": "i64"
-          },
-          {
-            "name": "user_lp_share",
-            "type": "f64"
-          },
-          {
-            "name": "claimed_at",
-            "type": "i64"
-          },
-          {
-            "name": "total_claimed_lifetime",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "RewardsConfigUpdated",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "previous_apy_numerator",
-            "type": "u64"
-          },
-          {
-            "name": "new_apy_numerator",
-            "type": "u64"
-          },
-          {
-            "name": "new_rewards_per_second",
-            "type": "u64"
-          },
-          {
-            "name": "updated_at",
-            "type": "i64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "RewardsPaused",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "is_paused",
-            "type": "bool"
-          },
-          {
-            "name": "paused_at",
-            "type": "i64"
-          },
-          {
-            "name": "paused_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "reason",
-            "type": "string"
-          }
-        ]
-      }
-    },
-    {
-      "name": "RushConfig",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "authority",
-            "type": "pubkey"
-          },
-          {
-            "name": "total_supply",
-            "type": "u64"
-          },
-          {
-            "name": "minted_so_far",
-            "type": "u64"
-          },
-          {
-            "name": "rewards_per_second",
-            "type": "u64"
-          },
-          {
-            "name": "apy_numerator",
-            "type": "u64"
-          },
-          {
-            "name": "apy_denominator",
-            "type": "u64"
-          },
-          {
-            "name": "start_timestamp",
-            "type": "i64"
-          },
-          {
-            "name": "is_paused",
-            "type": "bool"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "RushTokenInitialized",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "rush_mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "rush_config",
-            "type": "pubkey"
-          },
-          {
-            "name": "total_supply",
-            "type": "u64"
-          },
-          {
-            "name": "rewards_per_second",
-            "type": "u64"
-          },
-          {
-            "name": "apy_numerator",
-            "type": "u64"
-          },
-          {
-            "name": "apy_denominator",
-            "type": "u64"
-          },
-          {
-            "name": "start_timestamp",
-            "type": "i64"
-          },
-          {
-            "name": "authority",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "SwapExecuted",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "user",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "amount_in",
-            "type": "u64"
-          },
-          {
-            "name": "amount_out",
-            "type": "u64"
-          },
-          {
-            "name": "fee_amount",
-            "type": "u64"
-          },
-          {
-            "name": "is_a_to_b",
-            "type": "bool"
-          },
-          {
-            "name": "new_reserve_a",
-            "type": "u64"
-          },
-          {
-            "name": "new_reserve_b",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "UserLiquidityPosition",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "lp_tokens",
-            "type": "u64"
-          },
-          {
-            "name": "deposit_timestamp",
-            "type": "i64"
-          },
-          {
-            "name": "last_claim_timestamp",
-            "type": "i64"
-          },
-          {
-            "name": "total_rush_claimed",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
+      "name": "MaintenanceMarginViolation",
+      "msg": "Cannot withdraw, maintenance margin requirements"
     }
   ]
 }

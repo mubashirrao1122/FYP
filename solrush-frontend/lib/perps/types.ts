@@ -23,11 +23,13 @@ export interface PositionView {
   marketId: string;
   side: 'long' | 'short';
   size: number;
+  sizeUsd: number;
   entryPrice: number | null;
   markPrice: number | null;
-  pnl: number | null;
+  unrealizedPnl: number;
   leverage: number | null;
   margin: number | null;
+  collateralUsd: number;
   liquidationPrice: number | null;
 }
 

@@ -2,7 +2,7 @@
 import { FC, useMemo } from 'react';
 import { format } from 'date-fns';
 
-interface Trade {
+export interface Trade {
     id: string;
     price: number;
     size: number;
@@ -12,29 +12,10 @@ interface Trade {
 
 interface RecentTradesProps {
     currentPrice: number;
+    trades: Trade[];
 }
 
-export const RecentTrades: FC<RecentTradesProps> = ({ currentPrice }) => {
-    // Generate mock trades
-    const trades = useMemo(() => {
-        const data: Trade[] = [];
-        const now = Date.now();
-
-        for (let i = 0; i < 20; i++) {
-            const side = Math.random() > 0.5 ? 'buy' : 'sell';
-            const priceOffset = (Math.random() * 2) - 1;
-
-            data.push({
-                id: `trade-${i}`,
-                price: currentPrice + priceOffset,
-                size: Math.random() * 10 + 0.1,
-                time: now - (i * Math.random() * 5000),
-                side,
-            });
-        }
-
-        return data;
-    }, [currentPrice]);
+export const RecentTrades: FC<RecentTradesProps> = ({ currentPrice, trades }) => {
 
     return (
         <div className="bg-[#0F172A] border-r border-[#1F2937] h-full flex flex-col">

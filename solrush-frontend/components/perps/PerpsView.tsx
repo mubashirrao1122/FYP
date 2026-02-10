@@ -12,6 +12,8 @@ import { usePythPrice } from '@/lib/perps/usePythPrice';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Wallet, ChevronDown, Monitor, Clock, List } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { OrderLevel } from '@/components/perps/OrderBook';
+import type { Trade } from '@/components/perps/RecentTrades';
 
 interface PerpsViewProps {
   markets: MarketView[];
@@ -32,6 +34,52 @@ export function PerpsView({
 }: PerpsViewProps) {
   const { publicKey } = useWallet();
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
+
+  // Mock Data Generation (to be replaced with real data hooks later)
+  const currentPrice = usePythPrice(selectedMarketId ? markets.find(m => m.id === selectedMarketId)?.oraclePriceId : null).price?.price || 0;
+
+  const { bids: mockBids, asks: mockAsks } = useMemo(() => {
+    const depth = 12;
+    const price = currentPrice || 100; // Fallback to 100 if 0
+    const askData: OrderLevel[] = [];
+    const bidData: OrderLevel[] = [];
+    let currentTotal = 0;
+
+    for (let i = 0; i < depth; i++) {
+      const p = price * (1 + (i + 1) * 0.0005);
+      const s = Math.random() * 100 + 10;
+      currentTotal += s;
+      askData.push({ price: p, size: s, total: currentTotal });
+    }
+
+    currentTotal = 0;
+    for (let i = 0; i < depth; i++) {
+      const p = price * (1 - (i + 1) * 0.0005);
+      const s = Math.random() * 100 + 10;
+      currentTotal += s;
+      bidData.push({ price: p, size: s, total: currentTotal });
+    }
+    return { asks: askData.reverse(), bids: bidData };
+  }, [currentPrice]);
+
+  const mockTrades = useMemo(() => {
+    const data: Trade[] = [];
+    const now = Date.now();
+    const price = currentPrice || 100;
+
+    for (let i = 0; i < 20; i++) {
+      const side = Math.random() > 0.5 ? 'buy' : 'sell';
+      const priceOffset = (Math.random() * 2) - 1;
+      data.push({
+        id: `trade-${i}`,
+        price: price + priceOffset,
+        size: Math.random() * 10 + 0.1,
+        time: now - (i * Math.random() * 5000),
+        side,
+      });
+    }
+    return data;
+  }, [currentPrice]);
 
   const selectedMarket = useMemo(
     () => markets.find((m) => m.id === selectedMarketId) || markets[0] || null,
@@ -114,8 +162,6 @@ export function PerpsView({
               market={liveMarket}
               loading={loading}
               error={combinedError || undefined}
-              height="100%"
-              isDark={true}
             />
           </div>
 
@@ -202,10 +248,17 @@ export function PerpsView({
         <div className="w-[280px] flex flex-col border-r border-[#1F2937] shrink-0 hidden md:flex bg-[#0B1220]">
           <div className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 min-h-0 border-b border-[#1F2937]">
-              <OrderBook currentPrice={liveMarket?.markPrice || 0} />
+              <OrderBook
+                currentPrice={liveMarket?.markPrice || 0}
+                bids={mockBids}
+                asks={mockAsks}
+              />
             </div>
             <div className="h-[40%] min-h-0">
-              <RecentTrades currentPrice={liveMarket?.markPrice || 0} />
+              <RecentTrades
+                currentPrice={liveMarket?.markPrice || 0}
+                trades={mockTrades}
+              />
             </div>
           </div>
         </div>

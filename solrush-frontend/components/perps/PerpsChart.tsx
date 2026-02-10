@@ -147,7 +147,7 @@ export function PerpsChart({ market, loading = false, error }: PerpsChartProps) 
       <div
         ref={containerRef}
         id={widgetKey}
-        className="relative h-[320px] rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] overflow-hidden"
+        className="relative h-[600px] rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] overflow-hidden"
       >
         {market.markPrice === null && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-[#475569] dark:text-[#9CA3AF] bg-[#F8FAFC]/70 dark:bg-[#0B1220]/70">
