@@ -151,7 +151,7 @@ describe("position-engine (Phase 2)", () => {
 
     // Create market (max leverage = 10, maintenance margin = 500 bps = 5%)
     await program.methods
-      .createPerpsMarket(Array(32).fill(0), 10, 500)
+      .createPerpsMarket(Array(32).fill(0), 10, 500, new anchor.BN(10_000), new anchor.BN(3600))
       .accounts({
         admin: admin.publicKey,
         global: globalPda,
@@ -350,7 +350,7 @@ describe("position-engine-v2 (Phase 2)", () => {
       .rpc();
 
     // Create market (max leverage 10, maintenance margin 500 bps)
-    await program.methods.createPerpsMarket(Array(32).fill(0), 10, 500)
+    await program.methods.createPerpsMarket(Array(32).fill(0), 10, 500, new anchor.BN(10_000), new anchor.BN(3600))
       .accounts({
         admin: admin.publicKey, global: globalPda, baseMint, quoteMint,
         oraclePriceAccount: oraclePda, market: marketPda,

@@ -16,7 +16,7 @@
  */
 
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { BN, Program } from "@coral-xyz/anchor";
 import {
   Connection,
   Keypair,
@@ -223,7 +223,7 @@ async function main() {
   } else {
     const pythFeedId = Array(32).fill(0); // Zero = use custom oracle
     await program.methods
-      .createPerpsMarket(pythFeedId, MAX_LEVERAGE, MAINTENANCE_MARGIN_BPS)
+      .createPerpsMarket(pythFeedId, MAX_LEVERAGE, MAINTENANCE_MARGIN_BPS, new BN(10_000), new BN(3600))
       .accounts({
         admin: admin.publicKey,
         global: globalPda,

@@ -112,8 +112,10 @@ pub mod solrush_dex {
         pyth_feed_id: [u8; 32],
         max_leverage: u16,
         maintenance_margin_bps: u16,
+        max_funding_rate: i64,
+        funding_interval_secs: i64,
     ) -> Result<()> {
-        instructions::perps::create_market(ctx, pyth_feed_id, max_leverage, maintenance_margin_bps)
+        instructions::perps::create_market(ctx, pyth_feed_id, max_leverage, maintenance_margin_bps, max_funding_rate, funding_interval_secs)
     }
     pub fn initialize_perps_oracle(ctx: Context<InitializeOraclePrice>, price_i64: i64) -> Result<()> {
         instructions::perps::initialize_oracle_price(ctx, price_i64)
@@ -141,5 +143,8 @@ pub mod solrush_dex {
     }
     pub fn withdraw_perps_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
         instructions::perps::withdraw_collateral(ctx, amount)
+    }
+    pub fn update_perps_funding(ctx: Context<UpdateFunding>, mark_price_i64: i64) -> Result<()> {
+        instructions::perps::update_funding(ctx, mark_price_i64)
     }
 }

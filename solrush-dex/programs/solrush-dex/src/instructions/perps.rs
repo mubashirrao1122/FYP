@@ -2,8 +2,9 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use pyth_sdk_solana::load_price_feed_from_account_info;
 use crate::errors::CustomError;
-use crate::perps_math::{self, PositionState, notional_value, required_margin_scaled, unrealized_pnl};
+use crate::perps_math::{self, PositionState, notional_value, required_margin_scaled, unrealized_pnl, PRICE_SCALE};
 use crate::state::{PerpsGlobalState, PerpsMarket, PerpsOraclePrice, PerpsPosition, PerpsUserAccount};
+use crate::events::{FundingUpdated, FundingSettled};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
 pub enum OrderType {
@@ -15,6 +16,49 @@ pub enum OrderType {
 pub enum PositionSide {
     Long = 0,
     Short = 1,
+}
+
+// ─────────────────────────────────────────────
+// Funding settlement helper (pure, no side effects)
+// ─────────────────────────────────────────────
+
+/// Settle accumulated funding for a position.
+///
+/// funding_delta = base_position × (market_cum_funding − last_cum_funding)
+///
+/// Positive delta → longs pay (collateral decreases).
+/// Negative delta → shorts pay (collateral increases for the position).
+///
+/// Returns `(new_collateral, new_checkpoint, funding_delta)`.
+fn settle_funding_inner(
+    base_position: i64,
+    collateral: u64,
+    last_cum_funding: i128,
+    market_cum_funding: i128,
+) -> Result<(u64, i128, i128)> {
+    if base_position == 0 {
+        // No position to settle — just advance checkpoint
+        return Ok((collateral, market_cum_funding, 0));
+    }
+    let cum_diff = market_cum_funding
+        .checked_sub(last_cum_funding)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+    if cum_diff == 0 {
+        return Ok((collateral, market_cum_funding, 0));
+    }
+    let funding_delta = (base_position as i128)
+        .checked_mul(cum_diff)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+    let new_collateral_i128 = (collateral as i128)
+        .checked_sub(funding_delta)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+    let new_collateral = if new_collateral_i128 <= 0 {
+        0u64
+    } else {
+        u64::try_from(new_collateral_i128)
+            .map_err(|_| error!(CustomError::CalculationOverflow))?
+    };
+    Ok((new_collateral, market_cum_funding, funding_delta))
 }
 
 fn read_oracle_price<'info>(oracle_price_account: &AccountInfo<'info>) -> Result<i64> {
@@ -151,9 +195,13 @@ pub fn create_market(
     pyth_feed_id: [u8; 32],
     max_leverage: u16,
     maintenance_margin_bps: u16,
+    max_funding_rate: i64,
+    funding_interval_secs: i64,
 ) -> Result<()> {
     require!(!ctx.accounts.global.paused, CustomError::PerpsPaused);
     require!(max_leverage > 0, CustomError::InvalidLeverage);
+    require!(max_funding_rate >= 0, CustomError::InvalidFundingParams);
+    require!(funding_interval_secs > 0, CustomError::InvalidFundingParams);
     let _ = read_oracle_price(&ctx.accounts.oracle_price_account)?;
     let market = &mut ctx.accounts.market;
     market.base_mint = ctx.accounts.base_mint.key();
@@ -166,6 +214,8 @@ pub fn create_market(
     market.open_interest_i128 = 0;
     market.cumulative_funding_i128 = 0;
     market.last_funding_ts = Clock::get()?.unix_timestamp;
+    market.max_funding_rate_i64 = max_funding_rate;
+    market.funding_interval_secs = funding_interval_secs;
     market.collateral_vault = ctx.accounts.collateral_vault.key();
     market.bump = ctx.bumps.market;
     Ok(())
@@ -306,13 +356,29 @@ pub fn open_position(
     );
     let price = read_oracle_price(&ctx.accounts.oracle_price_account)?;
 
+    // ── Settle accumulated funding before trade ──
+    let position = &mut ctx.accounts.position;
+    let (settled_coll, settled_checkpoint, funding_delta) = settle_funding_inner(
+        position.base_position_i64,
+        position.collateral_u64,
+        position.last_funding_i128,
+        ctx.accounts.market.cumulative_funding_i128,
+    )?;
+    position.collateral_u64 = settled_coll;
+    position.last_funding_i128 = settled_checkpoint;
+    if funding_delta != 0 {
+        emit!(FundingSettled {
+            position: position.key(),
+            funding_delta,
+            new_collateral: settled_coll,
+        });
+    }
+
     // Compute signed base delta from side + size
     let trade_base_delta: i64 = match side {
         PositionSide::Long => size_i64,
         PositionSide::Short => size_i64.checked_neg().ok_or(error!(CustomError::CalculationOverflow))?,
     };
-
-    let position = &mut ctx.accounts.position;
 
     // Build current position state snapshot
     let current_state = PositionState {
@@ -444,6 +510,23 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
     );
     let price = read_oracle_price(&ctx.accounts.oracle_price_account)?;
 
+    // ── Settle accumulated funding before close ──
+    let (settled_coll, settled_checkpoint, funding_delta) = settle_funding_inner(
+        position.base_position_i64,
+        position.collateral_u64,
+        position.last_funding_i128,
+        ctx.accounts.market.cumulative_funding_i128,
+    )?;
+    position.collateral_u64 = settled_coll;
+    position.last_funding_i128 = settled_checkpoint;
+    if funding_delta != 0 {
+        emit!(FundingSettled {
+            position: position.key(),
+            funding_delta,
+            new_collateral: settled_coll,
+        });
+    }
+
     // Use position engine: closing = trade of -base_position
     let current_state = PositionState {
         base_position: position.base_position_i64,
@@ -563,5 +646,95 @@ pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Res
         ),
         amount,
     )?;
+    Ok(())
+}
+
+// ─────────────────────────────────────────────────────
+// Phase 3 — Funding rate update (permissionless crank)
+// ─────────────────────────────────────────────────────
+
+#[derive(Accounts)]
+pub struct UpdateFunding<'info> {
+    #[account(
+        seeds = [b"perps_global"],
+        bump = global.bump
+    )]
+    pub global: Account<'info, PerpsGlobalState>,
+    #[account(
+        mut,
+        seeds = [b"perps_market", market.base_mint.as_ref(), market.quote_mint.as_ref()],
+        bump = market.bump
+    )]
+    pub market: Account<'info, PerpsMarket>,
+    /// CHECK: validated against market.oracle_price_account in handler
+    pub oracle_price_account: AccountInfo<'info>,
+}
+
+/// Update the cumulative funding index for a market.
+///
+/// `mark_price_i64` — the current perpetual mark price (PRICE_SCALE).
+///
+/// premium = (mark − index) / index   (scaled by PRICE_SCALE)
+/// funding_rate = clamp(premium, ±max_funding_rate)
+/// cum_funding += index_price × funding_rate / PRICE_SCALE
+pub fn update_funding(ctx: Context<UpdateFunding>, mark_price_i64: i64) -> Result<()> {
+    require!(!ctx.accounts.global.paused, CustomError::PerpsPaused);
+
+    let market = &mut ctx.accounts.market;
+
+    require!(
+        ctx.accounts.oracle_price_account.key() == market.oracle_price_account,
+        CustomError::OraclePriceUnavailable
+    );
+
+    let now = Clock::get()?.unix_timestamp;
+    let elapsed = now
+        .checked_sub(market.last_funding_ts)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+    require!(elapsed >= market.funding_interval_secs, CustomError::FundingTooSoon);
+
+    // Index price from oracle
+    let index_price = read_oracle_price(&ctx.accounts.oracle_price_account)?;
+    require!(index_price > 0, CustomError::OraclePriceUnavailable);
+
+    let mark = mark_price_i64 as i128;
+    let index = index_price as i128;
+    let price_scale = PRICE_SCALE;
+
+    // premium = (mark - index) * PRICE_SCALE / index
+    let premium = (mark - index)
+        .checked_mul(price_scale)
+        .ok_or(error!(CustomError::CalculationOverflow))?
+        / index;
+
+    // Clamp by ±max_funding_rate
+    let max_rate = market.max_funding_rate_i64 as i128;
+    let clamped_rate = premium.max(-max_rate).min(max_rate);
+
+    // Store the current period funding rate
+    market.funding_rate_i64 = i64::try_from(clamped_rate)
+        .map_err(|_| error!(CustomError::CalculationOverflow))?;
+
+    // cum_funding += index_price * clamped_rate / PRICE_SCALE
+    // This gives atomic-quote-per-base-unit increment.
+    let funding_increment = index
+        .checked_mul(clamped_rate)
+        .ok_or(error!(CustomError::CalculationOverflow))?
+        / price_scale;
+
+    market.cumulative_funding_i128 = market
+        .cumulative_funding_i128
+        .checked_add(funding_increment)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+
+    market.last_funding_ts = now;
+
+    emit!(FundingUpdated {
+        market: market.key(),
+        funding_rate: market.funding_rate_i64,
+        cumulative_funding: market.cumulative_funding_i128,
+        timestamp: now,
+    });
+
     Ok(())
 }

@@ -70,4 +70,8 @@ pub enum CustomError {
     OraclePriceUnavailable,
     #[msg("Maintenance margin violation")]
     MaintenanceMarginViolation,
+    #[msg("Funding update too soon — interval not elapsed")]
+    FundingTooSoon,
+    #[msg("Invalid funding parameters")]
+    InvalidFundingParams,
 }

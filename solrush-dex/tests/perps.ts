@@ -105,7 +105,7 @@ describe("perps v1", () => {
       .rpc();
 
     await program.methods
-      .createPerpsMarket(Array(32).fill(0), 10, 500)
+      .createPerpsMarket(Array(32).fill(0), 10, 500, new anchor.BN(10_000), new anchor.BN(3600))
       .accounts({
         admin: admin.publicKey,
         global: globalPda,
