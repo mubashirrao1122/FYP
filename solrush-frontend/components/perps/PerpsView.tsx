@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { PerpsChart } from '@/components/perps/PerpsChart';
 import { PerpsTradePanel } from '@/components/perps/PerpsTradePanel';
@@ -10,6 +10,7 @@ import { MarketSelector } from '@/components/perps/MarketSelector';
 import type { MarketView, PositionView } from '@/lib/perps/types';
 import { usePythPrice } from '@/lib/perps/usePythPrice';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { usePerpsTrading } from '@/lib/hooks/usePerpsTrading';
 import { Wallet, ChevronDown, Monitor, Clock, List } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { OrderLevel } from '@/components/perps/OrderBook';
@@ -34,6 +35,19 @@ export function PerpsView({
 }: PerpsViewProps) {
   const { publicKey } = useWallet();
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
+  const { closePosition: onChainClose, status: closeStatus } = usePerpsTrading();
+  const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
+
+  const handleClosePosition = useCallback(async (position: PositionView) => {
+    setClosingPositionId(position.id);
+    try {
+      await onChainClose({ marketPubkey: position.marketId });
+    } catch (err) {
+      console.error('Failed to close position:', err);
+    } finally {
+      setClosingPositionId(null);
+    }
+  }, [onChainClose]);
 
   // Mock Data Generation (to be replaced with real data hooks later)
   const currentPrice = usePythPrice(selectedMarketId ? markets.find(m => m.id === selectedMarketId)?.oraclePriceId : null).price?.price || 0;
@@ -225,8 +239,12 @@ export function PerpsView({
                               {position.unrealizedPnl >= 0 ? '+' : ''}{formatCurrency(position.unrealizedPnl)}
                             </td>
                             <td className="px-4 py-2 text-right">
-                              <button className="text-[10px] bg-[#1F2937] hover:bg-[#374151] text-[#E5E7EB] px-2 py-1 rounded border border-[#374151]">
-                                Close
+                              <button
+                                className="text-[10px] bg-[#1F2937] hover:bg-[#374151] text-[#E5E7EB] px-2 py-1 rounded border border-[#374151] disabled:opacity-50"
+                                onClick={() => handleClosePosition(position)}
+                                disabled={closingPositionId === position.id}
+                              >
+                                {closingPositionId === position.id ? 'Closing…' : 'Close'}
                               </button>
                             </td>
                           </tr>

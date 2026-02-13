@@ -5,6 +5,7 @@ mod utils;
 mod events;
 mod instructions;
 mod constants;
+pub mod perps_math;
 
 pub use state::*;
 pub use errors::*;

@@ -6,6 +6,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { MarketView } from '@/lib/perps/types';
+import { usePerpsCollateral } from '@/lib/hooks/usePerpsCollateral';
+import { usePerpsTrading } from '@/lib/hooks/usePerpsTrading';
+import { DepositUSDCModal } from '@/components/perps/DepositUSDCModal';
+import { parseSolanaError } from '@/lib/utils/solanaErrors';
 
 interface PerpsTradePanelProps {
   market?: MarketView | null;
@@ -92,7 +96,30 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
   const [stopLoss, setStopLoss] = React.useState('');
   const [limitPrice, setLimitPrice] = React.useState('');
   const [showReview, setShowReview] = React.useState(false);
+  const [showDepositModal, setShowDepositModal] = React.useState(false);
   const [tradeState, dispatch] = React.useReducer(tradeReducer, initialTradeState);
+
+  // ── Collateral management ──────────────────────────────────────────
+  const {
+    walletBalance,
+    onChainCollateral,
+    userAccountExists,
+    ataExists,
+    loading: collateralLoading,
+    error: collateralError,
+    txSignature: depositTxSig,
+    depositStep,
+    refresh: refreshCollateral,
+    deposit: depositCollateral,
+    hasEnoughCollateral,
+  } = usePerpsCollateral();
+
+  // ── On-chain trading ──────────────────────────────────────────────
+  const {
+    openPosition: onChainOpen,
+    closePosition: onChainClose,
+    reset: resetTrading,
+  } = usePerpsTrading();
 
   const formatPrice = (value: number | null) =>
     value === null ? '—' : `$${value.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
@@ -117,7 +144,12 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
     : null;
   const fundingEstimate =
     notional && market && market.fundingRate !== null ? (notional * market.fundingRate) / 100 : null;
-  const availableBalance = null;
+  const availableBalance = publicKey ? onChainCollateral : null;
+
+  // True if user needs more collateral for the current trade size
+  const needsDeposit = publicKey && estimatedMargin !== null && !hasEnoughCollateral(estimatedMargin);
+  // Also check if ANY collateral is posted at all
+  const hasNoCollateral = publicKey && onChainCollateral === 0;
 
   const isFormValid = Boolean(market && hasSize && hasLimitPrice);
   const isReady = tradeState.state === 'ready';
@@ -129,15 +161,17 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
         : 'Select Market'
       : !isFormValid
         ? 'Enter Size'
-        : tradeState.state === 'quoting'
-          ? 'Quoting…'
-          : tradeState.state === 'submitting'
-            ? 'Confirming…'
-            : tradeState.state === 'success'
-              ? 'View Transaction'
-              : tradeState.state === 'error'
-                ? 'Try Again'
-                : 'Review Order';
+        : needsDeposit
+          ? 'Deposit USDC'
+          : tradeState.state === 'quoting'
+            ? 'Quoting…'
+            : tradeState.state === 'submitting'
+              ? 'Confirming…'
+              : tradeState.state === 'success'
+                ? 'View Transaction'
+                : tradeState.state === 'error'
+                  ? 'Try Again'
+                  : 'Review Order';
 
   React.useEffect(() => {
     if (!market || !hasSize || !hasLimitPrice) {
@@ -155,16 +189,52 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
   }, [market]);
 
   const handleSubmit = () => {
-    if (!publicKey || !isReady) return;
+    if (!publicKey) return;
+    // If user needs to deposit, open the deposit modal instead
+    if (needsDeposit) {
+      setShowDepositModal(true);
+      return;
+    }
+    if (!isReady) return;
     setShowReview(true);
   };
 
-  const confirmSubmit = () => {
-    if (!publicKey || !isReady) return;
+  const confirmSubmit = async () => {
+    if (!publicKey || !isReady || !market) return;
     dispatch({ type: 'SUBMIT' });
-    setTimeout(() => {
-      dispatch({ type: 'SUBMIT_ERROR', message: 'Execution not wired yet.' });
-    }, 600);
+    try {
+      const sig = await onChainOpen({
+        marketPubkey: market.id,
+        side,
+        size: numericSize,
+        leverage,
+        orderType,
+      });
+      if (sig) {
+        dispatch({ type: 'SUBMIT_SUCCESS', signature: sig });
+        setShowReview(false);
+        setSize('');
+      } else {
+        dispatch({ type: 'SUBMIT_ERROR', message: 'Transaction was not confirmed.' });
+      }
+    } catch (err: any) {
+      dispatch({
+        type: 'SUBMIT_ERROR',
+        message: parseSolanaError(err) || err?.message || 'Failed to open position.',
+      });
+    }
+  };
+
+  // ── Deposit modal handlers ─────────────────────────────────────────
+  const handleDeposit = async (amount: number) => {
+    if (!market) return null;
+    return depositCollateral(amount, market.id);
+  };
+
+  const handleDepositDone = () => {
+    setShowDepositModal(false);
+    // After deposit success, the usePerpsCollateral hook already refreshed
+    // balances so the CTA will automatically update.
   };
 
   return (
@@ -212,13 +282,25 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
         <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] p-4 transition-colors duration-200 space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Collateral</label>
-            <span
-              className="text-xs text-[#475569] dark:text-[#9CA3AF]"
-              title={publicKey && availableBalance === null ? 'Available after first trade' : undefined}
-            >
-              Balance: {publicKey ? formatNumber(availableBalance) : 'Connect wallet'}
+            <span className="text-xs text-[#475569] dark:text-[#9CA3AF]">
+              {publicKey ? (
+                <>
+                  Margin: {collateralLoading ? '…' : `$${onChainCollateral.toFixed(2)}`}
+                  <span className="mx-1 text-[#6B7280]">|</span>
+                  Wallet: {collateralLoading ? '…' : `$${walletBalance.toFixed(2)}`}
+                </>
+              ) : 'Connect wallet'}
             </span>
           </div>
+          {publicKey && (
+            <button
+              type="button"
+              className="text-xs text-[#2DD4BF] hover:underline text-left"
+              onClick={() => setShowDepositModal(true)}
+            >
+              + Deposit USDC to margin
+            </button>
+          )}
           <div className="rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] px-3 py-2">
             <select
               value={collateral}
@@ -233,6 +315,18 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
               ))}
             </select>
           </div>
+          {needsDeposit && isFormValid && (
+            <div className="rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/10 px-3 py-2 text-xs text-[#F59E0B]">
+              Insufficient collateral — you need ${estimatedMargin?.toFixed(2)} but have ${onChainCollateral.toFixed(2)}.
+              <button
+                type="button"
+                className="ml-1 underline hover:no-underline font-medium"
+                onClick={() => setShowDepositModal(true)}
+              >
+                Deposit now
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] p-4 transition-colors duration-200">
@@ -478,8 +572,12 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
         )}
 
         <Button
-          disabled={disabled || !publicKey || !isFormValid || tradeState.state === 'quoting' || showReview}
-          className="w-full h-12 text-base bg-[#2DD4BF] dark:bg-[#22C1AE] hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] text-[#0F172A] font-medium rounded-lg transition-all"
+          disabled={disabled || !publicKey || (!isFormValid && !needsDeposit) || tradeState.state === 'quoting' || showReview}
+          className={`w-full h-12 text-base font-medium rounded-lg transition-all ${
+            needsDeposit && isFormValid
+              ? 'bg-[#F59E0B] hover:bg-[#D97706] text-[#0F172A]'
+              : 'bg-[#2DD4BF] dark:bg-[#22C1AE] hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] text-[#0F172A]'
+          }`}
           onClick={handleSubmit}
           data-testid="perps-cta"
         >
@@ -532,7 +630,27 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
             )}
           </div>
         </details>
+
+        {collateralError && (
+          <div className="rounded-xl border border-[#E2E8F0] dark:border-white/10 bg-[#FEF2F2] dark:bg-[#1F1822] px-3 py-2 text-xs text-[#B91C1C] dark:text-[#FCA5A5]">
+            {collateralError}
+          </div>
+        )}
       </div>
+
+      {/* Deposit USDC Modal */}
+      <DepositUSDCModal
+        open={showDepositModal}
+        onOpenChange={setShowDepositModal}
+        walletBalance={walletBalance}
+        onChainCollateral={onChainCollateral}
+        depositStep={depositStep}
+        error={collateralError}
+        txSignature={depositTxSig}
+        requiredMargin={estimatedMargin}
+        onDeposit={handleDeposit}
+        onDone={handleDepositDone}
+      />
     </div>
   );
 }

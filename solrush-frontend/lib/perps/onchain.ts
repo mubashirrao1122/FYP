@@ -2,6 +2,7 @@ import { PublicKey, type Connection } from '@solana/web3.js';
 import { Program, AnchorProvider, type Idl } from '@coral-xyz/anchor';
 import BN from 'bn.js';
 import { PROGRAM_ID, SOL_MINT, USDC_MINT, USDT_MINT, WETH_MINT, RUSH_MINT } from '@/lib/solana/constants';
+import { findPerpsPositionAddress } from '@/lib/anchor/pda';
 
 const PERPS_MARKET_LEN_V1 = 8 + 32 + 32 + 32 + 32 + 2 + 2 + 8 + 16 + 16 + 8 + 32 + 1;
 
@@ -133,10 +134,7 @@ export const fetchPerpsPositions = async (
 ): Promise<RawPerpsPosition[]> => {
   if (markets.length === 0) return [];
   const positionKeys = markets.map((market) =>
-    PublicKey.findProgramAddressSync(
-      [Buffer.from('perps_position'), owner.toBuffer(), market.toBuffer()],
-      PROGRAM_ID
-    )[0]
+    findPerpsPositionAddress(owner, market, PROGRAM_ID)[0]
   );
   const offset = options.offset ?? 0;
   const limit = options.limit ?? positionKeys.length;
@@ -167,7 +165,7 @@ export const fetchPerpsPositions = async (
             owner: account.owner.toBase58(),
             market: account.market.toBase58(),
             side: account.side === 0 ? 'long' : 'short',
-            size: bnToNumber(account.sizeI64 as unknown as BN),
+            size: bnToNumber(account.basePositionI64 as unknown as BN),
             entryPrice: bnToNumber(account.entryPriceI64 as unknown as BN),
             collateral: bnToNumber(account.collateralU64 as unknown as BN),
             leverage: account.leverageU16,

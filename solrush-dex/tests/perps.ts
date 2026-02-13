@@ -6,6 +6,13 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from "@solana/spl-token";
+import {
+  findPerpsGlobalAddress,
+  findPerpsOracleAddress,
+  findPerpsMarketAddress,
+  findPerpsUserAddress,
+  findPerpsPositionAddress,
+} from "../target/types/pda";
 
 describe("perps v1", () => {
   const provider = anchor.AnchorProvider.env();
@@ -42,34 +49,19 @@ describe("perps v1", () => {
       6
     );
 
-    const [globalKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("perps_global")],
-      program.programId
-    );
+    const [globalKey] = findPerpsGlobalAddress(program.programId);
     globalPda = globalKey;
 
-    const [oracleKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("perps_oracle"), admin.publicKey.toBuffer()],
-      program.programId
-    );
+    const [oracleKey] = findPerpsOracleAddress(admin.publicKey, program.programId);
     oraclePda = oracleKey;
 
-    const [marketKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("perps_market"), baseMint.toBuffer(), quoteMint.toBuffer()],
-      program.programId
-    );
+    const [marketKey] = findPerpsMarketAddress(baseMint, quoteMint, program.programId);
     marketPda = marketKey;
 
-    const [userKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("perps_user"), admin.publicKey.toBuffer()],
-      program.programId
-    );
+    const [userKey] = findPerpsUserAddress(admin.publicKey, program.programId);
     userPda = userKey;
 
-    const [positionKey] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("perps_position"), admin.publicKey.toBuffer(), marketPda.toBuffer()],
-      program.programId
-    );
+    const [positionKey] = findPerpsPositionAddress(admin.publicKey, marketPda, program.programId);
     positionPda = positionKey;
 
     collateralVault = anchor.web3.Keypair.generate();

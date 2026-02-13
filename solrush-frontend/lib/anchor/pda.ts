@@ -1,6 +1,10 @@
 import { PublicKey } from "@solana/web3.js";
 import { PROGRAM_ID } from "./setup";
 
+// ─────────────────────────────────────────────
+// AMM / Pool PDAs
+// ─────────────────────────────────────────────
+
 /**
  * Find Pool PDA address
  * Seeds: ["pool", token_a_mint, token_b_mint]
@@ -30,7 +34,7 @@ export const findLpMintAddress = (poolAddress: PublicKey): [PublicKey, number] =
 };
 
 /**
- * Find User Position PDA address
+ * Find User Position PDA address (LP position)
  * Seeds: ["position", pool_address, user_address]
  */
 export const findPositionAddress = (poolAddress: PublicKey, userAddress: PublicKey): [PublicKey, number] => {
@@ -74,9 +78,85 @@ export const findLimitOrderAddress = (
     );
 };
 
+// ─────────────────────────────────────────────
+// Perps PDAs
+// Seeds mirror Anchor #[account(seeds = ...)] in
+// programs/solrush-dex/src/instructions/perps.rs
+// ─────────────────────────────────────────────
+
 /**
- * Helper to get just the address (without bump)
+ * Perps global singleton PDA
+ * Seeds: ["perps_global"]
  */
+export const findPerpsGlobalAddress = (programId: PublicKey = PROGRAM_ID): [PublicKey, number] => {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from("perps_global")],
+        programId
+    );
+};
+
+/**
+ * Perps market PDA
+ * Seeds: ["perps_market", base_mint, quote_mint]
+ */
+export const findPerpsMarketAddress = (
+    baseMint: PublicKey,
+    quoteMint: PublicKey,
+    programId: PublicKey = PROGRAM_ID
+): [PublicKey, number] => {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from("perps_market"), baseMint.toBuffer(), quoteMint.toBuffer()],
+        programId
+    );
+};
+
+/**
+ * Perps oracle price PDA (mock / manual oracle)
+ * Seeds: ["perps_oracle", admin]
+ */
+export const findPerpsOracleAddress = (
+    admin: PublicKey,
+    programId: PublicKey = PROGRAM_ID
+): [PublicKey, number] => {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from("perps_oracle"), admin.toBuffer()],
+        programId
+    );
+};
+
+/**
+ * Per-user perps account PDA
+ * Seeds: ["perps_user", owner]
+ */
+export const findPerpsUserAddress = (
+    owner: PublicKey,
+    programId: PublicKey = PROGRAM_ID
+): [PublicKey, number] => {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from("perps_user"), owner.toBuffer()],
+        programId
+    );
+};
+
+/**
+ * Per-user per-market perps position PDA
+ * Seeds: ["perps_position", owner, market]
+ */
+export const findPerpsPositionAddress = (
+    owner: PublicKey,
+    market: PublicKey,
+    programId: PublicKey = PROGRAM_ID
+): [PublicKey, number] => {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from("perps_position"), owner.toBuffer(), market.toBuffer()],
+        programId
+    );
+};
+
+// ─────────────────────────────────────────────
+// Convenience helpers (address only, no bump)
+// ─────────────────────────────────────────────
+
 export const getPoolAddress = (tokenAMint: PublicKey, tokenBMint: PublicKey): PublicKey => {
     return findPoolAddress(tokenAMint, tokenBMint)[0];
 };
@@ -99,4 +179,24 @@ export const getLimitOrderAddress = (
     orderId: number
 ): PublicKey => {
     return findLimitOrderAddress(poolAddress, userAddress, orderId)[0];
+};
+
+export const getPerpsGlobalAddress = (programId?: PublicKey): PublicKey => {
+    return findPerpsGlobalAddress(programId)[0];
+};
+
+export const getPerpsMarketAddress = (baseMint: PublicKey, quoteMint: PublicKey, programId?: PublicKey): PublicKey => {
+    return findPerpsMarketAddress(baseMint, quoteMint, programId)[0];
+};
+
+export const getPerpsOracleAddress = (admin: PublicKey, programId?: PublicKey): PublicKey => {
+    return findPerpsOracleAddress(admin, programId)[0];
+};
+
+export const getPerpsUserAddress = (owner: PublicKey, programId?: PublicKey): PublicKey => {
+    return findPerpsUserAddress(owner, programId)[0];
+};
+
+export const getPerpsPositionAddress = (owner: PublicKey, market: PublicKey, programId?: PublicKey): PublicKey => {
+    return findPerpsPositionAddress(owner, market, programId)[0];
 };

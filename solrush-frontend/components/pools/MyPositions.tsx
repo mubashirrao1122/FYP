@@ -20,6 +20,7 @@ interface Pool {
     tvl: number;
     apy: number;
     fee: number;
+    lpMint?: string;
     lpBalance?: number;
     userShare?: number;
     positionValue?: number;
