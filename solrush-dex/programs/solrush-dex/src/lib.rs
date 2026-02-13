@@ -12,7 +12,7 @@ pub use events::*;
 pub use instructions::*;
 pub use constants::*;
 
-declare_id!("FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1");
+declare_id!("7AeCL1kAuxjB9ktLdtoRFUW6KfquYwDNs8r291w6h9mC");
 #[program]
 pub mod solrush_dex {
     use super::*;

@@ -6,8 +6,8 @@ const NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'localnet';
 // Network-specific RPC endpoints
 const RPC_ENDPOINTS: Record<string, string> = {
     localnet: 'http://127.0.0.1:8899',
-    devnet: process.env.NEXT_PUBLIC_RPC_URL || 'https://api.devnet.solana.com',
-    mainnet: process.env.NEXT_PUBLIC_MAINNET_RPC_URL || 'https://api.mainnet-beta.solana.com',
+    devnet: 'https://api.devnet.solana.com',
+    mainnet: 'https://api.mainnet-beta.solana.com',
 };
 
 export const CURRENT_NETWORK = NETWORK;

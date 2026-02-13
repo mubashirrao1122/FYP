@@ -139,10 +139,10 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
 
       // Refresh pool data after adding liquidity
       await fetchPoolData();
-      
+
       // Refresh global pools
       pools.refreshPools();
-      
+
       // Call success callback if provided
       onSuccess?.();
     } catch (error: any) {
@@ -151,8 +151,8 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
   };
 
   // Calculate normalized exchange rate
-  const exchangeRate = pool && pool.reserveA > 0 
-    ? (pool.reserveB / Math.pow(10, tokenBDecimals)) / (pool.reserveA / Math.pow(10, tokenADecimals)) 
+  const exchangeRate = pool && pool.reserveA > 0
+    ? (pool.reserveB / Math.pow(10, tokenBDecimals)) / (pool.reserveA / Math.pow(10, tokenADecimals))
     : 0;
 
   if (loading) {
@@ -297,11 +297,12 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
         </div>
 
         {/* Pool Details */}
+        {/* Pool Details */}
         {amountA && pool && (
           <div className="space-y-3 p-4 bg-white/5 rounded-xl border border-white/10">
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-3">
-                <h3 className="text-sm font-semibold text-white">Liquidity Details</h3>
+                <h3 className="text-sm font-semibold text-white">Transaction Details</h3>
                 <button
                   onClick={() => setShowDetails(!showDetails)}
                   className="text-white/40 hover:text-white transition-colors"
@@ -312,40 +313,46 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
 
               <div className="text-sm space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-white/40">Exchange Rate</span>
+                  <span className="text-white/40">Rate</span>
                   <span className="text-white font-medium">
                     1 {tokenA} = {exchangeRate.toFixed(4)} {tokenB}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-white/40">LP Tokens to Receive</span>
-                  <span className="text-white font-medium">{lpTokensToReceive.toFixed(4)}</span>
+                  <span className="text-white/40">Price Impact</span>
+                  <span className="text-white font-medium">
+                    &lt; 0.01%
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-white/40">Your Pool Share</span>
-                  <span className="text-green-400 font-medium">{poolSharePercentage.toFixed(4)}%</span>
+                  <span className="text-white/40">Share of Pool</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/40 line-through text-xs">
+                      {/* Current share if user has any */}
+                      {((pool.userLpBalance || 0) / (pool.totalLPSupply || 1) * 100).toFixed(4)}%
+                    </span>
+                    <span className="text-[#2DD4BF] font-medium">
+                      {/* New share approx */}
+                      {((pool.userLpBalance || 0) + lpTokensToReceive) / ((pool.totalLPSupply || 0) + lpTokensToReceive || 1) * 100 > 0 ? (((pool.userLpBalance || 0) + lpTokensToReceive) / ((pool.totalLPSupply || 0) + lpTokensToReceive || 1) * 100).toFixed(4) : "0.0000"}%
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
             {showDetails && (
               <div className="pt-3 border-t border-white/10 text-xs text-white/40 space-y-2">
-                <div><strong className="text-white/70">Current Pool Reserves:</strong></div>
                 <div className="flex justify-between">
-                  <span>{tokenA} Reserve:</span>
+                  <span>Est. LP Tokens</span>
+                  <span className="text-white font-mono">{lpTokensToReceive.toFixed(6)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{tokenA} Reserve</span>
                   <span className="text-white">{pool.reserveA.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>{tokenB} Reserve:</span>
+                  <span>{tokenB} Reserve</span>
                   <span className="text-white">{pool.reserveB.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Total LP Supply:</span>
-                  <span className="text-white">{pool.totalLPSupply.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>TVL:</span>
-                  <span className="text-white">${pool.tvl.toLocaleString()}</span>
                 </div>
               </div>
             )}
@@ -388,6 +395,6 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
           }}
         />
       </CardContent>
-    </Card>
+    </Card >
   );
 }

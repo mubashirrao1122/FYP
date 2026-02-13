@@ -45,9 +45,9 @@ export function PerpsPositions({ positions, markets, loading }: PerpsPositionsPr
             positions.map((position) => {
               const market = marketById.get(position.marketId);
               const pnl =
-                position.pnl === null
+                position.unrealizedPnl === null
                   ? '—'
-                  : `$${position.pnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+                  : `$${position.unrealizedPnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
               const entry =
                 position.entryPrice === null ? '—' : `$${position.entryPrice.toFixed(2)}`;
               const liq =

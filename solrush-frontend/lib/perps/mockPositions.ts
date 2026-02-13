@@ -59,13 +59,15 @@ export function getPositions(walletAddress: string | null): PositionView[] {
             const updated: PositionView = {
                 ...position,
                 markPrice,
-                pnl: null,
+                sizeUsd: position.size * (markPrice || 0),
+                collateralUsd: position.margin ?? 0,
+                unrealizedPnl: 0,
                 liquidationPrice: null,
             };
 
             return {
                 ...updated,
-                pnl: computePnl(updated, markPrice),
+                unrealizedPnl: computePnl(updated, markPrice) || 0,
                 liquidationPrice: computeLiquidationPrice(updated, market?.maintenanceMarginBps || 500),
             };
         });
@@ -144,11 +146,13 @@ export function openPosition(
         marketId: marketSymbol,
         side,
         size,
+        sizeUsd: size * (market.markPrice ?? 0),
         entryPrice: market.markPrice,
         markPrice: market.markPrice,
-        pnl: 0,
+        unrealizedPnl: 0,
         leverage,
         margin: collateral,
+        collateralUsd: collateral,
         liquidationPrice: null,
     };
 
@@ -183,7 +187,7 @@ export function closePosition(
     }
 
     const position = positions[positionIndex];
-    const pnl = position.pnl || 0;
+    const pnl = position.unrealizedPnl || 0;
 
     // Calculate final balance change
     const balanceChange = (position.margin || 0) + pnl;

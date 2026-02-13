@@ -116,7 +116,7 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
       : markPrice + (estimatedMargin ? Math.max(estimatedMargin - (notional * maintenanceBps) / 10000, 0) / numericSize : 0)
     : null;
   const fundingEstimate =
-    notional && market?.fundingRate !== null ? (notional * market.fundingRate) / 100 : null;
+    notional && market && market.fundingRate !== null ? (notional * market.fundingRate) / 100 : null;
   const availableBalance = null;
 
   const isFormValid = Boolean(market && hasSize && hasLimitPrice);

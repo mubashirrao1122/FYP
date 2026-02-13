@@ -10,7 +10,7 @@ skip-lint = false
 solrush_dex = "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1"
 
 [programs.localnet]
-solrush_dex = "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1"
+solrush_dex = "7AeCL1kAuxjB9ktLdtoRFUW6KfquYwDNs8r291w6h9mC"
 
 [registry]
 url = "https://api.apr.dev"

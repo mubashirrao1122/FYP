@@ -1,11 +1,11 @@
 import { Connection } from "@solana/web3.js";
-import { DEVNET_RPC } from "./constants";
+import { RPC_ENDPOINT } from "./constants";
 
 let connection: Connection | null = null;
 
 export const getConnection = (): Connection => {
   if (!connection) {
-    connection = new Connection(DEVNET_RPC, "confirmed");
+    connection = new Connection(RPC_ENDPOINT, "confirmed");
   }
   return connection;
 };

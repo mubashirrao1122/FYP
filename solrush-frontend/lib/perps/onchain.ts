@@ -84,7 +84,8 @@ const getReadOnlyProgram = (connection: Connection, idl: Idl): Program => {
   const provider = new AnchorProvider(connection, readOnlyWallet as any, {
     commitment: 'confirmed',
   });
-  return new Program(idl, PROGRAM_ID, provider);
+  // Anchor 0.31: Program(idl, provider) — reads programId from idl.address
+  return new Program(idl, provider);
 };
 
 export const fetchPerpsMarkets = async (
@@ -94,12 +95,12 @@ export const fetchPerpsMarkets = async (
 ): Promise<RawPerpsMarket[]> => {
   const program = getReadOnlyProgram(connection, idl);
   const now = Date.now();
-  const records = await program.account.perpsMarket.all();
+  const records = await (program.account as any).perpsMarket.all();
   const offset = options.offset ?? 0;
   const limit = options.limit ?? records.length;
   const paged = records.slice(offset, offset + limit);
 
-  return paged.map(({ publicKey, account }) => {
+  return paged.map(({ publicKey, account }: { publicKey: PublicKey; account: any }) => {
     const cached = marketCache.get(publicKey.toBase58());
     if (cached && !options.forceRefresh && now - cached.ts < CACHE_TTL_MS) {
       return cached.data;
@@ -159,7 +160,7 @@ export const fetchPerpsPositions = async (
     await Promise.all(
       missing.map(async (key) => {
         try {
-          const account = await program.account.perpsPosition.fetchNullable(key);
+          const account = await (program.account as any).perpsPosition.fetchNullable(key);
           if (!account) return;
           const parsed: RawPerpsPosition = {
             id: key.toBase58(),
