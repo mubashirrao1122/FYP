@@ -147,4 +147,13 @@ pub mod solrush_dex {
     pub fn update_perps_funding(ctx: Context<UpdateFunding>, mark_price_i64: i64) -> Result<()> {
         instructions::perps::update_funding(ctx, mark_price_i64)
     }
+    pub fn initialize_insurance_vault(ctx: Context<InitializeInsuranceVault>) -> Result<()> {
+        instructions::perps::initialize_insurance_vault(ctx)
+    }
+    pub fn deposit_insurance(ctx: Context<DepositInsurance>, amount: u64) -> Result<()> {
+        instructions::perps::deposit_insurance(ctx, amount)
+    }
+    pub fn liquidate_position(ctx: Context<LiquidatePosition>) -> Result<()> {
+        instructions::perps::liquidate_position(ctx)
+    }
 }

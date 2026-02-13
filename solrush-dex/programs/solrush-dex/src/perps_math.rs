@@ -355,6 +355,113 @@ pub fn required_margin_scaled(notional: i128, leverage: u16) -> Result<i128> {
 }
 
 // ─────────────────────────────────────────────
+// Liquidation helpers
+// ─────────────────────────────────────────────
+
+/// Compute the equity of a position at a given mark price.
+///
+/// `equity = collateral + unrealized_pnl`
+///
+/// Returns signed value — negative means bad debt.
+pub fn position_equity(collateral: u64, base_position: i64, entry_price: i64, mark_price: i64) -> Result<i128> {
+    let upnl = unrealized_pnl(base_position, entry_price, mark_price)?;
+    let equity = (collateral as i128)
+        .checked_add(upnl)
+        .ok_or_else(|| error!(CustomError::CalculationOverflow))?;
+    Ok(equity)
+}
+
+/// Check whether a position is liquidatable.
+///
+/// A position is liquidatable when:
+///   equity < maintenance_margin
+///
+/// Where:
+///   equity = collateral + unrealized_pnl
+///   maintenance_margin = notional * maintenance_margin_bps / 10_000
+pub fn is_liquidatable(
+    collateral: u64,
+    base_position: i64,
+    entry_price: i64,
+    mark_price: i64,
+    maintenance_margin_bps: u16,
+) -> Result<bool> {
+    if base_position == 0 {
+        return Ok(false);
+    }
+    let equity = position_equity(collateral, base_position, entry_price, mark_price)?;
+    let notional = notional_value(base_position, mark_price)?;
+    // maintenance_margin = notional * mm_bps / 10_000
+    let mm = notional
+        .checked_mul(maintenance_margin_bps as i128)
+        .ok_or_else(|| error!(CustomError::CalculationOverflow))?
+        / 10_000i128;
+    Ok(equity < mm)
+}
+
+/// Compute the minimum base size to close in order to restore margin safety.
+///
+/// We want: after closing `close_size`, the remaining position satisfies
+///   remaining_equity >= remaining_mm
+///
+/// For simplicity (and safety), we use full liquidation when equity is
+/// at or below zero, and otherwise close the minimum portion that
+/// restores the maintenance margin ratio.
+///
+/// Returns absolute close size (always positive).  If full liquidation
+/// is needed, returns `|base_position|`.
+pub fn compute_liquidation_close_size(
+    collateral: u64,
+    base_position: i64,
+    entry_price: i64,
+    mark_price: i64,
+    maintenance_margin_bps: u16,
+) -> Result<i64> {
+    let abs_base = base_position.unsigned_abs() as i64;
+    if abs_base == 0 {
+        return Ok(0);
+    }
+    let equity = position_equity(collateral, base_position, entry_price, mark_price)?;
+    // If equity <= 0, full liquidation is required
+    if equity <= 0 {
+        return Ok(abs_base);
+    }
+
+    let notional = notional_value(base_position, mark_price)?;
+    let mm = notional
+        .checked_mul(maintenance_margin_bps as i128)
+        .ok_or_else(|| error!(CustomError::CalculationOverflow))?
+        / 10_000i128;
+
+    // margin_deficit = mm - equity
+    let deficit = mm
+        .checked_sub(equity)
+        .ok_or_else(|| error!(CustomError::CalculationOverflow))?;
+
+    if deficit <= 0 {
+        // Not actually under-margined — shouldn't happen if is_liquidatable was true
+        return Ok(0);
+    }
+
+    // mm_per_unit = |mark_price| * mm_bps / 10_000
+    let mm_per_unit = (mark_price.unsigned_abs() as i128)
+        .checked_mul(maintenance_margin_bps as i128)
+        .ok_or_else(|| error!(CustomError::CalculationOverflow))?
+        / 10_000i128;
+
+    if mm_per_unit == 0 {
+        return Ok(abs_base);
+    }
+
+    // close_size = ceil(deficit / mm_per_unit), clamped to |base_position|
+    let close_size = ceil_div(deficit, mm_per_unit)?;
+    let close_i64 = i64::try_from(close_size.min(abs_base as i128))
+        .map_err(|_| error!(CustomError::CalculationOverflow))?;
+    // Ensure at least 1 unit is closed
+    Ok(close_i64.max(1))
+}
+
+// ─────────────────────────────────────────────
 // Internal: 256-bit widening multiplication
 // ─────────────────────────────────────────────
 
@@ -777,5 +884,109 @@ mod tests {
     fn test_notional_value_short() {
         let n = notional_value(-10_000_000, 50_000_000).unwrap();
         assert_eq!(n, 500_000_000_000_000i128);
+    }
+
+    // ── is_liquidatable tests ──
+
+    #[test]
+    fn test_healthy_position_not_liquidatable() {
+        // Long 10 @ 100, mark = 100, collateral = 200, mm_bps = 500 (5%)
+        // equity = 200 + 10*(100-100) = 200
+        // mm = |10|*|100| * 500/10000 = 1000 * 0.05 = 50
+        // 200 >= 50 → not liquidatable
+        assert_eq!(
+            is_liquidatable(200, 10, 100, 100, 500).unwrap(),
+            false
+        );
+    }
+
+    #[test]
+    fn test_underwater_position_liquidatable() {
+        // Long 10 @ 100, mark = 91, collateral = 100
+        // upnl = 10 * (91-100) = -90 (in scaled: 10e6 * -9e6 = -90e12)
+        // equity = 100e6 + (-90e12) → negative → liquidatable
+        // BUT wait, upnl is in PRICE_SCALE-squared while collateral is atomic.
+        // Let's use small numbers: 10 base units at price 100, collateral = 100
+        // upnl = 10 * (91 - 100) = -90
+        // equity = 100 + (-90) = 10
+        // mm = 10 * 91 * 500 / 10000 = 45.5
+        // 10 < 45.5 → liquidatable
+        assert_eq!(
+            is_liquidatable(100, 10, 100, 91, 500).unwrap(),
+            true
+        );
+    }
+
+    #[test]
+    fn test_zero_position_not_liquidatable() {
+        assert_eq!(is_liquidatable(0, 0, 0, 100, 500).unwrap(), false);
+    }
+
+    #[test]
+    fn test_short_position_liquidatable() {
+        // Short -10 @ 100, mark rises to 109, collateral = 100
+        // upnl = -10 * (109 - 100) = -90
+        // equity = 100 + (-90) = 10
+        // mm = 10 * 109 * 500/10000 = 54.5
+        // 10 < 54.5 → liquidatable
+        assert_eq!(
+            is_liquidatable(100, -10, 100, 109, 500).unwrap(),
+            true
+        );
+    }
+
+    // ── position_equity tests ──
+
+    #[test]
+    fn test_position_equity_profit() {
+        // Long 10 @ 100, mark = 110, collateral = 100
+        // equity = 100 + 10*(110-100) = 200
+        assert_eq!(position_equity(100, 10, 100, 110).unwrap(), 200);
+    }
+
+    #[test]
+    fn test_position_equity_loss() {
+        // Long 10 @ 100, mark = 90, collateral = 100
+        // equity = 100 + 10*(90-100) = 0
+        assert_eq!(position_equity(100, 10, 100, 90).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_position_equity_negative() {
+        // Long 10 @ 100, mark = 80, collateral = 100
+        // equity = 100 + 10*(80-100) = -100
+        assert_eq!(position_equity(100, 10, 100, 80).unwrap(), -100);
+    }
+
+    // ── compute_liquidation_close_size tests ──
+
+    #[test]
+    fn test_close_size_full_when_equity_zero() {
+        // equity <= 0 → full liquidation
+        assert_eq!(
+            compute_liquidation_close_size(100, 10, 100, 80, 500).unwrap(),
+            10
+        );
+    }
+
+    #[test]
+    fn test_close_size_partial() {
+        // Long 100 @ 100, mark = 96, collateral = 1000
+        // upnl = 100 * (96-100) = -400
+        // equity = 1000 - 400 = 600
+        // mm = 100 * 96 * 500/10000 = 480
+        // 600 > 480 → not liquidatable → close_size = 0
+        assert_eq!(
+            compute_liquidation_close_size(1000, 100, 100, 96, 500).unwrap(),
+            0
+        );
+    }
+
+    #[test]
+    fn test_close_size_zero_position() {
+        assert_eq!(
+            compute_liquidation_close_size(100, 0, 100, 50, 500).unwrap(),
+            0
+        );
     }
 }

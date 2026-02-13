@@ -20,9 +20,15 @@ pub struct PerpsMarket {
     pub funding_interval_secs: i64,
     pub collateral_vault: Pubkey,
     pub bump: u8,
+    /// Liquidation fee rewarded to the liquidator (basis points of closed notional).
+    pub liquidation_fee_bps: u16,
+    /// Penalty sent to the insurance fund (basis points of closed notional).
+    pub liquidation_penalty_bps: u16,
+    /// Emergency flag — set when insurance fund is depleted on bad-debt liquidation.
+    pub emergency: bool,
 }
 
 impl PerpsMarket {
-    // 8 + 32 + 32 + 32 + 32 + 2 + 2 + 8 + 16 + 16 + 8 + 8 + 8 + 32 + 1 = 227
-    pub const LEN: usize = 8 + 32 + 32 + 32 + 32 + 2 + 2 + 8 + 16 + 16 + 8 + 8 + 8 + 32 + 1;
+    // 8 + 32 + 32 + 32 + 32 + 2 + 2 + 8 + 16 + 16 + 8 + 8 + 8 + 32 + 1 + 2 + 2 + 1 = 232
+    pub const LEN: usize = 8 + 32 + 32 + 32 + 32 + 2 + 2 + 8 + 16 + 16 + 8 + 8 + 8 + 32 + 1 + 2 + 2 + 1;
 }

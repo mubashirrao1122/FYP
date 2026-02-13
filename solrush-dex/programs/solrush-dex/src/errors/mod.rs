@@ -74,4 +74,12 @@ pub enum CustomError {
     FundingTooSoon,
     #[msg("Invalid funding parameters")]
     InvalidFundingParams,
+    #[msg("Position is not liquidatable")]
+    NotLiquidatable,
+    #[msg("Insurance fund insufficient — market in emergency")]
+    InsuranceFundDepleted,
+    #[msg("Market is in emergency mode")]
+    MarketEmergency,
+    #[msg("Liquidator cannot liquidate own position")]
+    SelfLiquidation,
 }
