@@ -7,7 +7,6 @@ use crate::state::{LiquidityPool, UserLiquidityPosition};
 use crate::errors::CustomError;
 use crate::events::{PoolCreated, LiquidityAdded, LiquidityRemoved};
 use crate::utils::{
-    calculate_lp_tokens,
     calculate_lp_tokens_for_add_liquidity,
     calculate_remove_liquidity_amounts,
     validate_ratio_imbalance,

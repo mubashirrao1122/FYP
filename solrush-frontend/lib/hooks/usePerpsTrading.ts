@@ -30,6 +30,8 @@ interface UsePerpsTrading {
   }) => Promise<string | null>;
   closePosition: (params: {
     marketPubkey: string;
+    /** Amount of base asset to close (in PRICE_SCALE units). Pass full size for 100% close. */
+    amountBase: number;
   }) => Promise<string | null>;
   reset: () => void;
 }
@@ -148,7 +150,7 @@ export function usePerpsTrading(): UsePerpsTrading {
 
   // ── Close Position ─────────────────────────────────────────────────
   const closePosition = useCallback(
-    async ({ marketPubkey }: { marketPubkey: string }): Promise<string | null> => {
+    async ({ marketPubkey, amountBase }: { marketPubkey: string; amountBase: number }): Promise<string | null> => {
       if (!publicKey || !wallet) return null;
       setStatus('submitting');
       setError(null);
@@ -168,8 +170,10 @@ export function usePerpsTrading(): UsePerpsTrading {
         if (!marketInfo) throw new Error('Market account not found');
         const oraclePriceAccount = parseOracleFromMarket(marketInfo.data as Buffer);
 
+        const amountBaseBN = new BN(Math.round(amountBase));
+
         const tx = await program.methods
-          .closePerpsPosition()
+          .closePerpsPosition(amountBaseBN)
           .accounts({
             owner: publicKey,
             global: globalPda,

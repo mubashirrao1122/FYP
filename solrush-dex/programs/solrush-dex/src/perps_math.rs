@@ -355,20 +355,94 @@ pub fn required_margin_scaled(notional: i128, leverage: u16) -> Result<i128> {
 }
 
 // ─────────────────────────────────────────────
+// Risk engine — margin & equity calculations
+// ─────────────────────────────────────────────
+
+/// Compute initial margin requirement.
+///
+/// `initial_margin = notional × IMR = notional / leverage`
+///
+/// where `IMR = 1 / leverage`.
+///
+/// Uses ceil rounding (conservative: protocol always requires ≥ theoretical IM).
+pub fn initial_margin(notional: i128, leverage: u16) -> Result<i128> {
+    if leverage == 0 {
+        return Err(error!(CustomError::InvalidLeverage));
+    }
+    ceil_div(notional, leverage as i128)
+}
+
+/// Compute maintenance margin requirement.
+///
+/// `maintenance_margin = ceil(notional × mm_bps / 10_000)`
+///
+/// Uses ceil rounding (conservative for the protocol).
+pub fn maintenance_margin(notional: i128, mm_bps: u16) -> Result<i128> {
+    let numerator = notional
+        .checked_mul(mm_bps as i128)
+        .ok_or_else(|| error!(CustomError::CalculationOverflow))?;
+    ceil_div(numerator, 10_000)
+}
+
+/// Full equity calculation for a position.
+///
+/// `equity = collateral + realized_pnl + unrealized_pnl − funding_owed`
+///
+/// Parameters:
+/// - `collateral` — locked quote-token collateral (atomic units).
+/// - `realized_pnl` — accumulated realized PnL (signed, same scale as uPnL).
+/// - `base_position` — signed base size (long > 0, short < 0).
+/// - `entry_price` — weighted-average entry price (PRICE_SCALE).
+/// - `mark_price` — current mark / oracle price (PRICE_SCALE).
+/// - `funding_owed` — pending funding owed (0 if already settled).
+///
+/// Returns signed equity — negative means bad debt.
+pub fn compute_equity(
+    collateral: u64,
+    realized_pnl: i128,
+    base_position: i64,
+    entry_price: i64,
+    mark_price: i64,
+    funding_owed: i128,
+) -> Result<i128> {
+    let upnl = unrealized_pnl(base_position, entry_price, mark_price)?;
+    (collateral as i128)
+        .checked_add(realized_pnl)
+        .ok_or_else(|| error!(CustomError::CalculationOverflow))?
+        .checked_add(upnl)
+        .ok_or_else(|| error!(CustomError::CalculationOverflow))?
+        .checked_sub(funding_owed)
+        .ok_or_else(|| error!(CustomError::CalculationOverflow))
+}
+
+/// Guard: can a position be increased?
+///
+/// Returns `true` when `equity_after ≥ initial_margin`.
+/// Equality is permitted — the position is exactly at the margin boundary.
+pub fn can_increase_position(equity_after: i128, im: i128) -> bool {
+    equity_after >= im
+}
+
+/// Guard: is a position liquidatable?
+///
+/// Returns `true` when `equity < maintenance_margin`.
+/// Strict less-than: borderline positions (equity == mm) are NOT liquidated.
+pub fn is_liquidatable_check(equity: i128, mm: i128) -> bool {
+    equity < mm
+}
+
+// ─────────────────────────────────────────────
 // Liquidation helpers
 // ─────────────────────────────────────────────
 
 /// Compute the equity of a position at a given mark price.
 ///
-/// `equity = collateral + unrealized_pnl`
+/// Simplified alias: `equity = collateral + unrealized_pnl`.
+/// For the full formula (with realized PnL and funding), use `compute_equity`.
 ///
 /// Returns signed value — negative means bad debt.
 pub fn position_equity(collateral: u64, base_position: i64, entry_price: i64, mark_price: i64) -> Result<i128> {
-    let upnl = unrealized_pnl(base_position, entry_price, mark_price)?;
-    let equity = (collateral as i128)
-        .checked_add(upnl)
-        .ok_or_else(|| error!(CustomError::CalculationOverflow))?;
-    Ok(equity)
+    compute_equity(collateral, 0, base_position, entry_price, mark_price, 0)
 }
 
 /// Check whether a position is liquidatable.
@@ -378,7 +452,7 @@ pub fn position_equity(collateral: u64, base_position: i64, entry_price: i64, ma
 ///
 /// Where:
 ///   equity = collateral + unrealized_pnl
-///   maintenance_margin = notional * maintenance_margin_bps / 10_000
+///   maintenance_margin = ceil(notional × mm_bps / 10_000)
 pub fn is_liquidatable(
     collateral: u64,
     base_position: i64,
@@ -389,14 +463,10 @@ pub fn is_liquidatable(
     if base_position == 0 {
         return Ok(false);
     }
-    let equity = position_equity(collateral, base_position, entry_price, mark_price)?;
+    let equity = compute_equity(collateral, 0, base_position, entry_price, mark_price, 0)?;
     let notional = notional_value(base_position, mark_price)?;
-    // maintenance_margin = notional * mm_bps / 10_000
-    let mm = notional
-        .checked_mul(maintenance_margin_bps as i128)
-        .ok_or_else(|| error!(CustomError::CalculationOverflow))?
-        / 10_000i128;
-    Ok(equity < mm)
+    let mm = maintenance_margin(notional, maintenance_margin_bps)?;
+    Ok(is_liquidatable_check(equity, mm))
 }
 
 /// Compute the minimum base size to close in order to restore margin safety.
@@ -421,17 +491,14 @@ pub fn compute_liquidation_close_size(
     if abs_base == 0 {
         return Ok(0);
     }
-    let equity = position_equity(collateral, base_position, entry_price, mark_price)?;
+    let equity = compute_equity(collateral, 0, base_position, entry_price, mark_price, 0)?;
     // If equity <= 0, full liquidation is required
     if equity <= 0 {
         return Ok(abs_base);
     }
 
     let notional = notional_value(base_position, mark_price)?;
-    let mm = notional
-        .checked_mul(maintenance_margin_bps as i128)
-        .ok_or_else(|| error!(CustomError::CalculationOverflow))?
-        / 10_000i128;
+    let mm = maintenance_margin(notional, maintenance_margin_bps)?;
 
     // margin_deficit = mm - equity
     let deficit = mm
@@ -443,11 +510,11 @@ pub fn compute_liquidation_close_size(
         return Ok(0);
     }
 
-    // mm_per_unit = |mark_price| * mm_bps / 10_000
-    let mm_per_unit = (mark_price.unsigned_abs() as i128)
+    // mm_per_unit = ceil(|mark_price| * mm_bps / 10_000)
+    let mm_per_unit_num = (mark_price.unsigned_abs() as i128)
         .checked_mul(maintenance_margin_bps as i128)
-        .ok_or_else(|| error!(CustomError::CalculationOverflow))?
-        / 10_000i128;
+        .ok_or_else(|| error!(CustomError::CalculationOverflow))?;
+    let mm_per_unit = ceil_div(mm_per_unit_num, 10_000)?;
 
     if mm_per_unit == 0 {
         return Ok(abs_base);
@@ -988,5 +1055,190 @@ mod tests {
             compute_liquidation_close_size(100, 0, 100, 50, 500).unwrap(),
             0
         );
+    }
+
+    // ── Risk engine tests ──
+
+    #[test]
+    fn test_initial_margin_basic() {
+        // notional = 1000, leverage = 5 → im = ceil(1000/5) = 200
+        assert_eq!(initial_margin(1000, 5).unwrap(), 200);
+    }
+
+    #[test]
+    fn test_initial_margin_ceil_rounding() {
+        // notional = 1001, leverage = 5 → ceil(1001/5) = ceil(200.2) = 201
+        assert_eq!(initial_margin(1001, 5).unwrap(), 201);
+    }
+
+    #[test]
+    fn test_initial_margin_zero_leverage() {
+        assert!(initial_margin(1000, 0).is_err());
+    }
+
+    #[test]
+    fn test_maintenance_margin_basic() {
+        // notional = 10000, mm_bps = 500 → mm = ceil(10000*500/10000) = 500
+        assert_eq!(maintenance_margin(10000, 500).unwrap(), 500);
+    }
+
+    #[test]
+    fn test_maintenance_margin_ceil_rounding() {
+        // notional = 10001, mm_bps = 500 → ceil(10001*500/10000) = ceil(500.05) = 501
+        assert_eq!(maintenance_margin(10001, 500).unwrap(), 501);
+    }
+
+    #[test]
+    fn test_compute_equity_all_components() {
+        // collateral=1000, realized_pnl=200, base=10, entry=100, mark=110, funding=50
+        // upnl = 10*(110-100) = 100
+        // equity = 1000 + 200 + 100 - 50 = 1250
+        assert_eq!(compute_equity(1000, 200, 10, 100, 110, 50).unwrap(), 1250);
+    }
+
+    #[test]
+    fn test_compute_equity_negative() {
+        // collateral=100, realized_pnl=0, base=10, entry=100, mark=80, funding=0
+        // upnl = 10*(80-100) = -200
+        // equity = 100 + 0 + (-200) - 0 = -100
+        assert_eq!(compute_equity(100, 0, 10, 100, 80, 0).unwrap(), -100);
+    }
+
+    #[test]
+    fn test_compute_equity_with_funding() {
+        // collateral=500, rpnl=0, base=10, entry=100, mark=100, funding=100
+        // upnl = 0, equity = 500 + 0 + 0 - 100 = 400
+        assert_eq!(compute_equity(500, 0, 10, 100, 100, 100).unwrap(), 400);
+    }
+
+    #[test]
+    fn test_can_increase_position_sufficient() {
+        assert!(can_increase_position(200, 200));  // equality allowed
+        assert!(can_increase_position(201, 200));
+    }
+
+    #[test]
+    fn test_can_increase_position_insufficient() {
+        assert!(!can_increase_position(199, 200));
+        assert!(!can_increase_position(-100, 200));
+    }
+
+    #[test]
+    fn test_is_liquidatable_check_below_mm() {
+        assert!(is_liquidatable_check(49, 50));
+    }
+
+    #[test]
+    fn test_is_liquidatable_check_at_mm() {
+        // At exactly MM → NOT liquidatable (strict less-than)
+        assert!(!is_liquidatable_check(50, 50));
+    }
+
+    #[test]
+    fn test_is_liquidatable_check_above_mm() {
+        assert!(!is_liquidatable_check(51, 50));
+    }
+
+    // ── Integration: position blocked if insufficient margin ──
+
+    #[test]
+    fn test_position_blocked_insufficient_margin() {
+        // User has a losing long and tries to increase.
+        // Long 20 @ 95 (weighted avg after increase), mark = 90.
+        // notional = |20| * 90 = 1800
+        // im = ceil(1800 / 5) = 360   (5× leverage)
+        // upnl = 20 * (90 - 95) = -100
+        // equity(with collateral=im) = 360 + 0 + (-100) - 0 = 260
+        // 260 < 360 → CANNOT increase
+        let notional = notional_value(20, 90).unwrap();
+        let im = initial_margin(notional, 5).unwrap();
+        let equity = compute_equity(im as u64, 0, 20, 95, 90, 0).unwrap();
+        assert!(!can_increase_position(equity, im));
+    }
+
+    #[test]
+    fn test_position_allowed_with_extra_collateral() {
+        // Same scenario but user locks more collateral to cover the uPnL gap.
+        // Need: collateral + upnl >= im → collateral >= im - upnl = 360 + 100 = 460
+        let notional = notional_value(20, 90).unwrap();
+        let im = initial_margin(notional, 5).unwrap();
+        let equity = compute_equity(460, 0, 20, 95, 90, 0).unwrap();
+        // equity = 460 - 100 = 360 = im → allowed (equality)
+        assert!(can_increase_position(equity, im));
+    }
+
+    // ── Borderline IM / MM edge cases ──
+
+    #[test]
+    fn test_borderline_im_exactly_at_margin() {
+        // Long 10 @ 100, mark = 100 → upnl = 0
+        // notional = 1000, im(5×) = 200, collateral = 200
+        // equity = 200 → exactly IM → allowed
+        let notional = notional_value(10, 100).unwrap();
+        let im = initial_margin(notional, 5).unwrap();
+        let equity = compute_equity(im as u64, 0, 10, 100, 100, 0).unwrap();
+        assert!(can_increase_position(equity, im));
+    }
+
+    #[test]
+    fn test_borderline_im_one_below() {
+        // collateral is 1 less than IM → blocked
+        let notional = notional_value(10, 100).unwrap();
+        let im = initial_margin(notional, 5).unwrap();
+        let equity = compute_equity((im - 1) as u64, 0, 10, 100, 100, 0).unwrap();
+        assert!(!can_increase_position(equity, im));
+    }
+
+    #[test]
+    fn test_borderline_mm_exactly_at_margin() {
+        // equity exactly at MM → NOT liquidatable
+        let notional = notional_value(10, 100).unwrap();  // 1000
+        let mm = maintenance_margin(notional, 500).unwrap();  // ceil(500000/10000) = 50
+        assert!(!is_liquidatable_check(mm, mm));
+    }
+
+    #[test]
+    fn test_borderline_mm_one_below() {
+        // equity one unit below MM → liquidatable
+        let notional = notional_value(10, 100).unwrap();
+        let mm = maintenance_margin(notional, 500).unwrap();
+        assert!(is_liquidatable_check(mm - 1, mm));
+    }
+
+    // ── High leverage prevention ──
+
+    #[test]
+    fn test_high_leverage_blocked() {
+        // 100× leverage: even a 1-tick move blows through margin.
+        // Long 100 @ 100, mark drops to 99.
+        // notional = 100 * 99 = 9900
+        // im = ceil(9900/100) = 99
+        // upnl = 100 * (99 - 100) = -100
+        // equity = 99 + 0 + (-100) - 0 = -1
+        // -1 < 99 → cannot increase
+        let notional = notional_value(100, 99).unwrap();
+        let im = initial_margin(notional, 100).unwrap();
+        let equity = compute_equity(im as u64, 0, 100, 100, 99, 0).unwrap();
+        assert!(!can_increase_position(equity, im));
+    }
+
+    #[test]
+    fn test_high_leverage_also_liquidatable() {
+        // Same position, check MM with 2% (200 bps)
+        // mm = ceil(9900 * 200 / 10000) = ceil(198) = 198
+        // equity = -1 < 198 → liquidatable
+        let notional = notional_value(100, 99).unwrap();
+        let mm = maintenance_margin(notional, 200).unwrap();
+        let equity = compute_equity(99, 0, 100, 100, 99, 0).unwrap();
+        assert!(is_liquidatable_check(equity, mm));
+    }
+
+    #[test]
+    fn test_conservative_rounding_favors_protocol() {
+        // Verify ceil rounding makes IM/MM slightly larger, protecting protocol.
+        // notional = 999, leverage = 7 → exact = 142.71… → ceil = 143
+        assert_eq!(initial_margin(999, 7).unwrap(), 143);
+        // notional = 999, mm_bps = 333 → exact = 999*333/10000 = 33.2667 → ceil = 34
+        assert_eq!(maintenance_margin(999, 333).unwrap(), 34);
     }
 }

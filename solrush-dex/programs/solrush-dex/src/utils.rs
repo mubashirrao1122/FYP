@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::CustomError;
+#[allow(dead_code)]
 pub fn calculate_lp_tokens(amount_a: u64, amount_b: u64) -> Result<u64> {
     let product = (amount_a as u128)
         .checked_mul(amount_b as u128)

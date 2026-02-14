@@ -138,8 +138,8 @@ pub mod solrush_dex {
     ) -> Result<()> {
         instructions::perps::open_position(ctx, side, size_i64, leverage_u16, order_type)
     }
-    pub fn close_perps_position(ctx: Context<ClosePosition>) -> Result<()> {
-        instructions::perps::close_position(ctx)
+    pub fn close_perps_position(ctx: Context<ClosePosition>, amount_base: u64) -> Result<()> {
+        instructions::perps::close_position(ctx, amount_base)
     }
     pub fn withdraw_perps_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Result<()> {
         instructions::perps::withdraw_collateral(ctx, amount)

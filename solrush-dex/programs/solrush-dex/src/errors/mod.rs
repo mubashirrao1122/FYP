@@ -82,4 +82,8 @@ pub enum CustomError {
     MarketEmergency,
     #[msg("Liquidator cannot liquidate own position")]
     SelfLiquidation,
+    #[msg("Close amount exceeds position size")]
+    CloseAmountExceedsPosition,
+    #[msg("Initial margin violation — insufficient equity to increase position")]
+    InsufficientMargin,
 }

@@ -37,17 +37,25 @@ export function PerpsView({
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
   const { closePosition: onChainClose, status: closeStatus } = usePerpsTrading();
   const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
+  const [closePercents, setClosePercents] = useState<Record<string, number>>({});
+
+  const getClosePercent = (id: string) => closePercents[id] ?? 100;
+  const setClosePercent = (id: string, pct: number) =>
+    setClosePercents((prev) => ({ ...prev, [id]: pct }));
 
   const handleClosePosition = useCallback(async (position: PositionView) => {
+    const pct = closePercents[position.id] ?? 100;
+    const amountBase = Math.round(position.size * (pct / 100));
+    if (amountBase <= 0) return;
     setClosingPositionId(position.id);
     try {
-      await onChainClose({ marketPubkey: position.marketId });
+      await onChainClose({ marketPubkey: position.marketId, amountBase });
     } catch (err) {
       console.error('Failed to close position:', err);
     } finally {
       setClosingPositionId(null);
     }
-  }, [onChainClose]);
+  }, [onChainClose, closePercents]);
 
   // Mock Data Generation (to be replaced with real data hooks later)
   const currentPrice = usePythPrice(selectedMarketId ? markets.find(m => m.id === selectedMarketId)?.oraclePriceId : null).price?.price || 0;
@@ -239,13 +247,33 @@ export function PerpsView({
                               {position.unrealizedPnl >= 0 ? '+' : ''}{formatCurrency(position.unrealizedPnl)}
                             </td>
                             <td className="px-4 py-2 text-right">
-                              <button
-                                className="text-[10px] bg-[#1F2937] hover:bg-[#374151] text-[#E5E7EB] px-2 py-1 rounded border border-[#374151] disabled:opacity-50"
-                                onClick={() => handleClosePosition(position)}
-                                disabled={closingPositionId === position.id}
-                              >
-                                {closingPositionId === position.id ? 'Closing…' : 'Close'}
-                              </button>
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="flex gap-1">
+                                  {[25, 50, 75, 100].map((pct) => (
+                                    <button
+                                      key={pct}
+                                      className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors ${
+                                        getClosePercent(position.id) === pct
+                                          ? 'bg-[#2DD4BF]/20 border-[#2DD4BF] text-[#2DD4BF]'
+                                          : 'bg-[#1F2937] border-[#374151] text-[#9CA3AF] hover:border-[#4B5563]'
+                                      }`}
+                                      onClick={() => setClosePercent(position.id, pct)}
+                                      disabled={closingPositionId === position.id}
+                                    >
+                                      {pct}%
+                                    </button>
+                                  ))}
+                                </div>
+                                <button
+                                  className="text-[10px] bg-[#1F2937] hover:bg-[#374151] text-[#E5E7EB] px-2 py-1 rounded border border-[#374151] disabled:opacity-50"
+                                  onClick={() => handleClosePosition(position)}
+                                  disabled={closingPositionId === position.id}
+                                >
+                                  {closingPositionId === position.id
+                                    ? 'Closing…'
+                                    : `Close ${getClosePercent(position.id)}%`}
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}

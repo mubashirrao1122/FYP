@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use pyth_sdk_solana::load_price_feed_from_account_info;
 use crate::errors::CustomError;
-use crate::perps_math::{self, PositionState, notional_value, required_margin_scaled, unrealized_pnl, PRICE_SCALE};
+use crate::perps_math::{self, PositionState, notional_value, unrealized_pnl, PRICE_SCALE, initial_margin, compute_equity, can_increase_position};
 use crate::state::{PerpsGlobalState, PerpsMarket, PerpsOraclePrice, PerpsPosition, PerpsUserAccount, InsuranceVault};
 use crate::events::{FundingUpdated, FundingSettled, Liquidated};
 
@@ -395,21 +395,47 @@ pub fn open_position(
     // Apply the trade via the position engine (pure function)
     let result = perps_math::apply_trade_to_position(&current_state, trade_base_delta, price)?;
 
-    // Compute notional after the trade for margin requirement
+    // ── Risk engine: compute margin requirements ──
     let new_notional = notional_value(result.new_base_position, price)?;
-    let required = required_margin_scaled(new_notional, leverage_u16)?;
-    let required_u64 = u64::try_from(required).map_err(|_| error!(CustomError::CalculationOverflow))?;
+    let old_notional_val = notional_value(current_state.base_position, price)?;
+    let im = initial_margin(new_notional, leverage_u16)?;
+    let im_u64 = u64::try_from(im).map_err(|_| error!(CustomError::CalculationOverflow))?;
 
-    // Compute how much additional collateral is needed.
-    // If position already has collateral, we only need the delta.
+    // When notional is increasing, compute required collateral via equity formula.
+    // equity = collateral + upnl ≥ IM ⟹ collateral ≥ IM − upnl
+    let target_collateral = if new_notional > old_notional_val && result.new_base_position != 0 {
+        let upnl_after = unrealized_pnl(result.new_base_position, result.new_entry_price, price)?;
+        let min_coll_i128 = im.checked_sub(upnl_after)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        // Floor at IM — unrealized profit does not reduce locked collateral below IM
+        let coll = if min_coll_i128 < im { im } else { min_coll_i128 };
+        u64::try_from(coll).map_err(|_| error!(CustomError::CalculationOverflow))?
+    } else {
+        im_u64
+    };
+
     let old_collateral = position.collateral_u64;
-    let additional_collateral = required_u64.saturating_sub(old_collateral);
+    let additional_collateral = target_collateral.saturating_sub(old_collateral);
 
     let user = &mut ctx.accounts.user;
     require!(
         user.collateral_quote_u64 >= additional_collateral,
         CustomError::InsufficientCollateral
     );
+
+    // ── Risk guard: IM check when increasing position ──
+    if new_notional > old_notional_val && result.new_base_position != 0 {
+        let equity_after = compute_equity(
+            target_collateral, 0,
+            result.new_base_position, result.new_entry_price,
+            price, 0,
+        )?;
+        require!(
+            can_increase_position(equity_after, im),
+            CustomError::InsufficientMargin
+        );
+    }
+
     user.collateral_quote_u64 = user
         .collateral_quote_u64
         .checked_sub(additional_collateral)
@@ -436,15 +462,14 @@ pub fn open_position(
     position.entry_price_i64 = result.new_entry_price;
     position.realized_pnl_i128 = result.new_realized_pnl;
     position.side = position.derived_side();
-    position.collateral_u64 = required_u64;
+    position.collateral_u64 = target_collateral;
     position.leverage_u16 = leverage_u16;
     position.last_funding_i128 = ctx.accounts.market.cumulative_funding_i128;
     position.bump = ctx.bumps.position;
 
     // Update open interest — add new notional, subtract old
-    let old_notional = notional_value(current_state.base_position, price)?;
     let oi_delta = new_notional
-        .checked_sub(old_notional)
+        .checked_sub(old_notional_val)
         .ok_or(error!(CustomError::CalculationOverflow))?;
     ctx.accounts.market.open_interest_i128 = ctx
         .accounts
@@ -503,10 +528,15 @@ pub struct ClosePosition<'info> {
     pub position: Account<'info, PerpsPosition>,
 }
 
-pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
+pub fn close_position(ctx: Context<ClosePosition>, amount_base: u64) -> Result<()> {
     require!(!ctx.accounts.global.paused, CustomError::PerpsPaused);
     let position = &mut ctx.accounts.position;
     require!(position.base_position_i64 != 0, CustomError::NoOpenPosition);
+
+    // Validate amount_base does not exceed abs(base_position)
+    let abs_position = position.base_position_i64.unsigned_abs();
+    require!(amount_base > 0, CustomError::InvalidAmount);
+    require!(amount_base <= abs_position, CustomError::CloseAmountExceedsPosition);
 
     require!(
         ctx.accounts.oracle_price_account.key() == ctx.accounts.market.oracle_price_account,
@@ -531,7 +561,7 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
         });
     }
 
-    // Use position engine: closing = trade of -base_position
+    // Build position state snapshot
     let current_state = PositionState {
         base_position: position.base_position_i64,
         entry_price: position.entry_price_i64,
@@ -539,23 +569,41 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
         last_cum_funding: position.last_funding_i128,
     };
 
-    let close_delta = position.base_position_i64
-        .checked_neg()
-        .ok_or(error!(CustomError::CalculationOverflow))?;
+    // Compute close delta: opposite direction of the position
+    // For a long (positive base), close_delta is negative; for a short, positive.
+    let close_delta: i64 = if position.base_position_i64 > 0 {
+        -(amount_base as i64)
+    } else {
+        amount_base as i64
+    };
+
     let result = perps_math::apply_trade_to_position(&current_state, close_delta, price)?;
 
-    // result.new_base_position should be 0 (full close)
-    // result.pnl_delta has the realized PnL from this close
+    let is_full_close = result.new_base_position == 0;
 
-    // Compute collateral return: old collateral + pnl_delta (clamped to 0 min)
-    let mut collateral_i128 = i128::from(position.collateral_u64);
-    collateral_i128 = collateral_i128
+    // Determine collateral to release proportionally
+    // For a full close: release all collateral + pnl
+    // For partial: release (amount_base / abs_position) * collateral + pnl
+    let collateral_release: u64 = if is_full_close {
+        position.collateral_u64
+    } else {
+        // Proportional: collateral * amount_base / abs_position
+        (position.collateral_u64 as u128)
+            .checked_mul(amount_base as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))?
+            .checked_div(abs_position as u128)
+            .ok_or(error!(CustomError::CalculationOverflow))? as u64
+    };
+
+    // Total return = released collateral + pnl_delta (clamped to 0 min)
+    let mut return_i128 = i128::from(collateral_release);
+    return_i128 = return_i128
         .checked_add(result.pnl_delta)
         .ok_or(error!(CustomError::CalculationOverflow))?;
-    if collateral_i128 < 0 {
-        collateral_i128 = 0;
+    if return_i128 < 0 {
+        return_i128 = 0;
     }
-    let collateral_return = u64::try_from(collateral_i128)
+    let collateral_return = u64::try_from(return_i128)
         .map_err(|_| error!(CustomError::CalculationOverflow))?;
 
     let user = &mut ctx.accounts.user;
@@ -564,27 +612,39 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
         .checked_add(collateral_return)
         .ok_or(error!(CustomError::CalculationOverflow))?;
 
-    // Update open interest
-    let old_notional = notional_value(position.base_position_i64, price)?;
+    // Update open interest: subtract closed notional
+    let closed_notional = notional_value(close_delta, price)?;
     ctx.accounts.market.open_interest_i128 = ctx
         .accounts
         .market
         .open_interest_i128
-        .checked_sub(old_notional)
+        .checked_sub(closed_notional)
         .ok_or(error!(CustomError::CalculationOverflow))?;
 
-    // Reset position fields (full close)
-    position.base_position_i64 = 0;
-    position.entry_price_i64 = 0;
-    position.collateral_u64 = 0;
-    position.leverage_u16 = 0;
-    position.last_funding_i128 = 0;
-    position.realized_pnl_i128 = result.new_realized_pnl;
-    position.side = 0;
+    if is_full_close {
+        // Reset position fields (full close)
+        position.base_position_i64 = 0;
+        position.entry_price_i64 = 0;
+        position.collateral_u64 = 0;
+        position.leverage_u16 = 0;
+        position.last_funding_i128 = 0;
+        position.realized_pnl_i128 = result.new_realized_pnl;
+        position.side = 0;
 
-    user.positions_count_u8 = user
-        .positions_count_u8
-        .saturating_sub(1);
+        user.positions_count_u8 = user
+            .positions_count_u8
+            .saturating_sub(1);
+    } else {
+        // Partial close: update position with remaining values
+        position.base_position_i64 = result.new_base_position;
+        position.entry_price_i64 = result.new_entry_price; // entry price preserved
+        position.collateral_u64 = position.collateral_u64
+            .checked_sub(collateral_release)
+            .ok_or(error!(CustomError::CalculationOverflow))?;
+        position.realized_pnl_i128 = result.new_realized_pnl;
+        position.side = position.derived_side();
+    }
+
     Ok(())
 }
 
