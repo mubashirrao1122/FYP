@@ -158,7 +158,9 @@ pub fn market_buy(
     );
     let fee_numerator_128 = fee_numerator as u128;
     let fee_denominator_128 = fee_denominator as u128;
-    let fee_amount = ((amount_b_in as u128) * fee_numerator_128 / fee_denominator_128) as u64;
+    // Round fee UP (ceiling division) to favor the protocol — matches swap() behavior
+    let fee_amount = ((amount_b_in as u128) * fee_numerator_128 + fee_denominator_128 - 1) / fee_denominator_128;
+    let fee_amount = fee_amount as u64;
     transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -252,7 +254,9 @@ pub fn market_sell(
     );
     let fee_numerator_128 = fee_numerator as u128;
     let fee_denominator_128 = fee_denominator as u128;
-    let fee_amount = ((amount_a_in as u128) * fee_numerator_128 / fee_denominator_128) as u64;
+    // Round fee UP (ceiling division) to favor the protocol — matches swap() behavior
+    let fee_amount = ((amount_a_in as u128) * fee_numerator_128 + fee_denominator_128 - 1) / fee_denominator_128;
+    let fee_amount = fee_amount as u64;
     transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),

@@ -12,6 +12,9 @@ use crate::utils::{
     validate_ratio_imbalance,
 };
 
+// FYP note: MINIMUM_LIQUIDITY lock is not implemented for simplicity.
+// Production DEXs (e.g. Uniswap V2) lock sqrt(initial_a * initial_b) - MINIMUM_LIQUIDITY
+// to a dead address to prevent first-depositor rounding attacks.
 pub const MINIMUM_LIQUIDITY: u64 = 1000;
 
 pub fn initialize_pool(

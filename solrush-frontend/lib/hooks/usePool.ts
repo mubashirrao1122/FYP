@@ -95,6 +95,10 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       // Get LP mint address
       const lpMint = poolAccount.lpTokenMint as PublicKey;
 
+      // Fetch actual LP supply from the mint
+      const lpMintInfo = await connection.getTokenSupply(lpMint);
+      const totalLPSupply = parseFloat(lpMintInfo.value.uiAmountString || '0');
+
       // Get reserves (convert from BN)
       const reserveA = (poolAccount.reserveA as BN).toNumber();
       const reserveB = (poolAccount.reserveB as BN).toNumber();
@@ -138,7 +142,7 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
         tokenBMint: poolAccount.tokenBMint as PublicKey,
         reserveA,
         reserveB,
-        totalLPSupply: 0, // Will be fetched from mint
+        totalLPSupply,
         lpTokenDecimals: 6,
         fee: feeBasisPoints / 10000,
         feeBasisPoints,
@@ -215,10 +219,11 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const valueA = pool.reserveA * shareDecimal;
       const valueB = pool.reserveB * shareDecimal;
 
-      // Estimate USD value (simplified)
-      const solPrice = 100; // Mock price
-      const tokenAPrice = tokenASymbol === 'SOL' ? solPrice : 1;
-      const tokenBPrice = tokenBSymbol === 'SOL' ? solPrice : 1;
+      // Use real token prices via the price service (already imported)
+      const [tokenAPrice, tokenBPrice] = await Promise.all([
+        getTokenPrice(tokenASymbol),
+        getTokenPrice(tokenBSymbol),
+      ]);
 
       const totalValueUSD =
         (valueA / Math.pow(10, decimalA)) * tokenAPrice +
@@ -306,14 +311,14 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const lpMint = poolAccount.lpTokenMint as PublicKey;
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
-      
+
       // Get the actual mints stored in the pool (sorted order)
       const poolTokenAMint = poolAccount.tokenAMint as PublicKey;
       const poolTokenBMint = poolAccount.tokenBMint as PublicKey;
 
       // Determine if user's selected order matches pool's sorted order
       const userSelectedAMatchesPoolA = tokenAMint.equals(poolTokenAMint);
-      
+
       // Get user token accounts based on POOL's mint order (not user's selection)
       const userTokenA = await getAssociatedTokenAddress(poolTokenAMint, wallet.publicKey);
       const userTokenB = await getAssociatedTokenAddress(poolTokenBMint, wallet.publicKey);
@@ -325,7 +330,7 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       // Convert amounts - swap if user's order doesn't match pool's order
       const decimalA = TOKEN_DECIMALS[tokenASymbol] || 9;
       const decimalB = TOKEN_DECIMALS[tokenBSymbol] || 6;
-      
+
       // Get the decimals for pool's token order
       const poolDecimalA = poolAccount.tokenADecimals || 9;
       const poolDecimalB = poolAccount.tokenBDecimals || 6;
@@ -350,8 +355,14 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       });
 
       // Use camelCase account names (Anchor SDK converts snake_case IDL to camelCase)
+      // Calculate expected LP tokens and apply 5% slippage tolerance
+      const expectedLp = Math.sqrt(
+        amountABN.toNumber() * amountBBN.toNumber()
+      );
+      const minLpBN = new BN(Math.max(0, Math.floor(expectedLp * 0.95)));
+
       const tx = await program.methods
-        .addLiquidity(amountABN, amountBBN, new BN(0)) // minLpTokens = 0
+        .addLiquidity(amountABN, amountBBN, minLpBN)
         .accounts({
           pool: poolPda,
           lpTokenMint: lpMint,
@@ -412,7 +423,7 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const lpMint = poolAccount.lpTokenMint as PublicKey;
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
-      
+
       // Get the actual mints stored in the pool (sorted order)
       const poolTokenAMint = poolAccount.tokenAMint as PublicKey;
       const poolTokenBMint = poolAccount.tokenBMint as PublicKey;
@@ -427,8 +438,11 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
 
       // LP tokens have 6 decimals, min amounts use 0 for simplicity
       const lpAmountBN = toBN(params.lpTokenAmount, 6);
-      const minAmountABN = new BN(0); // Allow any output for now
-      const minAmountBBN = new BN(0);
+      // Apply 5% slippage tolerance on withdrawal amounts
+      const rmDecimalA = poolAccount.tokenADecimals || 9;
+      const rmDecimalB = poolAccount.tokenBDecimals || 6;
+      const minAmountABN = toBN(params.minAmountA * 0.95, rmDecimalA);
+      const minAmountBBN = toBN(params.minAmountB * 0.95, rmDecimalB);
 
       console.log('Remove liquidity with:', {
         poolTokenAMint: poolTokenAMint.toBase58(),
@@ -492,7 +506,7 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
 
       // Fetch pool to get vault addresses
-      const poolAccount = await program.account.liquidityPool.fetch(poolPda);
+      const poolAccount = await (program.account as any).liquidityPool.fetch(poolPda);
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
 
@@ -696,7 +710,7 @@ export function useCreatePool() {
       if (!program) return false;
 
       const [poolPda] = findPoolAddress(tokenAMint, tokenBMint);
-      const poolAccount = await program.account.liquidityPool.fetchNullable(poolPda);
+      const poolAccount = await (program.account as any).liquidityPool.fetchNullable(poolPda);
 
       return poolAccount !== null;
     } catch {

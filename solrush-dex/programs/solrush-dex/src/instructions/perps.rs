@@ -185,6 +185,8 @@ pub struct SetOraclePrice<'info> {
 }
 
 pub fn set_oracle_price(ctx: Context<SetOraclePrice>, price_i64: i64) -> Result<()> {
+    // Basic sanity check — in production this would use Pyth oracle exclusively
+    require!(price_i64 > 0, CustomError::InvalidAmount);
     let oracle = &mut ctx.accounts.oracle;
     oracle.price_i64 = price_i64;
     oracle.last_update_ts = Clock::get()?.unix_timestamp;
@@ -529,6 +531,9 @@ pub struct ClosePosition<'info> {
 }
 
 pub fn close_position(ctx: Context<ClosePosition>, amount_base: u64) -> Result<()> {
+    // NOTE (FYP limitation): PnL settlement is tracked via collateral_quote_u64 bookkeeping.
+    // In production, this would move real tokens between vault and user on every close.
+    // For FYP demo, withdrawCollateral returns the bookkeeping balance after full position close.
     require!(!ctx.accounts.global.paused, CustomError::PerpsPaused);
     let position = &mut ctx.accounts.position;
     require!(position.base_position_i64 != 0, CustomError::NoOpenPosition);
@@ -682,6 +687,8 @@ pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Res
     require!(!ctx.accounts.global.paused, CustomError::PerpsPaused);
     let user = &mut ctx.accounts.user;
     require!(user.collateral_quote_u64 >= amount, CustomError::InsufficientCollateral);
+    // FYP limitation: full position close required before withdrawal.
+    // Production would check margin requirements and allow partial withdrawal of excess collateral.
     require!(
         user.positions_count_u8 == 0,
         CustomError::MaintenanceMarginViolation

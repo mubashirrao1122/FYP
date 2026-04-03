@@ -22,7 +22,15 @@ pub struct LiquidityPool {
     pub bump: u8,
 }
 impl LiquidityPool {
-    pub const SIZE: usize = 8 + 32*6 + 8*5 + 2 + 1 + 8 + 8 + 8 + 8 + 1;
+    pub const SIZE: usize = 8     // discriminator
+        + 32 * 6  // authority, token_a_mint, token_b_mint, token_a_vault, token_b_vault, lp_token_mint
+        + 8 * 5   // reserve_a, reserve_b, total_lp_supply, fee_numerator, fee_denominator
+        + 1 + 1   // token_a_decimals, token_b_decimals
+        + 1       // is_stablecoin_pool
+        + 8       // created_at (i64)
+        + 8 * 2   // total_volume_a, total_volume_b
+        + 8       // locked_liquidity (reserved for future use)
+        + 1;      // bump
     pub fn is_stable_pair(&self) -> bool {
         self.is_stablecoin_pool
     }

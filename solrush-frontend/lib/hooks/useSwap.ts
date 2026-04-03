@@ -42,7 +42,7 @@ export function useSwap() {
   const fetchPoolData = useCallback(async (
     inputToken: string,
     outputToken: string
-  ): Promise<PoolReserves | null> => {
+  ): Promise<PoolReserves & { isAToB: boolean } | null> => {
     try {
       const program = getReadOnlyProgram(connection);
       if (!program) {
@@ -56,7 +56,7 @@ export function useSwap() {
       const [poolAddress] = findPoolAddress(inputMint, outputMint);
 
       const poolAccount = await (program.account as any).liquidityPool.fetch(poolAddress);
-      
+
       // Get the pool's stored mint order
       const poolTokenAMint = poolAccount.tokenAMint as PublicKey;
 
@@ -68,6 +68,7 @@ export function useSwap() {
         reserveB: (poolAccount.reserveB as BN).toNumber(),
         feeNumerator: poolAccount.feeNumerator as number,
         feeDenominator: poolAccount.feeDenominator as number,
+        isAToB,
       };
     } catch (err) {
       console.error("Failed to fetch pool data:", err);
@@ -94,51 +95,28 @@ export function useSwap() {
     let feeDenominator: number;
 
     if (poolData) {
-      // Use real pool data - determine direction properly
-      const program = getReadOnlyProgram(connection);
-      const inputMint = getTokenMint(inputToken);
-      const outputMint = getTokenMint(outputToken);
-      const [poolAddress] = findPoolAddress(inputMint, outputMint);
-      
-      try {
-        const poolAccount = await (program!.account as any).liquidityPool.fetch(poolAddress);
-        const poolTokenAMint = poolAccount.tokenAMint as PublicKey;
-        const isAToB = inputMint.equals(poolTokenAMint);
-        
-        reserveIn = isAToB ? poolData.reserveA : poolData.reserveB;
-        reserveOut = isAToB ? poolData.reserveB : poolData.reserveA;
-      } catch {
-        // Fallback if fetch fails
-        reserveIn = poolData.reserveA;
-        reserveOut = poolData.reserveB;
-      }
-      
+      // Use real pool data — direction already determined by fetchPoolData
+      reserveIn = poolData.isAToB ? poolData.reserveA : poolData.reserveB;
+      reserveOut = poolData.isAToB ? poolData.reserveB : poolData.reserveA;
       feeNumerator = poolData.feeNumerator;
       feeDenominator = poolData.feeDenominator;
     } else {
-      // Fallback to mock data if pool doesn't exist yet
-      console.warn("Using mock pool data - pool not found on chain");
-      const mockPoolData: { [key: string]: { reserveIn: number; reserveOut: number } } = {
-        'SOL-USDC': { reserveIn: 1000, reserveOut: 100000 },
-        'USDC-SOL': { reserveIn: 100000, reserveOut: 1000 },
-        'SOL-USDT': { reserveIn: 1000, reserveOut: 100000 },
-        'USDT-SOL': { reserveIn: 100000, reserveOut: 1000 },
-        'SOL-RUSH': { reserveIn: 1000, reserveOut: 50000 },
-        'RUSH-SOL': { reserveIn: 50000, reserveOut: 1000 },
+      // Pool not found on chain — show clear error instead of fake data
+      console.error(`Pool ${inputToken}-${outputToken} not found on chain. Deploy pools first.`);
+      return {
+        inputAmount,
+        outputAmount: 0,
+        priceImpact: 0,
+        fee: 0,
+        minReceived: 0,
+        exchangeRate: 0,
       };
-
-      const pairKey = `${inputToken}-${outputToken}`;
-      const pool = mockPoolData[pairKey] || { reserveIn: 1000, reserveOut: 100000 };
-      reserveIn = pool.reserveIn;
-      reserveOut = pool.reserveOut;
-      feeNumerator = 25; // 0.25%
-      feeDenominator = 10000;
     }
 
     // Get decimals for proper conversion
     const inputDecimals = TOKEN_DECIMALS[inputToken] || 9;
     const outputDecimals = TOKEN_DECIMALS[outputToken] || 9;
-    
+
     // Convert reserves from raw to human-readable for calculation
     const reserveInNormalized = reserveIn / Math.pow(10, inputDecimals);
     const reserveOutNormalized = reserveOut / Math.pow(10, outputDecimals);

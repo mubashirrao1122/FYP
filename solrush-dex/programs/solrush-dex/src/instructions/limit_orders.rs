@@ -260,7 +260,10 @@ pub struct ExecuteLimitOrder<'info> {
     pub order_vault: Account<'info, TokenAccount>,
     #[account(mut)]
     pub pool_vault_in: Account<'info, TokenAccount>,
-    #[account(mut)]
+    #[account(
+        mut,
+        token::authority = limit_order.owner
+    )]
     pub user_token_out: Account<'info, TokenAccount>,
     #[account(mut)]
     pub pool_vault_out: Account<'info, TokenAccount>,

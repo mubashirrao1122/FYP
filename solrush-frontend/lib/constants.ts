@@ -13,9 +13,9 @@ const RPC_ENDPOINTS: Record<string, string> = {
 export const CURRENT_NETWORK = NETWORK;
 export const RPC_ENDPOINT = process.env.NEXT_PUBLIC_RPC_URL || RPC_ENDPOINTS[NETWORK] || RPC_ENDPOINTS.localnet;
 
-// Program ID - matches Anchor.toml
+// Program ID - matches Anchor.toml [programs.localnet] and lib.rs declare_id!
 export const PROGRAM_ID = new PublicKey(
-    process.env.NEXT_PUBLIC_PROGRAM_ID || "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1"
+    process.env.NEXT_PUBLIC_PROGRAM_ID || "7AeCL1kAuxjB9ktLdtoRFUW6KfquYwDNs8r291w6h9mC"
 );
 
 // Token Mints - Use environment variables for flexibility across networks
