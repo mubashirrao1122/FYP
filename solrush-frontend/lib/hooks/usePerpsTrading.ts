@@ -170,7 +170,7 @@ export function usePerpsTrading(): UsePerpsTrading {
         if (!marketInfo) throw new Error('Market account not found');
         const oraclePriceAccount = parseOracleFromMarket(marketInfo.data as Buffer);
 
-        const amountBaseBN = new BN(Math.round(amountBase));
+        const amountBaseBN = new BN(Math.round(amountBase * PRICE_SCALE));
 
         const tx = await program.methods
           .closePerpsPosition(amountBaseBN)

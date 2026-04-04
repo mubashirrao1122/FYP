@@ -270,7 +270,9 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
         >
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="market">Market</TabsTrigger>
-            <TabsTrigger value="limit">Limit</TabsTrigger>
+            <TabsTrigger value="limit" disabled className="opacity-50 cursor-not-allowed">
+              Limit <span className="text-[10px] ml-1 text-neon-cyan/70">(Soon)</span>
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>

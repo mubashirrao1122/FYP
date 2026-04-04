@@ -149,12 +149,17 @@ pub fn claim_rush_rewards(
         .checked_add(user_rewards)
         .ok_or(error!(CustomError::CalculationOverflow))?;
     rush_config.minted_so_far = new_minted_total;
+    let rewards_display = (user_rewards as f64) / 1_000_000.0;
+    let user_lp_share = (position.lp_tokens as f64) / (pool.total_lp_supply as f64);
+    
     emit!(RewardsClaimed {
         user: ctx.accounts.user.key(),
         position: position.key(),
         pool: pool.key(),
         rewards_amount: user_rewards,
+        rewards_display,
         time_elapsed: time_elapsed as i64,
+        user_lp_share,
         claimed_at: current_time,
         total_claimed_lifetime: position.total_rush_claimed,
     });

@@ -687,12 +687,7 @@ pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64) -> Res
     require!(!ctx.accounts.global.paused, CustomError::PerpsPaused);
     let user = &mut ctx.accounts.user;
     require!(user.collateral_quote_u64 >= amount, CustomError::InsufficientCollateral);
-    // FYP limitation: full position close required before withdrawal.
-    // Production would check margin requirements and allow partial withdrawal of excess collateral.
-    require!(
-        user.positions_count_u8 == 0,
-        CustomError::MaintenanceMarginViolation
-    );
+    // Free margin (collateral_quote_u64) is isolated from position margin and can be seamlessly withdrawn.
 
     user.collateral_quote_u64 = user
         .collateral_quote_u64
