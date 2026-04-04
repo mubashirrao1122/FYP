@@ -162,7 +162,7 @@ describe("perps v1", () => {
       .rpc();
 
     await program.methods
-      .closePerpsPosition()
+      .closePerpsPosition(new anchor.BN(10))
       .accounts({
         owner: admin.publicKey,
         global: globalPda,
@@ -263,7 +263,7 @@ describe("perps v1", () => {
     }
 
     await program.methods
-      .closePerpsPosition()
+      .closePerpsPosition(new anchor.BN(10))
       .accounts({
         owner: admin.publicKey,
         global: globalPda,

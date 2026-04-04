@@ -85,7 +85,7 @@ export function DepositUSDCModal({
       <DialogContent className="bg-[#0F172A] border-[#1F2937] text-[#E5E7EB] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ArrowDownToLine className="w-5 h-5 text-[#2DD4BF]" />
+            <ArrowDownToLine className="w-5 h-5 text-[#3B82F6]" />
             Deposit USDC Collateral
           </DialogTitle>
           <DialogDescription className="text-[#9CA3AF]">
@@ -134,7 +134,7 @@ export function DepositUSDCModal({
               <label className="text-sm font-semibold">Amount (USDC)</label>
               <button
                 type="button"
-                className="text-xs text-[#2DD4BF] hover:underline"
+                className="text-xs text-[#3B82F6] hover:underline"
                 onClick={handleSetMax}
                 disabled={isProcessing}
               >
@@ -161,7 +161,7 @@ export function DepositUSDCModal({
           {/* Progress / status */}
           {isProcessing && (
             <div className="rounded-xl border border-[#1F2937] bg-[#111827] p-3 flex items-center gap-3">
-              <Loader2 className="w-4 h-4 animate-spin text-[#2DD4BF]" />
+              <Loader2 className="w-4 h-4 animate-spin text-[#3B82F6]" />
               <span className="text-sm text-[#9CA3AF]">{STEP_LABELS[depositStep]}</span>
             </div>
           )}
@@ -201,7 +201,7 @@ export function DepositUSDCModal({
         <DialogFooter className="flex gap-2 sm:flex-row">
           {isSuccess ? (
             <Button
-              className="flex-1 bg-[#2DD4BF] hover:bg-[#26C8B4] text-[#0F172A] font-medium"
+              className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-medium"
               onClick={handleDone}
             >
               Continue Trading
@@ -217,7 +217,7 @@ export function DepositUSDCModal({
                 Cancel
               </Button>
               <Button
-                className="flex-1 bg-[#2DD4BF] hover:bg-[#26C8B4] text-[#0F172A] font-medium disabled:opacity-50"
+                className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-medium disabled:opacity-50"
                 onClick={handleDeposit}
                 disabled={!canSubmit}
               >

@@ -81,7 +81,7 @@ export const useRewardsService = () => {
             }
             const [rushConfigPda] = findRushConfigAddress();
 
-            const configAccount = await program.account.rushConfig.fetch(rushConfigPda);
+            const configAccount = await (program.account as any).rushConfig.fetch(rushConfigPda);
             return configAccount;
         } catch (err) {
             console.error("Failed to fetch RUSH config:", err);
@@ -104,10 +104,10 @@ export const useRewardsService = () => {
             }
             const [positionPda] = findPositionAddress(poolAddress, wallet.publicKey);
 
-            const positionAccount = await program.account.userLiquidityPosition.fetch(positionPda);
+            const positionAccount = await (program.account as any).userLiquidityPosition.fetch(positionPda);
 
             // Get pool data for reward calculation
-            const poolAccount = await program.account.liquidityPool.fetch(poolAddress);
+            const poolAccount = await (program.account as any).liquidityPool.fetch(poolAddress);
 
             // Calculate rewards based on LP tokens and time
             const lpTokens = (positionAccount.lpTokens as BN).toNumber();

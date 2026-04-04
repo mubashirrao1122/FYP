@@ -40,7 +40,7 @@ export const ClaimRewards = () => {
       <Button
         onClick={handleClaim}
         disabled={rewardsLoading || status === 'pending' || status === 'confirming'}
-        className="w-full h-11 px-6 rounded-lg bg-[#2DD4BF] dark:bg-[#22C1AE] text-[#0F172A] text-[15px] font-medium transition-colors duration-200 ease-out hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] shadow-sm"
+        className="w-full h-11 px-6 rounded-lg bg-[#3B82F6] dark:bg-[#2563EB] text-white text-[15px] font-medium transition-colors duration-200 ease-out hover:bg-[#2563EB] dark:hover:bg-[#1D4ED8] shadow-sm"
       >
         {status === 'pending'
           ? "Approving..."

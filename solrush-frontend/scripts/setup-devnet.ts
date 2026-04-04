@@ -1,6 +1,6 @@
 #!/usr/bin/env ts-node
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
-import { createMint, mintTo, getOrCreateAssociatedTokenAddress } from '@solana/spl-token';
+import { createMint, mintTo, getOrCreateAssociatedTokenAccount } from '@solana/spl-token';
 import * as fs from 'fs';
 import { loadWallet, getRPC, formatNumber } from './utils';
 
@@ -68,7 +68,7 @@ async function mintTestTokens(
     console.log('💰 Minting test tokens to wallet...\n');
 
     // Mint USDC
-    const usdcAccount = await getOrCreateAssociatedTokenAddress(
+    const usdcAccount = await getOrCreateAssociatedTokenAccount(
         connection,
         payer,
         mints.usdcMint,
@@ -78,14 +78,14 @@ async function mintTestTokens(
         connection,
         payer,
         mints.usdcMint,
-        usdcAccount,
+        usdcAccount.address,
         payer,
         1000000 * 1e6 // 1M USDC
     );
     console.log(`  ✓ Minted ${formatNumber(1000000)} USDC`);
 
     // Mint USDT
-    const usdtAccount = await getOrCreateAssociatedTokenAddress(
+    const usdtAccount = await getOrCreateAssociatedTokenAccount(
         connection,
         payer,
         mints.usdtMint,
@@ -95,14 +95,14 @@ async function mintTestTokens(
         connection,
         payer,
         mints.usdtMint,
-        usdtAccount,
+        usdtAccount.address,
         payer,
         1000000 * 1e6 // 1M USDT
     );
     console.log(`  ✓ Minted ${formatNumber(1000000)} USDT`);
 
     // Mint RUSH
-    const rushAccount = await getOrCreateAssociatedTokenAddress(
+    const rushAccount = await getOrCreateAssociatedTokenAccount(
         connection,
         payer,
         mints.rushMint,
@@ -112,7 +112,7 @@ async function mintTestTokens(
         connection,
         payer,
         mints.rushMint,
-        rushAccount,
+        rushAccount.address,
         payer,
         10000000 * 1e6 // 10M RUSH
     );

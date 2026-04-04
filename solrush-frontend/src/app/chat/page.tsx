@@ -60,9 +60,6 @@ type PriceHistoryData = {
     source?: string; error?: string;
 };
 
-/* ═══════════════════════════════════════════════════════
-   CONSTANTS — real token icons from CoinGecko CDN
-   ═══════════════════════════════════════════════════════ */
 
 const TOKEN_ICONS: Record<string, string> = {
     SOL: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
@@ -95,10 +92,6 @@ const SUGGESTIONS = [
     { icon: TrendingUp, label: 'Compare ETH vs SOL', desc: 'Side-by-side analysis' },
 ];
 
-/* ═══════════════════════════════════════════════════════
-   FORMAT HELPERS
-   ═══════════════════════════════════════════════════════ */
-
 function fmt(n: number | undefined | null): string {
     if (n == null) return '—';
     if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
@@ -128,9 +121,6 @@ function signalStyle(signal: string | undefined): string {
     }
 }
 
-/* ═══════════════════════════════════════════════════════
-   TOKEN ICON COMPONENT
-   ═══════════════════════════════════════════════════════ */
 
 function TokenIcon({ symbol, size = 32 }: { symbol: string; size?: number }) {
     const src = getTokenIcon(symbol);
@@ -157,10 +147,6 @@ function TokenIcon({ symbol, size = 32 }: { symbol: string; size?: number }) {
         />
     );
 }
-
-/* ═══════════════════════════════════════════════════════
-   DATA CARDS — Token Price
-   ═══════════════════════════════════════════════════════ */
 
 function TokenPriceCard({ data }: { data: PriceData }) {
     if (data.error) return <ErrorCard message={data.error} />;
@@ -200,9 +186,6 @@ function TokenPriceCard({ data }: { data: PriceData }) {
     );
 }
 
-/* ═══════════════════════════════════════════════════════
-   DATA CARDS — Analysis
-   ═══════════════════════════════════════════════════════ */
 
 function AnalysisCard({ data }: { data: AnalysisData }) {
     if (data.error) return <ErrorCard message={data.error} />;
@@ -253,9 +236,6 @@ function AnalysisCard({ data }: { data: AnalysisData }) {
     );
 }
 
-/* ═══════════════════════════════════════════════════════
-   DATA CARDS — Portfolio
-   ═══════════════════════════════════════════════════════ */
 
 function PortfolioCard({ data }: { data: PortfolioData }) {
     if (data.error) return <ErrorCard message={data.error} />;
@@ -310,9 +290,7 @@ function PortfolioCard({ data }: { data: PortfolioData }) {
     );
 }
 
-/* ═══════════════════════════════════════════════════════
-   DATA CARDS — Price History
-   ═══════════════════════════════════════════════════════ */
+
 
 function PriceHistoryCard({ data }: { data: PriceHistoryData }) {
     if (data.error) return <ErrorCard message={data.error} />;
@@ -337,9 +315,7 @@ function PriceHistoryCard({ data }: { data: PriceHistoryData }) {
     );
 }
 
-/* ═══════════════════════════════════════════════════════
-   SHARED COMPONENTS
-   ═══════════════════════════════════════════════════════ */
+
 
 function StatCell({ label, value, className = 'text-white' }: { label: string; value: string; className?: string }) {
     return (
@@ -379,9 +355,6 @@ function ErrorCard({ message }: { message: string }) {
     );
 }
 
-/* ═══════════════════════════════════════════════════════
-   TOOL OUTPUT ROUTER
-   ═══════════════════════════════════════════════════════ */
 
 function ToolOutput({ toolCall }: { toolCall: ToolCall }) {
     const { tool, output } = toolCall;
@@ -401,9 +374,7 @@ function ToolOutput({ toolCall }: { toolCall: ToolCall }) {
     }
 }
 
-/* ═══════════════════════════════════════════════════════
-   STREAMING INDICATORS
-   ═══════════════════════════════════════════════════════ */
+
 
 function TypingDots() {
     return (
@@ -437,9 +408,6 @@ function ToolActivity({ toolName }: { toolName: string }) {
     );
 }
 
-/* ═══════════════════════════════════════════════════════
-   MARKDOWN RENDERER — minimal, clean
-   ═══════════════════════════════════════════════════════ */
 
 function renderMD(text: string): React.ReactNode {
     const lines = text.split('\n');
@@ -466,9 +434,6 @@ function inlineMD(text: string): React.ReactNode {
     });
 }
 
-/* ═══════════════════════════════════════════════════════
-   MESSAGE BUBBLE
-   ═══════════════════════════════════════════════════════ */
 
 function ChatBubble({ message }: { message: Message }) {
     const isUser = message.role === 'user';

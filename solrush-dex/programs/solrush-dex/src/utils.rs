@@ -23,7 +23,13 @@ pub fn calculate_lp_tokens_for_add_liquidity(
         let product = (amount_a as u128)
             .checked_mul(amount_b as u128)
             .ok_or(error!(CustomError::CalculationOverflow))?;
-        return Ok(isqrt(product) as u64);
+        
+        let initial_liquidity = isqrt(product) as u64;
+        
+        // Subtract MINIMUM_LIQUIDITY (1000) to protect against rounding attacks
+        // Production would send this to address 0 or a dead vault.
+        require!(initial_liquidity > 1000, CustomError::InvalidAmount);
+        return Ok(initial_liquidity - 1000);
     }
 
     require!(reserve_a > 0 && reserve_b > 0, CustomError::InsufficientLiquidity);

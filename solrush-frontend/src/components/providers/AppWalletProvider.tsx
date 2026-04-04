@@ -38,7 +38,7 @@ export const AppWalletProvider: FC<AppWalletProviderProps> = ({ children }) => {
     // Initialize wallets
     const wallets = useMemo(() => {
         if (enableMockWallet) {
-            return [new MockWalletAdapter()];
+            return [new MockWalletAdapter() as any];
         }
         return [new PhantomWalletAdapter(), new SolflareWalletAdapter()];
     }, [enableMockWallet]);

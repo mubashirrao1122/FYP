@@ -54,7 +54,7 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
             <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] p-6 shadow-sm transition-colors duration-200">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-[#475569] dark:text-[#9CA3AF]">Net Worth</span>
-                    <Activity className="h-4 w-4 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                    <Activity className="h-4 w-4 text-[#3B82F6] dark:text-[#2563EB]" />
                 </div>
                 <div className="text-2xl font-bold text-[#0F172A] dark:text-[#E5E7EB] mb-1">
                     {formatCurrency(metrics.totalValue)}
@@ -69,7 +69,7 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
             <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] p-6 shadow-sm transition-colors duration-200">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-[#475569] dark:text-[#9CA3AF]">Total Assets</span>
-                    <Target className="h-4 w-4 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                    <Target className="h-4 w-4 text-[#3B82F6] dark:text-[#2563EB]" />
                 </div>
                 <div className="text-2xl font-bold text-[#0F172A] dark:text-[#E5E7EB] mb-1">
                     {metrics.totalAssets}
@@ -83,7 +83,7 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
             <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] p-6 shadow-sm transition-colors duration-200">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-[#475569] dark:text-[#9CA3AF]">Top Holding</span>
-                    <Award className="h-4 w-4 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                    <Award className="h-4 w-4 text-[#3B82F6] dark:text-[#2563EB]" />
                 </div>
                 <div className="text-2xl font-bold text-[#0F172A] dark:text-[#E5E7EB] mb-1">
                     {metrics.bestAsset}
@@ -97,7 +97,7 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
             <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] p-6 shadow-sm transition-colors duration-200">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-[#475569] dark:text-[#9CA3AF]">Win Rate</span>
-                    <Activity className="h-4 w-4 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                    <Activity className="h-4 w-4 text-[#3B82F6] dark:text-[#2563EB]" />
                 </div>
                 <div className="text-2xl font-bold text-[#0F172A] dark:text-[#E5E7EB] mb-1">
                     {metrics.winRate.toFixed(1)}%

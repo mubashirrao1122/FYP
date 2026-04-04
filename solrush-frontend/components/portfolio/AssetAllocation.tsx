@@ -30,7 +30,7 @@ export function AssetAllocation({ holdings, positions }: AssetAllocationProps) {
             data.push({
                 label: 'LP Positions',
                 value: totalLpValue,
-                color: '#8B5CF6',
+                color: '#3B82F6',
             });
         }
 
@@ -58,7 +58,7 @@ export function AssetAllocation({ holdings, positions }: AssetAllocationProps) {
         return (
             <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] p-6 shadow-sm transition-colors duration-200">
                 <div className="flex items-center gap-2 mb-4">
-                    <PieChart className="h-5 w-5 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                    <PieChart className="h-5 w-5 text-[#3B82F6] dark:text-[#2563EB]" />
                     <h3 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Asset Allocation</h3>
                 </div>
                 <div className="flex items-center justify-center h-64 text-[#475569] dark:text-[#9CA3AF]">
@@ -71,7 +71,7 @@ export function AssetAllocation({ holdings, positions }: AssetAllocationProps) {
     return (
         <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] p-6 shadow-sm transition-colors duration-200">
             <div className="flex items-center gap-2 mb-6">
-                <PieChart className="h-5 w-5 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                <PieChart className="h-5 w-5 text-[#3B82F6] dark:text-[#2563EB]" />
                 <h3 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Asset Allocation</h3>
             </div>
 
@@ -111,9 +111,9 @@ export function AssetAllocation({ holdings, positions }: AssetAllocationProps) {
 
 function getColor(index: number): string {
     const colors = [
-        '#2DD4BF', // Teal
+        '#3B82F6', // Teal
         '#3B82F6', // Blue
-        '#8B5CF6', // Purple
+        '#3B82F6', // Purple
         '#EC4899', // Pink
         '#F59E0B', // Amber
         '#10B981', // Green

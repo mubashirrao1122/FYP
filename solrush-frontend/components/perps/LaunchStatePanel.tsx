@@ -13,7 +13,7 @@ export function LaunchStatePanel({ connected }: LaunchStatePanelProps) {
         becomes immediately available with transparent funding and margin.
       </p>
       <div className="mt-4 flex items-center justify-center gap-4">
-        <button className="h-10 px-4 rounded-lg bg-[#2DD4BF] dark:bg-[#22C1AE] text-[#0F172A] text-sm font-medium hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] transition-colors duration-200">
+        <button className="h-10 px-4 rounded-lg bg-[#3B82F6] dark:bg-[#2563EB] text-white text-sm font-medium hover:bg-[#2563EB] dark:hover:bg-[#1D4ED8] transition-colors duration-200">
           {connected ? 'Initialize Market' : 'Connect Wallet'}
         </button>
         <a className="text-sm text-[#475569] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:hover:text-[#E5E7EB] transition-colors" href="#">

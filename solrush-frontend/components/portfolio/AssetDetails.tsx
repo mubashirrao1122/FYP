@@ -38,7 +38,7 @@ export function AssetDetails({ tokenHoldings, liquidityPositions }: AssetDetails
                     className="w-full flex items-center justify-between p-6 hover:bg-[#F8FAFC] dark:hover:bg-[#111827] transition-colors"
                 >
                     <div className="flex items-center gap-3">
-                        <Coins className="h-5 w-5 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                        <Coins className="h-5 w-5 text-[#3B82F6] dark:text-[#2563EB]" />
                         <h3 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB]">
                             Token Holdings ({tokenHoldings.length})
                         </h3>
@@ -74,7 +74,7 @@ export function AssetDetails({ tokenHoldings, liquidityPositions }: AssetDetails
                                             >
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2DD4BF] to-[#22C1AE] flex items-center justify-center text-white font-semibold text-sm">
+                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#2563EB] flex items-center justify-center text-white font-semibold text-sm">
                                                             {holding.symbol.charAt(0)}
                                                         </div>
                                                         <div>
@@ -110,7 +110,7 @@ export function AssetDetails({ tokenHoldings, liquidityPositions }: AssetDetails
                     className="w-full flex items-center justify-between p-6 hover:bg-[#F8FAFC] dark:hover:bg-[#111827] transition-colors"
                 >
                     <div className="flex items-center gap-3">
-                        <Droplets className="h-5 w-5 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                        <Droplets className="h-5 w-5 text-[#3B82F6] dark:text-[#2563EB]" />
                         <h3 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB]">
                             Liquidity Positions ({liquidityPositions.length})
                         </h3>

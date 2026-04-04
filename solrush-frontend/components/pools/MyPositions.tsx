@@ -25,6 +25,7 @@ interface Pool {
     userShare?: number;
     positionValue?: number;
     volume24h?: number;
+    totalLPSupply?: number;
 }
 
 interface MyPositionsProps {
@@ -152,7 +153,7 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
                 <Button
                     onClick={() => router.push('/pools')}
                     variant="default"
-                    className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
+                    className="bg-[#3B82F6] hover:bg-[#2563EB] text-white"
                 >
                     Browse Pools
                 </Button>
@@ -208,7 +209,7 @@ export const MyPositions: React.FC<MyPositionsProps> = ({ pools, loading, onRefr
                 {userPositions.map((pool) => (
                     <div key={pool.id} className="relative">
                         {/* Position Badge */}
-                        <div className="absolute top-4 right-4 z-10 bg-[#8B5CF6] text-white text-xs font-semibold px-3 py-1 rounded-full">
+                        <div className="absolute top-4 right-4 z-10 bg-[#3B82F6] text-white text-xs font-semibold px-3 py-1 rounded-full">
                             {pool.userShare?.toFixed(2)}% Share
                         </div>
 

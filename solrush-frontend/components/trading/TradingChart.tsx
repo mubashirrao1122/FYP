@@ -254,7 +254,7 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
                             className={cn(
                                 "px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
                                 timeframe === tf
-                                    ? "bg-[#8B5CF6] text-white"
+                                    ? "bg-[#3B82F6] text-white"
                                     : "text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:hover:text-white hover:bg-white dark:hover:bg-[#0B0E14]"
                             )}
                         >
@@ -270,7 +270,7 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
 
                 {isLoading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-[#F1F5F9]/70 dark:bg-[#0B0E14]/70 backdrop-blur-sm z-10">
-                        <Loader2 className="h-8 w-8 text-[#8B5CF6] animate-spin" />
+                        <Loader2 className="h-8 w-8 text-[#3B82F6] animate-spin" />
                     </div>
                 )}
 

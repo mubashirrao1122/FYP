@@ -25,7 +25,7 @@ export function PerformanceChart() {
         <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] p-6 shadow-sm transition-colors duration-200">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                    <TrendingUp className="h-5 w-5 text-[#3B82F6] dark:text-[#2563EB]" />
                     <h3 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Portfolio Performance</h3>
                 </div>
                 <div className="flex items-center gap-2">
@@ -34,7 +34,7 @@ export function PerformanceChart() {
                             key={tf}
                             onClick={() => setTimeframe(tf)}
                             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${timeframe === tf
-                                    ? 'bg-[#2DD4BF]/10 dark:bg-[#22C1AE]/10 text-[#2DD4BF] dark:text-[#22C1AE] border border-[#2DD4BF] dark:border-[#22C1AE]'
+                                    ? 'bg-[#3B82F6]/10 dark:bg-[#2563EB]/10 text-[#3B82F6] dark:text-[#2563EB] border border-[#3B82F6] dark:border-[#2563EB]'
                                     : 'text-[#475569] dark:text-[#9CA3AF] hover:bg-[#F1F5F9] dark:hover:bg-[#1F2937] border border-transparent'
                                 }`}
                         >
@@ -79,8 +79,8 @@ export function PerformanceChart() {
                     {/* Gradient fill */}
                     <defs>
                         <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#2DD4BF" />
-                            <stop offset="100%" stopColor="#22C1AE" />
+                            <stop offset="0%" stopColor="#3B82F6" />
+                            <stop offset="100%" stopColor="#2563EB" />
                         </linearGradient>
                     </defs>
 
@@ -94,7 +94,7 @@ export function PerformanceChart() {
                                 cx={x}
                                 cy={y}
                                 r="3"
-                                fill="#2DD4BF"
+                                fill="#3B82F6"
                                 className="drop-shadow-sm"
                             />
                         );

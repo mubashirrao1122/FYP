@@ -11,7 +11,7 @@ import type { MarketView, PositionView } from '@/lib/perps/types';
 import { usePythPrice } from '@/lib/perps/usePythPrice';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { usePerpsTrading } from '@/lib/hooks/usePerpsTrading';
-import { Wallet, ChevronDown, Monitor, Clock, List } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { OrderLevel } from '@/components/perps/OrderBook';
 import type { Trade } from '@/components/perps/RecentTrades';
@@ -57,12 +57,12 @@ export function PerpsView({
     }
   }, [onChainClose, closePercents]);
 
-  // Mock Data Generation (to be replaced with real data hooks later)
+  // Mock Data Generation
   const currentPrice = usePythPrice(selectedMarketId ? markets.find(m => m.id === selectedMarketId)?.oraclePriceId : null).price?.price || 0;
 
   const { bids: mockBids, asks: mockAsks } = useMemo(() => {
     const depth = 12;
-    const price = currentPrice || 100; // Fallback to 100 if 0
+    const price = currentPrice || 100;
     const askData: OrderLevel[] = [];
     const bidData: OrderLevel[] = [];
     let currentTotal = 0;
@@ -129,13 +129,13 @@ export function PerpsView({
     value === null ? '—' : `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#0B1220] text-[#E5E7EB]">
+    <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
       <div className="shrink-0">
         <Navbar />
       </div>
 
       {/* Stats Bar */}
-      <div className="h-14 border-b border-[#1F2937] flex items-center px-4 bg-[#0F172A] shrink-0 z-20 gap-6">
+      <div className="h-14 border-b border-border/30 flex items-center px-4 glass-card shrink-0 z-20 gap-6">
         <div className="flex items-center gap-2 mr-2">
           <MarketSelector
             markets={markets}
@@ -144,32 +144,32 @@ export function PerpsView({
           />
         </div>
 
-        <div className="h-8 w-px bg-[#1F2937]" />
+        <div className="h-8 w-px bg-border/30" />
 
         <div className="flex items-center gap-6 text-xs overflow-x-auto no-scrollbar mask-gradient-right flex-1">
           <div className="flex flex-col">
-            <span className="text-[#9CA3AF] text-[10px] uppercase font-medium">Mark Price</span>
-            <span className={`font-mono text-sm font-medium ${liveMarket?.change24h && liveMarket.change24h >= 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+            <span className="text-foreground/40 text-[10px] uppercase font-medium">Mark Price</span>
+            <span className={`font-data text-sm font-medium ${liveMarket?.change24h && liveMarket.change24h >= 0 ? 'text-neon-green' : 'text-destructive'}`}>
               {liveMarket?.markPrice ? formatCurrency(liveMarket.markPrice) : '-'}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[#9CA3AF] text-[10px] uppercase font-medium">24h Change</span>
-            <span className={`font-mono text-sm font-medium ${liveMarket?.change24h && liveMarket.change24h >= 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+            <span className="text-foreground/40 text-[10px] uppercase font-medium">24h Change</span>
+            <span className={`font-data text-sm font-medium ${liveMarket?.change24h && liveMarket.change24h >= 0 ? 'text-neon-green' : 'text-destructive'}`}>
               {liveMarket?.change24h ? formatPercent(liveMarket.change24h) : '-'}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[#9CA3AF] text-[10px] uppercase font-medium">24h Volume</span>
-            <span className="text-[#E5E7EB] font-mono text-sm">{liveMarket?.volume24h ? formatCurrency(liveMarket.volume24h) : '-'}</span>
+            <span className="text-foreground/40 text-[10px] uppercase font-medium">24h Volume</span>
+            <span className="text-foreground font-data text-sm">{liveMarket?.volume24h ? formatCurrency(liveMarket.volume24h) : '-'}</span>
           </div>
           <div className="flex flex-col hidden sm:flex">
-            <span className="text-[#9CA3AF] text-[10px] uppercase font-medium">Open Interest</span>
-            <span className="text-[#E5E7EB] font-mono text-sm">{liveMarket?.openInterest ? formatCurrency(liveMarket.openInterest) : '-'}</span>
+            <span className="text-foreground/40 text-[10px] uppercase font-medium">Open Interest</span>
+            <span className="text-foreground font-data text-sm">{liveMarket?.openInterest ? formatCurrency(liveMarket.openInterest) : '-'}</span>
           </div>
           <div className="flex flex-col hidden lg:flex">
-            <span className="text-[#9CA3AF] text-[10px] uppercase font-medium">Funding / 1h</span>
-            <span className="text-[#F59E0B] font-mono text-sm">0.0012%</span>
+            <span className="text-foreground/40 text-[10px] uppercase font-medium">Funding / 1h</span>
+            <span className="text-neon-amber font-data text-sm">0.0012%</span>
           </div>
         </div>
       </div>
@@ -177,7 +177,7 @@ export function PerpsView({
       {/* Main Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Column: Chart & Positions */}
-        <div className="flex-1 flex flex-col min-w-0 border-r border-[#1F2937]">
+        <div className="flex-1 flex flex-col min-w-0 border-r border-border/20">
           {/* Chart Area */}
           <div className="flex-1 relative min-h-[400px]">
             <PerpsChart
@@ -188,37 +188,37 @@ export function PerpsView({
           </div>
 
           {/* Bottom Tabs: Positions/Orders */}
-          <div className="h-[280px] border-t border-[#1F2937] bg-[#0F172A] flex flex-col shrink-0">
+          <div className="h-[280px] border-t border-border/20 glass-card flex flex-col shrink-0">
             <Tabs defaultValue="positions" className="flex flex-col h-full">
-              <div className="px-4 border-b border-[#1F2937] flex items-center justify-between bg-[#111827]">
+              <div className="px-4 border-b border-border/20 flex items-center justify-between bg-card/80">
                 <TabsList className="h-9 bg-transparent p-0 gap-6">
-                  <TabsTrigger value="positions" className="h-full px-0 data-[state=active]:text-[#2DD4BF] data-[state=active]:border-b-2 data-[state=active]:border-[#2DD4BF] rounded-none bg-transparent">
+                  <TabsTrigger value="positions" className="h-full px-0 data-[state=active]:text-neon-cyan data-[state=active]:border-b-2 data-[state=active]:border-neon-cyan data-[state=active]:shadow-[0_2px_8px_rgba(6,182,212,0.2)] rounded-none bg-transparent text-foreground/50">
                     Positions {positions.length > 0 && `(${positions.length})`}
                   </TabsTrigger>
-                  <TabsTrigger value="orders" className="h-full px-0 data-[state=active]:text-[#2DD4BF] data-[state=active]:border-b-2 data-[state=active]:border-[#2DD4BF] rounded-none bg-transparent">
+                  <TabsTrigger value="orders" className="h-full px-0 data-[state=active]:text-neon-cyan data-[state=active]:border-b-2 data-[state=active]:border-neon-cyan data-[state=active]:shadow-[0_2px_8px_rgba(6,182,212,0.2)] rounded-none bg-transparent text-foreground/50">
                     Orders (0)
                   </TabsTrigger>
-                  <TabsTrigger value="history" className="h-full px-0 data-[state=active]:text-[#2DD4BF] data-[state=active]:border-b-2 data-[state=active]:border-[#2DD4BF] rounded-none bg-transparent">
+                  <TabsTrigger value="history" className="h-full px-0 data-[state=active]:text-neon-cyan data-[state=active]:border-b-2 data-[state=active]:border-neon-cyan data-[state=active]:shadow-[0_2px_8px_rgba(6,182,212,0.2)] rounded-none bg-transparent text-foreground/50">
                     History
                   </TabsTrigger>
-                  <TabsTrigger value="pnl" className="h-full px-0 data-[state=active]:text-[#2DD4BF] data-[state=active]:border-b-2 data-[state=active]:border-[#2DD4BF] rounded-none bg-transparent">
+                  <TabsTrigger value="pnl" className="h-full px-0 data-[state=active]:text-neon-cyan data-[state=active]:border-b-2 data-[state=active]:border-neon-cyan data-[state=active]:shadow-[0_2px_8px_rgba(6,182,212,0.2)] rounded-none bg-transparent text-foreground/50">
                     P&L Analysis
                   </TabsTrigger>
                 </TabsList>
               </div>
 
-              <div className="flex-1 overflow-auto bg-[#0B1220] no-scrollbar">
+              <div className="flex-1 overflow-auto bg-background/50 no-scrollbar">
                 <TabsContent value="positions" className="h-full mt-0 p-0">
                   {positions.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-[#64748B] gap-2">
-                      <div className="p-3 rounded-full bg-[#1F2937]/50">
+                    <div className="h-full flex flex-col items-center justify-center text-foreground/30 gap-2">
+                      <div className="p-3 rounded-full bg-muted/30">
                         <Wallet className="w-6 h-6 opacity-50" />
                       </div>
                       <p className="text-sm">No open positions</p>
                     </div>
                   ) : (
                     <table className="w-full text-xs text-left">
-                      <thead className="text-[#6B7280] uppercase bg-[#111827] sticky top-0 z-10">
+                      <thead className="text-foreground/40 uppercase bg-card/80 sticky top-0 z-10">
                         <tr>
                           <th className="px-4 py-2 font-medium">Market</th>
                           <th className="px-4 py-2 font-medium">Side</th>
@@ -231,19 +231,19 @@ export function PerpsView({
                           <th className="px-4 py-2 font-medium text-right">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#1F2937]">
+                      <tbody className="divide-y divide-border/10">
                         {positions.map((position) => (
-                          <tr key={position.id} className="hover:bg-[#1F2937]/50 transition-colors">
-                            <td className="px-4 py-2 font-medium text-[#E5E7EB]">{position.marketId}</td>
-                            <td className={`px-4 py-2 font-medium ${position.side === 'long' ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                          <tr key={position.id} className="hover:bg-muted/20 hover:shadow-[inset_0_0_30px_rgba(6,182,212,0.03)] transition-all duration-200">
+                            <td className="px-4 py-2 font-medium text-foreground">{position.marketId}</td>
+                            <td className={`px-4 py-2 font-medium ${position.side === 'long' ? 'text-neon-green' : 'text-destructive'}`}>
                               {position.side.toUpperCase()} {position.leverage}x
                             </td>
-                            <td className="px-4 py-2 text-right text-[#E5E7EB]">{formatCurrency(position.sizeUsd)}</td>
-                            <td className="px-4 py-2 text-right text-[#E5E7EB]">{formatCurrency(position.collateralUsd)}</td>
-                            <td className="px-4 py-2 text-right text-[#E5E7EB]">{formatCurrency(position.entryPrice)}</td>
-                            <td className="px-4 py-2 text-right text-[#E5E7EB]">{formatCurrency(liveMarket?.markPrice || 0)}</td>
-                            <td className="px-4 py-2 text-right text-[#F59E0B]">{formatCurrency(position.liquidationPrice)}</td>
-                            <td className={`px-4 py-2 text-right font-medium ${position.unrealizedPnl >= 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                            <td className="px-4 py-2 text-right text-foreground font-data">{formatCurrency(position.sizeUsd)}</td>
+                            <td className="px-4 py-2 text-right text-foreground font-data">{formatCurrency(position.collateralUsd)}</td>
+                            <td className="px-4 py-2 text-right text-foreground font-data">{formatCurrency(position.entryPrice)}</td>
+                            <td className="px-4 py-2 text-right text-foreground font-data">{formatCurrency(liveMarket?.markPrice || 0)}</td>
+                            <td className="px-4 py-2 text-right text-neon-amber font-data">{formatCurrency(position.liquidationPrice)}</td>
+                            <td className={`px-4 py-2 text-right font-medium font-data ${position.unrealizedPnl >= 0 ? 'text-neon-green' : 'text-destructive'}`}>
                               {position.unrealizedPnl >= 0 ? '+' : ''}{formatCurrency(position.unrealizedPnl)}
                             </td>
                             <td className="px-4 py-2 text-right">
@@ -254,8 +254,8 @@ export function PerpsView({
                                       key={pct}
                                       className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors ${
                                         getClosePercent(position.id) === pct
-                                          ? 'bg-[#2DD4BF]/20 border-[#2DD4BF] text-[#2DD4BF]'
-                                          : 'bg-[#1F2937] border-[#374151] text-[#9CA3AF] hover:border-[#4B5563]'
+                                          ? 'bg-neon-blue/20 border-neon-blue text-neon-blue'
+                                          : 'bg-muted/30 border-border/30 text-foreground/50 hover:border-foreground/30'
                                       }`}
                                       onClick={() => setClosePercent(position.id, pct)}
                                       disabled={closingPositionId === position.id}
@@ -265,7 +265,7 @@ export function PerpsView({
                                   ))}
                                 </div>
                                 <button
-                                  className="text-[10px] bg-[#1F2937] hover:bg-[#374151] text-[#E5E7EB] px-2 py-1 rounded border border-[#374151] disabled:opacity-50"
+                                  className="text-[10px] bg-muted/30 hover:bg-muted/50 text-foreground px-2 py-1 rounded border border-border/30 disabled:opacity-50 transition-colors"
                                   onClick={() => handleClosePosition(position)}
                                   disabled={closingPositionId === position.id}
                                 >
@@ -282,18 +282,18 @@ export function PerpsView({
                   )}
                 </TabsContent>
                 {/* Other tabs placeholders */}
-                <TabsContent value="orders" className="h-full mt-0 flex items-center justify-center text-[#64748B]">No open orders</TabsContent>
-                <TabsContent value="history" className="h-full mt-0 flex items-center justify-center text-[#64748B]">No trade history</TabsContent>
-                <TabsContent value="pnl" className="h-full mt-0 flex items-center justify-center text-[#64748B]">No P&L data available</TabsContent>
+                <TabsContent value="orders" className="h-full mt-0 flex items-center justify-center text-foreground/30">No open orders</TabsContent>
+                <TabsContent value="history" className="h-full mt-0 flex items-center justify-center text-foreground/30">No trade history</TabsContent>
+                <TabsContent value="pnl" className="h-full mt-0 flex items-center justify-center text-foreground/30">No P&L data available</TabsContent>
               </div>
             </Tabs>
           </div>
         </div>
 
-        {/* Middle Column: Order Book & Trades (Fixed Width) */}
-        <div className="w-[280px] flex flex-col border-r border-[#1F2937] shrink-0 hidden md:flex bg-[#0B1220]">
+        {/* Middle Column: Order Book & Trades */}
+        <div className="w-[280px] flex flex-col border-r border-border/20 shrink-0 hidden md:flex bg-background/50">
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 min-h-0 border-b border-[#1F2937]">
+            <div className="flex-1 min-h-0 border-b border-border/20">
               <OrderBook
                 currentPrice={liveMarket?.markPrice || 0}
                 bids={mockBids}
@@ -309,8 +309,8 @@ export function PerpsView({
           </div>
         </div>
 
-        {/* Right Column: Trade Form (Fixed Width) */}
-        <div className="w-[320px] bg-[#0F172A] shrink-0 flex flex-col border-l border-[#1F2937] z-10 overflow-y-auto no-scrollbar">
+        {/* Right Column: Trade Form */}
+        <div className="w-[320px] bg-card/50 shrink-0 flex flex-col border-l border-border/20 z-10 overflow-y-auto no-scrollbar">
           <PerpsTradePanel
             market={liveMarket}
             disabled={loading || markets.length === 0 || Boolean(warning) || !hasMarkets}

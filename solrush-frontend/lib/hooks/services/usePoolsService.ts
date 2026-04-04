@@ -54,17 +54,31 @@ export const usePoolsService = () => {
             console.log('[usePoolsService] fetchPools called');
             console.log('[usePoolsService] connection:', connection);
             console.log('[usePoolsService] connection.rpcEndpoint:', connection?.rpcEndpoint);
-            
+
             if (!connection) {
                 console.error('[usePoolsService] No connection available');
                 setError('No connection available');
                 setLoading(false);
                 return;
             }
-            
+
             console.log('Fetching pools from blockchain...');
             console.log('Connection endpoint:', connection.rpcEndpoint);
-            
+
+            // Pre-flight check: verify the RPC endpoint is reachable
+            try {
+                await connection.getSlot();
+            } catch (rpcErr) {
+                console.error('RPC endpoint unreachable:', connection.rpcEndpoint, rpcErr);
+                setError(
+                    `Cannot connect to Solana RPC at ${connection.rpcEndpoint}. ` +
+                    'Please ensure the Solana validator is running (run: solana-test-validator) ' +
+                    'or update NEXT_PUBLIC_RPC_URL in .env.local to a valid endpoint.'
+                );
+                setPools([]);
+                return;
+            }
+
             const program = getReadOnlyProgram(connection);
 
             if (!program) {
@@ -75,10 +89,10 @@ export const usePoolsService = () => {
             }
 
             console.log('Program loaded, fetching liquidityPool accounts...');
-            
+
             // Fetch all LiquidityPool accounts from the blockchain
             const poolAccounts = await (program.account as any).liquidityPool.all();
-            
+
             console.log('Found', poolAccounts.length, 'pools on blockchain');
 
             if (poolAccounts.length === 0) {
@@ -97,14 +111,14 @@ export const usePoolsService = () => {
                     // Get token symbols from mints
                     const tokenAMint = (poolData.tokenAMint as PublicKey).toBase58();
                     const tokenBMint = (poolData.tokenBMint as PublicKey).toBase58();
-                    
+
                     console.log('Processing pool:', poolAddress);
                     console.log('  Token A Mint:', tokenAMint);
                     console.log('  Token B Mint:', tokenBMint);
-                    
+
                     const tokenASymbol = getTokenSymbol(tokenAMint) || 'TOKEN_A';
                     const tokenBSymbol = getTokenSymbol(tokenBMint) || 'TOKEN_B';
-                    
+
                     console.log('  Token A Symbol:', tokenASymbol);
                     console.log('  Token B Symbol:', tokenBSymbol);
 
@@ -183,7 +197,15 @@ export const usePoolsService = () => {
             setPools(transformedPools);
         } catch (err: any) {
             console.error('Failed to fetch pools:', err);
-            setError(err.message || 'Failed to fetch pools from blockchain');
+            const msg = err?.message || '';
+            if (msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('ECONNREFUSED') || msg.includes('NetworkError')) {
+                setError(
+                    `Cannot connect to Solana RPC at ${connection?.rpcEndpoint || 'unknown'}. ` +
+                    'Please start the local validator (solana-test-validator) or update NEXT_PUBLIC_RPC_URL.'
+                );
+            } else {
+                setError(msg || 'Failed to fetch pools from blockchain');
+            }
             setPools([]);
         } finally {
             setLoading(false);

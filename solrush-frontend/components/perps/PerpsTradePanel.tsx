@@ -146,9 +146,7 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
     notional && market && market.fundingRate !== null ? (notional * market.fundingRate) / 100 : null;
   const availableBalance = publicKey ? onChainCollateral : null;
 
-  // True if user needs more collateral for the current trade size
   const needsDeposit = publicKey && estimatedMargin !== null && !hasEnoughCollateral(estimatedMargin);
-  // Also check if ANY collateral is posted at all
   const hasNoCollateral = publicKey && onChainCollateral === 0;
 
   const isFormValid = Boolean(market && hasSize && hasLimitPrice);
@@ -190,7 +188,6 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
 
   const handleSubmit = () => {
     if (!publicKey) return;
-    // If user needs to deposit, open the deposit modal instead
     if (needsDeposit) {
       setShowDepositModal(true);
       return;
@@ -225,7 +222,6 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
     }
   };
 
-  // ── Deposit modal handlers ─────────────────────────────────────────
   const handleDeposit = async (amount: number) => {
     if (!market) return null;
     return depositCollateral(amount, market.id);
@@ -233,29 +229,38 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
 
   const handleDepositDone = () => {
     setShowDepositModal(false);
-    // After deposit success, the usePerpsCollateral hook already refreshed
-    // balances so the CTA will automatically update.
   };
 
   return (
-    <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#0F172A] p-6 shadow-sm transition-colors duration-200">
+    <div className="glass-card rounded-2xl p-6 transition-colors duration-200">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Perps</h2>
-          <p className="text-sm text-[#475569] dark:text-[#9CA3AF]">
+          <h2 className="text-lg font-semibold text-foreground">Perps</h2>
+          <p className="text-sm text-foreground/50">
             Controlled execution with transparent funding and margin.
           </p>
         </div>
-        <div className="text-xs text-[#475569] dark:text-[#9CA3AF]">
+        <div className="text-xs text-foreground/50 font-data">
           {market ? `${market.baseSymbol}/${market.quoteSymbol}` : 'No market selected'}
         </div>
       </div>
 
+      {/* Long/Short + Market/Limit tabs */}
       <div className="grid grid-cols-2 gap-3">
         <Tabs value={side} onValueChange={(value) => setSide(value as 'long' | 'short')} className="w-full">
           <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="long">Long</TabsTrigger>
-            <TabsTrigger value="short">Short</TabsTrigger>
+            <TabsTrigger
+              value="long"
+              className="data-[state=active]:bg-neon-green/15 data-[state=active]:text-neon-green data-[state=active]:border-neon-green/30 data-[state=active]:shadow-[0_0_12px_rgba(34,197,94,0.15)]"
+            >
+              Long
+            </TabsTrigger>
+            <TabsTrigger
+              value="short"
+              className="data-[state=active]:bg-destructive/15 data-[state=active]:text-destructive data-[state=active]:border-destructive/30 data-[state=active]:shadow-[0_0_12px_rgba(239,68,68,0.15)]"
+            >
+              Short
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         <Tabs
@@ -273,20 +278,22 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
       <div className="mt-4 space-y-4">
         {error && (
           <div
-            className="rounded-xl border border-[#E2E8F0] dark:border-white/10 bg-[#FEF2F2] dark:bg-[#1F1822] px-3 py-2 text-xs text-[#B91C1C] dark:text-[#FCA5A5]"
+            className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive"
             data-testid="perps-inline-error"
           >
             {error}
           </div>
         )}
-        <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] p-4 transition-colors duration-200 space-y-3">
+
+        {/* Collateral section */}
+        <div className="rounded-2xl bg-muted/20 border border-border/20 p-4 transition-colors duration-200 space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Collateral</label>
-            <span className="text-xs text-[#475569] dark:text-[#9CA3AF]">
+            <label className="text-sm font-semibold text-foreground">Collateral</label>
+            <span className="text-xs text-foreground/50 font-data">
               {publicKey ? (
                 <>
                   Margin: {collateralLoading ? '…' : `$${onChainCollateral.toFixed(2)}`}
-                  <span className="mx-1 text-[#6B7280]">|</span>
+                  <span className="mx-1 text-foreground/30">|</span>
                   Wallet: {collateralLoading ? '…' : `$${walletBalance.toFixed(2)}`}
                 </>
               ) : 'Connect wallet'}
@@ -295,18 +302,18 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
           {publicKey && (
             <button
               type="button"
-              className="text-xs text-[#2DD4BF] hover:underline text-left"
+              className="text-xs text-neon-cyan hover:underline text-left"
               onClick={() => setShowDepositModal(true)}
             >
               + Deposit USDC to margin
             </button>
           )}
-          <div className="rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] px-3 py-2">
+          <div className="rounded-xl border border-border/20 bg-card/50 px-3 py-2">
             <select
               value={collateral}
               onChange={(e) => setCollateral(e.target.value)}
               disabled={disabled}
-              className="w-full bg-transparent text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB] outline-none"
+              className="w-full bg-transparent text-sm font-semibold text-foreground outline-none"
             >
               {Array.from(new Set([market?.quoteSymbol ?? 'USDC', 'USDC', 'USDT'])).map((symbol) => (
                 <option key={symbol} value={symbol}>
@@ -316,7 +323,7 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
             </select>
           </div>
           {needsDeposit && isFormValid && (
-            <div className="rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/10 px-3 py-2 text-xs text-[#F59E0B]">
+            <div className="rounded-lg border border-neon-amber/30 bg-neon-amber/10 px-3 py-2 text-xs text-neon-amber">
               Insufficient collateral — you need ${estimatedMargin?.toFixed(2)} but have ${onChainCollateral.toFixed(2)}.
               <button
                 type="button"
@@ -329,10 +336,11 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
           )}
         </div>
 
-        <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] p-4 transition-colors duration-200">
+        {/* Size input */}
+        <div className="rounded-2xl bg-muted/20 border border-border/20 p-4 neon-focus transition-colors duration-200">
           <div className="flex justify-between mb-2">
-            <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Size</label>
-            <span className="text-xs text-[#475569] dark:text-[#9CA3AF]">
+            <label className="text-sm font-semibold text-foreground">Size</label>
+            <span className="text-xs text-foreground/50 font-data">
               {market ? `${market.baseSymbol} size` : 'Select market'}
             </span>
           </div>
@@ -342,7 +350,7 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
             value={size}
             onChange={(e) => setSize(e.target.value)}
             disabled={disabled || !market}
-            className="bg-transparent border-none text-3xl font-semibold h-auto focus:ring-0 px-0 placeholder:text-[#94A3B8] dark:placeholder:text-[#6B7280]"
+            className="bg-transparent border-none text-3xl font-semibold font-data h-auto focus:ring-0 px-0 placeholder:text-foreground/25"
           />
           <div className="mt-3 grid grid-cols-4 gap-2">
             {[25, 50, 75, 100].map((pct) => (
@@ -350,36 +358,38 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
                 key={pct}
                 type="button"
                 disabled={!availableBalance || disabled}
-                className="text-[11px] font-semibold text-[#475569] dark:text-[#9CA3AF] border border-[#E2E8F0] dark:border-[#1F2937] rounded-lg py-1.5 transition-colors hover:border-[#2DD4BF] dark:hover:border-[#22C1AE] disabled:opacity-50 disabled:hover:border-[#E2E8F0] dark:disabled:hover:border-[#1F2937]"
+                className="text-[11px] font-semibold text-foreground/50 border border-border/20 rounded-lg py-1.5 transition-all hover:border-neon-cyan/30 hover:text-neon-cyan disabled:opacity-50 disabled:hover:border-border/20 disabled:hover:text-foreground/50"
               >
                 {pct}%
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-[#475569] dark:text-[#9CA3AF]">Estimated · Slippage protected</p>
+          <p className="mt-2 text-xs text-foreground/50">Estimated · Slippage protected</p>
         </div>
 
+        {/* Limit price */}
         {orderType === 'limit' && (
-          <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] p-4 transition-colors duration-200">
-            <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Limit price</label>
+          <div className="rounded-2xl bg-muted/20 border border-border/20 p-4 neon-focus transition-colors duration-200">
+            <label className="text-sm font-semibold text-foreground">Limit price</label>
             <Input
               type="number"
               placeholder="0.0"
               value={limitPrice}
               onChange={(e) => setLimitPrice(e.target.value)}
               disabled={disabled || !market}
-              className="mt-2 bg-transparent border-none text-2xl font-semibold h-auto focus:ring-0 px-0 placeholder:text-[#94A3B8] dark:placeholder:text-[#6B7280]"
+              className="mt-2 bg-transparent border-none text-2xl font-semibold font-data h-auto focus:ring-0 px-0 placeholder:text-foreground/25"
             />
-            <p className="mt-2 text-xs text-[#475569] dark:text-[#9CA3AF]">
+            <p className="mt-2 text-xs text-foreground/50">
               Orders execute only at your specified price.
             </p>
           </div>
         )}
 
-        <div className="rounded-2xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] p-4 transition-colors duration-200 space-y-3">
+        {/* Leverage slider */}
+        <div className="rounded-2xl bg-muted/20 border border-border/20 p-4 transition-colors duration-200 space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Leverage</label>
-            <span className="text-xs text-[#475569] dark:text-[#9CA3AF]">{leverage}x</span>
+            <label className="text-sm font-semibold text-foreground">Leverage</label>
+            <span className="text-xs text-neon-cyan font-data font-semibold">{leverage}x</span>
           </div>
           <input
             type="range"
@@ -389,7 +399,7 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
             value={leverage}
             onChange={(e) => setLeverage(Number(e.target.value))}
             disabled={disabled || !market}
-            className="w-full accent-[#2DD4BF] dark:accent-[#22C1AE]"
+            className="neon-slider"
           />
           <div className="grid grid-cols-4 gap-2">
             {[2, 5, 10, 20].map((preset) => (
@@ -398,9 +408,9 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
                 type="button"
                 onClick={() => setLeverage(preset)}
                 disabled={disabled || !market}
-                className={`text-[11px] font-semibold rounded-lg py-1.5 border transition-colors ${leverage === preset
-                  ? 'border-[#2DD4BF] dark:border-[#22C1AE] text-[#0F172A] dark:text-[#E5E7EB] bg-[#2DD4BF]/10 dark:bg-[#22C1AE]/10'
-                  : 'border-[#E2E8F0] dark:border-[#1F2937] text-[#475569] dark:text-[#9CA3AF]'
+                className={`text-[11px] font-semibold rounded-lg py-1.5 border transition-all ${leverage === preset
+                  ? 'border-neon-cyan/40 text-neon-cyan bg-neon-cyan/10 shadow-[0_0_8px_rgba(6,182,212,0.15)]'
+                  : 'border-border/20 text-foreground/50 hover:border-foreground/30'
                   }`}
               >
                 {preset}x
@@ -409,50 +419,41 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
           </div>
         </div>
 
-        <div className="rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] p-3 text-sm text-[#475569] dark:text-[#9CA3AF] space-y-2">
+        {/* Trade info panel */}
+        <div className="rounded-xl glass-card p-3 text-sm text-foreground/50 space-y-2">
           <div className="flex items-center justify-between">
             <span>Entry price</span>
-            <span
-              className="text-[#0F172A] dark:text-[#E5E7EB] tabular-nums"
-              title={tooltipFor(market?.markPrice ?? null)}
-            >
+            <span className="text-foreground font-data" title={tooltipFor(market?.markPrice ?? null)}>
               {market ? formatPrice(market.markPrice) : '—'}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span>Liquidation</span>
-            <span
-              className="text-[#0F172A] dark:text-[#E5E7EB] tabular-nums"
-              title={tooltipFor(liquidation)}
-            >
+            <span className="text-foreground font-data" title={tooltipFor(liquidation)}>
               {formatPrice(liquidation)}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span>Fees</span>
-            <span className="text-[#0F172A] dark:text-[#E5E7EB] tabular-nums" title="Available after first trade">
-              —
-            </span>
+            <span className="text-foreground font-data" title="Available after first trade">—</span>
           </div>
           <div className="flex items-center justify-between">
             <span>Funding (est.)</span>
-            <span
-              className="text-[#0F172A] dark:text-[#E5E7EB] tabular-nums"
-              title={tooltipFor(fundingEstimate)}
-            >
+            <span className="text-foreground font-data" title={tooltipFor(fundingEstimate)}>
               {fundingEstimate === null ? '—' : formatPrice(fundingEstimate)}
             </span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] p-3 text-sm text-[#475569] dark:text-[#9CA3AF]">
+        {/* TP/SL */}
+        <div className="rounded-xl bg-muted/20 border border-border/20 p-3 text-sm text-foreground/50">
           <button
             type="button"
             onClick={() => setShowTPSL((prev) => !prev)}
-            className="w-full flex items-center justify-between text-sm font-medium text-[#0F172A] dark:text-[#E5E7EB]"
+            className="w-full flex items-center justify-between text-sm font-medium text-foreground"
           >
             {showTPSL ? 'Hide take profit / stop loss' : 'Add take profit / stop loss'}
-            <span className="text-xs text-[#475569] dark:text-[#9CA3AF]">{showTPSL ? '−' : '+'}</span>
+            <span className="text-xs text-foreground/50">{showTPSL ? '−' : '+'}</span>
           </button>
           {showTPSL && (
             <div className="mt-3 space-y-3">
@@ -461,164 +462,162 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
                 placeholder="Take profit price"
                 value={takeProfit}
                 onChange={(e) => setTakeProfit(e.target.value)}
-                className="bg-white dark:bg-[#111827]"
+                className="bg-card/50 border-border/20 neon-focus"
               />
               <Input
                 type="number"
                 placeholder="Stop loss price"
                 value={stopLoss}
                 onChange={(e) => setStopLoss(e.target.value)}
-                className="bg-white dark:bg-[#111827]"
+                className="bg-card/50 border-border/20 neon-focus"
               />
             </div>
           )}
         </div>
 
-        <div className="rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] p-3 text-sm text-[#475569] dark:text-[#9CA3AF] space-y-2">
+        {/* Market info */}
+        <div className="rounded-xl glass-card p-3 text-sm text-foreground/50 space-y-2">
           <div className="flex items-center justify-between">
             <span>Mark price</span>
-            <span
-              className="text-[#0F172A] dark:text-[#E5E7EB] tabular-nums"
-              title={market?.markPrice === null ? 'Available after first trade' : undefined}
-            >
+            <span className="text-foreground font-data" title={market?.markPrice === null ? 'Available after first trade' : undefined}>
               {market ? formatPrice(market.markPrice) : '—'}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span>Funding rate</span>
-            <span
-              className="text-[#0F172A] dark:text-[#E5E7EB] tabular-nums"
-              title={market?.fundingRate === null ? 'Available after first trade' : undefined}
-            >
+            <span className="text-foreground font-data" title={market?.fundingRate === null ? 'Available after first trade' : undefined}>
               {market ? formatPercent(market.fundingRate) : '—'}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span>Open interest</span>
-            <span
-              className="text-[#0F172A] dark:text-[#E5E7EB] tabular-nums"
-              title={market?.openInterest === null ? 'Available after first trade' : undefined}
-            >
+            <span className="text-foreground font-data" title={market?.openInterest === null ? 'Available after first trade' : undefined}>
               {market ? formatNumber(market.openInterest) : '—'}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span>Notional</span>
-            <span
-              className="text-[#0F172A] dark:text-[#E5E7EB] tabular-nums"
-              title={tooltipFor(notional)}
-            >
+            <span className="text-foreground font-data" title={tooltipFor(notional)}>
               {notional === null ? '—' : formatPrice(notional)}
             </span>
           </div>
         </div>
 
+        {/* Review panel */}
         {showReview && (
-          <div className="rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-[#F8FAFC] dark:bg-[#0B1220] p-4 text-sm text-[#475569] dark:text-[#9CA3AF] space-y-2">
-            <div className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB]">Review order</div>
+          <div className="rounded-xl bg-muted/20 border border-border/20 p-4 text-sm text-foreground/50 space-y-2">
+            <div className="text-sm font-semibold text-foreground">Review order</div>
             <div className="flex items-center justify-between">
               <span>Market</span>
-              <span className="text-[#0F172A] dark:text-[#E5E7EB]">{market?.symbol ?? '—'}</span>
+              <span className="text-foreground font-data">{market?.symbol ?? '—'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Side</span>
-              <span className="text-[#0F172A] dark:text-[#E5E7EB] uppercase">{side}</span>
+              <span className={`font-data uppercase ${side === 'long' ? 'text-neon-green' : 'text-destructive'}`}>{side}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Size</span>
-              <span className="text-[#0F172A] dark:text-[#E5E7EB]">{numericSize ? `${numericSize}` : '—'}</span>
+              <span className="text-foreground font-data">{numericSize ? `${numericSize}` : '—'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Leverage</span>
-              <span className="text-[#0F172A] dark:text-[#E5E7EB]">{leverage}x</span>
+              <span className="text-foreground font-data">{leverage}x</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Est. entry</span>
-              <span className="text-[#0F172A] dark:text-[#E5E7EB]">{formatPrice(market?.markPrice ?? null)}</span>
+              <span className="text-foreground font-data">{formatPrice(market?.markPrice ?? null)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Est. liq</span>
-              <span className="text-[#0F172A] dark:text-[#E5E7EB]">{formatPrice(liquidation)}</span>
+              <span className="text-foreground font-data">{formatPrice(liquidation)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Fees</span>
-              <span className="text-[#0F172A] dark:text-[#E5E7EB]">—</span>
+              <span className="text-foreground font-data">—</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Funding</span>
-              <span className="text-[#0F172A] dark:text-[#E5E7EB]">
+              <span className="text-foreground font-data">
                 {fundingEstimate === null ? '—' : formatPrice(fundingEstimate)}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span>Slippage</span>
-              <span className="text-[#0F172A] dark:text-[#E5E7EB]">—</span>
+              <span className="text-foreground font-data">—</span>
             </div>
             <div className="flex items-center gap-3 pt-2">
               <button
-                className="flex-1 h-10 rounded-lg border border-[#E2E8F0] dark:border-[#1F2937] text-[#0F172A] dark:text-[#E5E7EB] text-sm hover:bg-[#F8FAFC] dark:hover:bg-[#111827] transition-colors"
+                className="flex-1 h-10 rounded-lg border border-border/30 text-foreground text-sm hover:bg-muted/30 transition-colors"
                 onClick={() => setShowReview(false)}
               >
                 Back
               </button>
               <button
-                className="flex-1 h-10 rounded-lg bg-[#2DD4BF] dark:bg-[#22C1AE] text-[#0F172A] text-sm font-medium hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] transition-colors"
+                className={`flex-1 h-10 rounded-lg text-white text-sm font-medium transition-all ${
+                  side === 'long'
+                    ? 'bg-neon-green/80 hover:bg-neon-green shadow-[0_0_12px_rgba(34,197,94,0.2)]'
+                    : 'bg-destructive/80 hover:bg-destructive shadow-[0_0_12px_rgba(239,68,68,0.2)]'
+                }`}
                 onClick={confirmSubmit}
               >
-                Confirm
+                Confirm {side === 'long' ? 'Long' : 'Short'}
               </button>
             </div>
           </div>
         )}
 
+        {/* CTA button */}
         <Button
           disabled={disabled || !publicKey || (!isFormValid && !needsDeposit) || tradeState.state === 'quoting' || showReview}
           className={`w-full h-12 text-base font-medium rounded-lg transition-all ${
             needsDeposit && isFormValid
-              ? 'bg-[#F59E0B] hover:bg-[#D97706] text-[#0F172A]'
-              : 'bg-[#2DD4BF] dark:bg-[#22C1AE] hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] text-[#0F172A]'
+              ? 'bg-neon-amber hover:bg-neon-amber/80 text-background shadow-[0_0_16px_rgba(245,158,11,0.25)]'
+              : side === 'long'
+                ? 'bg-neon-green/90 hover:bg-neon-green text-white shadow-[0_0_16px_rgba(34,197,94,0.2)]'
+                : 'bg-destructive/90 hover:bg-destructive text-white shadow-[0_0_16px_rgba(239,68,68,0.2)]'
           }`}
           onClick={handleSubmit}
           data-testid="perps-cta"
         >
           {ctaLabel}
         </Button>
-        <div className="text-xs text-[#475569] dark:text-[#9CA3AF]" data-testid="perps-state">
+        <div className="text-xs text-foreground/40 font-data" data-testid="perps-state">
           State: {tradeState.state}
         </div>
         {tradeState.error && (
-          <div className="rounded-xl border border-[#E2E8F0] dark:border-white/10 bg-[#FEF2F2] dark:bg-[#1F1822] px-3 py-2 text-xs text-[#B91C1C] dark:text-[#FCA5A5]">
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
             {tradeState.error}
           </div>
         )}
-        <div className="text-xs text-[#475569] dark:text-[#9CA3AF] space-y-1">
+        <div className="text-xs text-foreground/40 space-y-1">
           <p>Final amount may vary slightly due to on-chain execution.</p>
           <p>You always retain custody of your assets.</p>
         </div>
 
-        <details className="rounded-xl border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] p-3 text-xs text-[#475569] dark:text-[#9CA3AF]">
-          <summary className="cursor-pointer text-sm font-medium text-[#0F172A] dark:text-[#E5E7EB]">
+        {/* Developer details */}
+        <details className="rounded-xl glass-card p-3 text-xs text-foreground/50">
+          <summary className="cursor-pointer text-sm font-medium text-foreground">
             Developer details
           </summary>
           <div className="mt-3 space-y-2">
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[#6B7280] dark:text-[#6B7280]">Status</div>
-              <div className="text-sm text-[#0F172A] dark:text-[#E5E7EB]">{tradeState.state}</div>
+              <div className="text-[11px] uppercase tracking-wide text-foreground/40">Status</div>
+              <div className="text-sm text-foreground font-data">{tradeState.state}</div>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[#6B7280] dark:text-[#6B7280]">
+              <div className="text-[11px] uppercase tracking-wide text-foreground/40">
                 Tx signature
               </div>
-              <div className="text-sm break-all text-[#0F172A] dark:text-[#E5E7EB]">{tradeState.txSignature ?? '—'}</div>
+              <div className="text-sm break-all text-foreground font-data">{tradeState.txSignature ?? '—'}</div>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[#6B7280] dark:text-[#6B7280]">Logs</div>
+              <div className="text-[11px] uppercase tracking-wide text-foreground/40">Logs</div>
               <div className="max-h-32 overflow-y-auto space-y-1">
                 {tradeState.logs.length === 0 ? (
                   <div>—</div>
                 ) : (
                   tradeState.logs.map((entry, index) => (
-                    <div key={`${entry.ts}-${index}`} className="font-mono">
+                    <div key={`${entry.ts}-${index}`} className="font-data">
                       [{entry.ts}] {entry.message}
                     </div>
                   ))
@@ -626,13 +625,13 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
               </div>
             </div>
             {tradeState.error && (
-              <div className="text-[#B91C1C] dark:text-[#FCA5A5]">{tradeState.error}</div>
+              <div className="text-destructive">{tradeState.error}</div>
             )}
           </div>
         </details>
 
         {collateralError && (
-          <div className="rounded-xl border border-[#E2E8F0] dark:border-white/10 bg-[#FEF2F2] dark:bg-[#1F1822] px-3 py-2 text-xs text-[#B91C1C] dark:text-[#FCA5A5]">
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
             {collateralError}
           </div>
         )}

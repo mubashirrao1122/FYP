@@ -129,7 +129,7 @@ export function PoolCard({
           <Button
             onClick={onViewDetails}
             variant="ghost"
-            className="w-full gap-2 text-[#8B5CF6] hover:text-[#7C3AED] hover:bg-[#8B5CF6]/10"
+            className="w-full gap-2 text-[#3B82F6] hover:text-[#2563EB] hover:bg-[#3B82F6]/10"
           >
             <Eye className="h-4 w-4" />
             View Details
@@ -141,7 +141,7 @@ export function PoolCard({
           <Button
             onClick={onAddLiquidity}
             variant="default"
-            className="flex-1 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-2"
+            className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] text-white gap-2"
           >
             <Plus className="h-4 w-4" />
             Add

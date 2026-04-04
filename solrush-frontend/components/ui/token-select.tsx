@@ -119,7 +119,7 @@ export function TokenSelect({
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "w-full flex items-center justify-between gap-2 bg-white dark:bg-[#161C2D] hover:bg-[#F1F5F9] dark:hover:bg-[#1B2234] border border-[#E2E8F0] dark:border-white/10 rounded-2xl transition-all duration-200 hover:border-[#8B5CF6] group outline-none",
+            "w-full flex items-center justify-between gap-2 bg-white dark:bg-[#161C2D] hover:bg-[#F1F5F9] dark:hover:bg-[#1B2234] border border-[#E2E8F0] dark:border-white/10 rounded-2xl transition-all duration-200 hover:border-[#3B82F6] group outline-none",
             compact ? "px-2 py-1.5" : "px-3 py-2",
             className
           )}
@@ -188,7 +188,7 @@ export function TokenSelect({
                 className={cn(
                   'w-full flex items-center gap-3 px-4 py-3 hover:bg-[#F1F5F9] dark:hover:bg-[#161C2D] transition-colors text-left',
                   selectedToken?.symbol === token.symbol &&
-                  'bg-[#F1F5F9] dark:bg-[#161C2D] border-l-2 border-[#8B5CF6]'
+                  'bg-[#F1F5F9] dark:bg-[#161C2D] border-l-2 border-[#3B82F6]'
                 )}
               >
                 <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-[#F1F5F9] dark:bg-[#161C2D] flex items-center justify-center">
@@ -201,7 +201,7 @@ export function TokenSelect({
                   <span className="text-xs text-[#94A3B8] dark:text-[#6B7280] truncate">{token.name}</span>
                 </div>
                 {selectedToken?.symbol === token.symbol && (
-                  <div className="h-2 w-2 bg-[#8B5CF6] rounded-full flex-shrink-0" />
+                  <div className="h-2 w-2 bg-[#3B82F6] rounded-full flex-shrink-0" />
                 )}
               </button>
             ))

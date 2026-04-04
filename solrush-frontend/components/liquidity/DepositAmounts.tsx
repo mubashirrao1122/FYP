@@ -95,7 +95,7 @@ export const DepositAmounts: React.FC<DepositAmountsProps> = ({
                         onClick={handleMaxA}
                         size="sm"
                         variant="ghost"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-#2DD4BF hover:text-#22C1AE text-xs font-semibold"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-#3B82F6 hover:text-#2563EB text-xs font-semibold"
                     >
                         MAX
                     </Button>
@@ -144,7 +144,7 @@ export const DepositAmounts: React.FC<DepositAmountsProps> = ({
                         onClick={handleMaxB}
                         size="sm"
                         variant="ghost"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-#2DD4BF hover:text-#22C1AE text-xs font-semibold"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-#3B82F6 hover:text-#2563EB text-xs font-semibold"
                     >
                         MAX
                     </Button>
@@ -164,8 +164,8 @@ export const DepositAmounts: React.FC<DepositAmountsProps> = ({
 
             {/* Summary */}
             {amountA && amountB && !insufficientBalanceA && !insufficientBalanceB && (
-                <div className="bg-#2DD4BF/10 border border-#2DD4BF/20 rounded-xl p-4">
-                    <div className="text-sm font-semibold text-#22C1AE mb-2">Position Summary</div>
+                <div className="bg-#3B82F6/10 border border-#3B82F6/20 rounded-xl p-4">
+                    <div className="text-sm font-semibold text-#2563EB mb-2">Position Summary</div>
                     <div className="flex justify-between text-sm">
                         <span className="text-white/60">Total deposit value</span>
                         <span className="text-white font-semibold">

@@ -356,9 +356,17 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
 
       // Use camelCase account names (Anchor SDK converts snake_case IDL to camelCase)
       // Calculate expected LP tokens and apply 5% slippage tolerance
-      const expectedLp = Math.sqrt(
-        amountABN.toNumber() * amountBBN.toNumber()
-      );
+      let expectedLp: number;
+      if (!pool || pool.reserveA === 0 || pool.reserveB === 0 || pool.totalLPSupply === 0) {
+        // Initial deposit
+        expectedLp = Math.sqrt(amountABN.toNumber() * amountBBN.toNumber()) - 1000;
+      } else {
+        // Subsequent deposit
+        const lpFromA = (amountABN.toNumber() * pool.totalLPSupply) / pool.reserveA;
+        const lpFromB = (amountBBN.toNumber() * pool.totalLPSupply) / pool.reserveB;
+        expectedLp = Math.min(lpFromA, lpFromB);
+      }
+
       const minLpBN = new BN(Math.max(0, Math.floor(expectedLp * 0.95)));
 
       const tx = await program.methods

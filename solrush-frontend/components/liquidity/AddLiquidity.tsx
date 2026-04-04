@@ -159,7 +159,7 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
     return (
       <Card className="w-full max-w-lg bg-white/5 backdrop-blur-sm border-white/10 shadow-xl">
         <CardContent className="p-8 text-center">
-          <Loader2 className="w-8 h-8 text-#2DD4BF animate-spin mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 text-#3B82F6 animate-spin mx-auto mb-4" />
           <p className="text-white/40">Loading pool data...</p>
         </CardContent>
       </Card>
@@ -210,7 +210,7 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                     slippageBps === preset.value && !customSlippage
-                      ? "bg-#22C1AE text-white"
+                      ? "bg-#2563EB text-white"
                       : "bg-white/10 text-white/60 hover:bg-white/20"
                   )}
                 >
@@ -245,7 +245,7 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
               <button
                 onClick={() => setAmountA(tokenABalance.balance.toString())}
                 disabled={tokenABalance.loading || tokenABalance.balance === 0}
-                className="text-#2DD4BF hover:text-#22C1AE font-medium transition-colors disabled:opacity-50"
+                className="text-#3B82F6 hover:text-#2563EB font-medium transition-colors disabled:opacity-50"
               >
                 Max
               </button>
@@ -331,7 +331,7 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
                       {/* Current share if user has any */}
                       {((pool.userLpBalance || 0) / (pool.totalLPSupply || 1) * 100).toFixed(4)}%
                     </span>
-                    <span className="text-[#2DD4BF] font-medium">
+                    <span className="text-[#3B82F6] font-medium">
                       {/* New share approx */}
                       {((pool.userLpBalance || 0) + lpTokensToReceive) / ((pool.totalLPSupply || 0) + lpTokensToReceive || 1) * 100 > 0 ? (((pool.userLpBalance || 0) + lpTokensToReceive) / ((pool.totalLPSupply || 0) + lpTokensToReceive || 1) * 100).toFixed(4) : "0.0000"}%
                     </span>
@@ -363,7 +363,7 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
         <Button
           onClick={handleAddLiquidity}
           disabled={!publicKey || loading || status === 'pending' || status === 'confirming' || !amountA || !amountB}
-          className="w-full h-14 text-lg bg-#22C1AE hover:bg-#1EB7A4 text-white font-bold rounded-xl shadow-lg shadow-#2DD4BF/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full h-14 text-lg bg-#2563EB hover:bg-#1D4ED8 text-white font-bold rounded-xl shadow-lg shadow-#3B82F6/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {!publicKey ? (
             'Connect Wallet'

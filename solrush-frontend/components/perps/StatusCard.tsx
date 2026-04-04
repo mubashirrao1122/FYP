@@ -16,7 +16,7 @@ export function StatusCard({ title, message, actionLabel, onAction, details }: S
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="mt-4 h-10 px-4 rounded-lg bg-[#2DD4BF] dark:bg-[#22C1AE] text-[#0F172A] text-sm font-medium hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] transition-colors duration-200"
+          className="mt-4 h-10 px-4 rounded-lg bg-[#3B82F6] dark:bg-[#2563EB] text-white text-sm font-medium hover:bg-[#2563EB] dark:hover:bg-[#1D4ED8] transition-colors duration-200"
         >
           {actionLabel}
         </button>

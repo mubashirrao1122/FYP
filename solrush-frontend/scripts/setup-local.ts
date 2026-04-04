@@ -1,5 +1,5 @@
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
-import { createMint, mintTo, getOrCreateAssociatedTokenAddress } from '@solana/spl-token';
+import { createMint, mintTo, getAssociatedTokenAddress, createAssociatedTokenAccount } from '@solana/spl-token';
 import * as fs from 'fs';
 import { loadWallet, getRPC, formatNumber } from './utils';
 
@@ -63,22 +63,15 @@ async function getOrCreateTokenAccount(
         await connection.getTokenAccountBalance(associatedToken);
     } catch (e) {
         // Account doesn't exist, create it
-        // We need to import createAssociatedTokenAccount from spl-token
-        // But since we can't easily change imports here without touching the top of the file
-        // I will assume the imports are fixed in the next step or I will fix them now.
-        // Actually, let's just use the instruction if possible? No, spl-token has helper.
-        // I'll just use the instruction from a new import.
-        // Wait, I can't easily add imports here. 
-        // Let's just use a try-catch block in the main function and assume the import is there.
-        // I will update the imports in a separate call.
+        await createAssociatedTokenAccount(
+            connection,
+            payer,
+            mint,
+            owner
+        );
     }
     return associatedToken;
 }
-
-// ... actually this is getting complicated. 
-// I will just use the provided function in the library and ignore the lint if I can't fix it easily. 
-// But the tool output said "lint errors... still exist". 
-// I'll just replace the whole file content with a version that uses `createAssociatedTokenAccount` (which I will import).
 
 /**
  * Mint test tokens to the wallet
@@ -95,17 +88,28 @@ async function mintTestTokens(
     console.log('💰 Minting test tokens to wallet...\n');
 
     const mintToken = async (mint: PublicKey, symbol: string, amount: number) => {
-        const ata = await getAssociatedTokenAddress(mint, payer.publicKey);
-        try {
-            await connection.getTokenAccountBalance(ata);
-        } catch (e) {
-            // Create ATA
-            // Note: createAssociatedTokenAccount is not imported yet. I will add it.
-            // For now, I will use a placeholder comment and fix imports next.
-        }
-        // ... this is too messy with replace_file_content.
-        // I'll use write_to_file to overwrite the whole file with a clean version.
+        const ata = await getOrCreateTokenAccount(connection, payer, mint, payer.publicKey);
+        
+        // Mint tokens
+        await mintTo(
+            connection,
+            payer,
+            mint,
+            ata,
+            payer,
+            amount
+        );
+        
+        console.log(`  ✓ Minted ${formatNumber(amount / 1e6)} ${symbol}`);
     };
+
+    // Mint 10,000 of each
+    const amount = 10000 * 1e6;
+    await mintToken(mints.usdcMint, 'USDC', amount);
+    await mintToken(mints.usdtMint, 'USDT', amount);
+    await mintToken(mints.rushMint, 'RUSH', amount);
+    
+    console.log();
 }
 
 /**
@@ -157,10 +161,6 @@ async function main() {
     // Try to keep existing program ID if possible, or use a default
     const programId = process.env.NEXT_PUBLIC_PROGRAM_ID || 'FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1';
 
-    // We'll use the WETH mint from devnet/mainnet as placeholder or create one if needed, 
-    // but for now let's just use the devnet one or a placeholder to avoid breaking types.
-    // Ideally we should create a WETH mint too, but the plan only specified USDC/USDT/RUSH.
-    // Let's create a WETH mint too for completeness.
     console.log('  Creating Mock WETH mint for completeness...');
     const wethMint = await createMint(connection, payer, payer.publicKey, null, 9);
     console.log(`  ✓ WETH Mint: ${wethMint.toBase58()}\n`);

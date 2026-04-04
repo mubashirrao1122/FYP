@@ -255,8 +255,10 @@ describe("liquidation", () => {
     }
 
     // Clean up — close the position
+    const posCleanup = await program.account.position.fetch(positionPda);
+    const absBaseCleanup = Math.abs(posCleanup.basePositionI64.toNumber());
     await program.methods
-      .closePerpsPosition()
+      .closePerpsPosition(new anchor.BN(absBaseCleanup))
       .accounts({
         owner: admin.publicKey,
         global: globalPda,
@@ -285,7 +287,7 @@ describe("liquidation", () => {
       })
       .rpc();
 
-    const positionBefore = await program.account.perpsPosition.fetch(positionPda);
+    const positionBefore = await program.account.position.fetch(positionPda);
     expect(positionBefore.basePositionI64.toNumber()).to.not.eq(0);
 
     // Record liquidator balance before
@@ -326,7 +328,7 @@ describe("liquidation", () => {
       .rpc();
 
     // ── Verify position was closed or reduced ──
-    const positionAfter = await program.account.perpsPosition.fetch(positionPda);
+    const positionAfter = await program.account.position.fetch(positionPda);
     // The position should have been at least partially liquidated
     const baseBefore = positionBefore.basePositionI64.toNumber();
     const baseAfter = positionAfter.basePositionI64.toNumber();
@@ -355,7 +357,7 @@ describe("liquidation", () => {
       .rpc();
 
     // Check current position — if fully closed, open a new one
-    const posBefore = await program.account.perpsPosition.fetch(positionPda);
+    const posBefore = await program.account.position.fetch(positionPda);
     if (posBefore.basePositionI64.toNumber() === 0) {
       // Open a new highly leveraged position
       await program.methods
@@ -409,7 +411,7 @@ describe("liquidation", () => {
       .rpc();
 
     // Position should be fully closed
-    const posAfter = await program.account.perpsPosition.fetch(positionPda);
+    const posAfter = await program.account.position.fetch(positionPda);
     expect(posAfter.basePositionI64.toNumber()).to.eq(0);
 
     // Check market emergency flag
@@ -436,7 +438,7 @@ describe("liquidation", () => {
       .rpc();
 
     // Open a position
-    const pos = await program.account.perpsPosition.fetch(positionPda);
+    const pos = await program.account.position.fetch(positionPda);
     if (pos.basePositionI64.toNumber() === 0) {
       await program.methods
         .openPerpsPosition({ long: {} }, new anchor.BN(1_000_000), 5, { market: {} })
@@ -477,10 +479,11 @@ describe("liquidation", () => {
     }
 
     // Cleanup
-    const posCheck = await program.account.perpsPosition.fetch(positionPda);
+    const posCheck = await program.account.position.fetch(positionPda);
     if (posCheck.basePositionI64.toNumber() !== 0) {
+      const absBaseCheck = Math.abs(posCheck.basePositionI64.toNumber());
       await program.methods
-        .closePerpsPosition()
+        .closePerpsPosition(new anchor.BN(absBaseCheck))
         .accounts({
           owner: admin.publicKey,
           global: globalPda,

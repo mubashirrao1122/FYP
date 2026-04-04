@@ -44,8 +44,8 @@ export const SlippageSettings: React.FC<SlippageSettingsProps> = ({
                                     setCustomSlippage('');
                                 }}
                                 className={`px-2 py-1 text-sm rounded-lg border transition-colors ${slippage === preset && customSlippage === ''
-                                        ? 'bg-[#8B5CF6]/10 border-[#8B5CF6] text-[#8B5CF6]'
-                                        : 'bg-[#F1F5F9] dark:bg-[#161C2D] border-[#E2E8F0] dark:border-white/10 text-[#475569] dark:text-[#9CA3AF] hover:border-[#8B5CF6]'
+                                        ? 'bg-[#3B82F6]/10 border-[#3B82F6] text-[#3B82F6]'
+                                        : 'bg-[#F1F5F9] dark:bg-[#161C2D] border-[#E2E8F0] dark:border-white/10 text-[#475569] dark:text-[#9CA3AF] hover:border-[#3B82F6]'
                                     }`}
                             >
                                 {preset}%
@@ -57,8 +57,8 @@ export const SlippageSettings: React.FC<SlippageSettingsProps> = ({
                                 placeholder="Custom"
                                 value={customSlippage}
                                 onChange={handleCustomChange}
-                                className={`w-full px-2 py-1 text-sm bg-[#F1F5F9] dark:bg-[#161C2D] border rounded-lg outline-none focus:border-[#8B5CF6] transition-colors ${customSlippage !== ''
-                                        ? 'border-[#8B5CF6] text-[#0F172A] dark:text-white'
+                                className={`w-full px-2 py-1 text-sm bg-[#F1F5F9] dark:bg-[#161C2D] border rounded-lg outline-none focus:border-[#3B82F6] transition-colors ${customSlippage !== ''
+                                        ? 'border-[#3B82F6] text-[#0F172A] dark:text-white'
                                         : 'border-[#E2E8F0] dark:border-white/10 text-[#475569] dark:text-[#9CA3AF]'
                                     }`}
                             />

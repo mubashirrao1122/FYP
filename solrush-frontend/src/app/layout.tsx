@@ -1,14 +1,21 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Space_Grotesk, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { AppWalletProvider } from '@/components/providers/AppWalletProvider';
 import { GlobalStoreProvider } from '@/components/providers/GlobalStoreProvider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Toaster } from 'sonner';
 
-const inter = Inter({
-  variable: '--font-inter',
+const spaceGrotesk = Space_Grotesk({
+  variable: '--font-display',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: '--font-mono',
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
 });
 
 export const metadata: Metadata = {
@@ -43,7 +50,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="transition-colors duration-200">
       <body
-        className={`${inter.variable} font-sans antialiased bg-[#F8FAFC] text-[#0F172A] dark:bg-[#0B1220] dark:text-[#E5E7EB] transition-colors duration-200`}
+        className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground transition-colors duration-200`}
       >
         <AppWalletProvider>
           <GlobalStoreProvider>

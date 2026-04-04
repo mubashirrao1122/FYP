@@ -78,9 +78,9 @@ export const getProgram = async (
     const idlPath = path.join(process.cwd(), 'lib', 'solana', 'idl.json');
     const idl = JSON.parse(fs.readFileSync(idlPath, 'utf-8'));
 
-    const programId = getProgramId();
-
-    return new Program(idl, programId, provider);
+    // For @coral-xyz/anchor 0.30+, the constructor takes (idl, provider)
+    // and if needed, you can pass programId inside the idl.
+    return new Program(idl as any, provider);
 };
 
 /**

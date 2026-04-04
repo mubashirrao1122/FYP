@@ -50,7 +50,7 @@ export const useLimitOrders = () => {
 
             // Fetch all limit orders owned by the user
             // Using memcmp filter on the owner field
-            const orderAccounts = await program.account.limitOrder.all([
+            const orderAccounts = await (program.account as any).limitOrder.all([
                 {
                     memcmp: {
                         offset: 8, // After discriminator
@@ -59,7 +59,7 @@ export const useLimitOrders = () => {
                 },
             ]);
 
-            const displayOrders: LimitOrderDisplay[] = orderAccounts.map((account) => {
+            const displayOrders: LimitOrderDisplay[] = orderAccounts.map((account: any) => {
                 const order = account.account;
                 const sellMint = (order.sellToken as PublicKey).toBase58();
                 const buyMint = (order.buyToken as PublicKey).toBase58();
@@ -192,7 +192,7 @@ export const useLimitOrders = () => {
             const orderPda = new PublicKey(orderId);
 
             // Fetch order to get details
-            const orderAccount = await program.account.limitOrder.fetch(orderPda);
+            const orderAccount = await (program.account as any).limitOrder.fetch(orderPda);
             const sellMint = orderAccount.sellToken as PublicKey;
             const poolPda = orderAccount.pool as PublicKey;
 

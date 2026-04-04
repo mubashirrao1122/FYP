@@ -134,8 +134,8 @@ export function PerpsChart({ market, loading = false, error }: PerpsChartProps) 
               key={tf}
               onClick={() => setTimeframe(tf)}
               className={`px-2 py-1 rounded-lg border transition-colors ${timeframe === tf
-                ? 'border-[#2DD4BF] dark:border-[#22C1AE] text-[#0F172A] dark:text-[#E5E7EB] bg-[#2DD4BF]/10 dark:bg-[#22C1AE]/10'
-                : 'border-[#E2E8F0] dark:border-[#1F2937] text-[#475569] dark:text-[#9CA3AF] hover:border-[#2DD4BF] dark:hover:border-[#22C1AE]'
+                ? 'border-[#3B82F6] dark:border-[#2563EB] text-[#0F172A] dark:text-[#E5E7EB] bg-[#3B82F6]/10 dark:bg-[#2563EB]/10'
+                : 'border-[#E2E8F0] dark:border-[#1F2937] text-[#475569] dark:text-[#9CA3AF] hover:border-[#3B82F6] dark:hover:border-[#2563EB]'
                 }`}
             >
               {tf}

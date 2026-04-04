@@ -118,7 +118,7 @@ export default function NewPositionPage() {
                     <div className="flex items-center gap-8 mb-8">
                         {/* Step 1 */}
                         <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${currentStep === 1 ? 'bg-[#2DD4BF] dark:bg-[#22C1AE] text-[#0F172A]' : 'bg-[#F1F5F9] dark:bg-[#161C2D] text-[#94A3B8] dark:text-[#6B7280]'
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${currentStep === 1 ? 'bg-[#3B82F6] dark:bg-[#2563EB] text-white' : 'bg-[#F1F5F9] dark:bg-[#161C2D] text-[#94A3B8] dark:text-[#6B7280]'
                                 }`}>
                                 1
                             </div>
@@ -134,7 +134,7 @@ export default function NewPositionPage() {
 
                         {/* Step 2 */}
                         <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${currentStep === 2 ? 'bg-[#2DD4BF] dark:bg-[#22C1AE] text-[#0F172A]' : 'bg-[#F1F5F9] dark:bg-[#161C2D] text-[#94A3B8] dark:text-[#6B7280]'
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${currentStep === 2 ? 'bg-[#3B82F6] dark:bg-[#2563EB] text-white' : 'bg-[#F1F5F9] dark:bg-[#161C2D] text-[#94A3B8] dark:text-[#6B7280]'
                                 }`}>
                                 2
                             </div>
@@ -164,7 +164,7 @@ export default function NewPositionPage() {
                             <Button
                                 onClick={() => setCurrentStep(2)}
                                 disabled={!canContinueStep1}
-                                className="w-full h-14 bg-[#2DD4BF] dark:bg-[#22C1AE] hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] text-[#0F172A] font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full h-14 bg-[#3B82F6] dark:bg-[#2563EB] hover:bg-[#2563EB] dark:hover:bg-[#1D4ED8] text-white font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Continue
                             </Button>
@@ -203,7 +203,7 @@ export default function NewPositionPage() {
                                 <Button
                                     onClick={handleCreatePosition}
                                     disabled={!canContinueStep2}
-                                    className="flex-1 h-14 bg-[#2DD4BF] dark:bg-[#22C1AE] hover:bg-[#26C8B4] dark:hover:bg-[#1EB7A4] text-[#0F172A] font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 h-14 bg-[#3B82F6] dark:bg-[#2563EB] hover:bg-[#2563EB] dark:hover:bg-[#1D4ED8] text-white font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isSubmitting ? (
                                         <><RefreshCw className="w-5 h-5 mr-2 animate-spin" /> Creating Position...</>

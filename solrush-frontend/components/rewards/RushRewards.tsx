@@ -38,7 +38,7 @@ export const RushRewards = () => {
           <p className="text-[#475569] dark:text-[#9CA3AF] text-sm mb-2">Claimable</p>
           <div className="flex items-center gap-3">
             <RushIcon className="w-6 h-6" />
-            <p className="text-[#2DD4BF] dark:text-[#22C1AE] text-2xl font-bold">
+            <p className="text-[#3B82F6] dark:text-[#2563EB] text-2xl font-bold">
               {formatTokenAmount(rewards.claimable)}
             </p>
           </div>

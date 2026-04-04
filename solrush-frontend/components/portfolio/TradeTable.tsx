@@ -86,7 +86,7 @@ export function TradeTable({ transactions }: TradeTableProps) {
             <div className="p-6 border-b border-[#E2E8F0] dark:border-[#1F2937]">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <History className="h-5 w-5 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                        <History className="h-5 w-5 text-[#3B82F6] dark:text-[#2563EB]" />
                         <h3 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB]">
                             Transaction History
                         </h3>
@@ -94,7 +94,7 @@ export function TradeTable({ transactions }: TradeTableProps) {
                     <button
                         onClick={exportToCSV}
                         disabled={filteredTransactions.length === 0}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2DD4BF]/10 dark:bg-[#22C1AE]/10 text-[#2DD4BF] dark:text-[#22C1AE] hover:bg-[#2DD4BF]/20 dark:hover:bg-[#22C1AE]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#3B82F6]/10 dark:bg-[#2563EB]/10 text-[#3B82F6] dark:text-[#2563EB] hover:bg-[#3B82F6]/20 dark:hover:bg-[#2563EB]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                     >
                         <Download className="h-4 w-4" />
                         Export CSV
@@ -111,7 +111,7 @@ export function TradeTable({ transactions }: TradeTableProps) {
                             placeholder="Search by signature..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#E5E7EB] placeholder:text-[#94A3B8] dark:placeholder:text-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF] dark:focus:ring-[#22C1AE] text-sm"
+                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#E5E7EB] placeholder:text-[#94A3B8] dark:placeholder:text-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] dark:focus:ring-[#2563EB] text-sm"
                         />
                     </div>
 
@@ -119,7 +119,7 @@ export function TradeTable({ transactions }: TradeTableProps) {
                     <select
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
-                        className="px-4 py-2 rounded-lg border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF] dark:focus:ring-[#22C1AE] text-sm"
+                        className="px-4 py-2 rounded-lg border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] dark:focus:ring-[#2563EB] text-sm"
                     >
                         <option value="all">All Types</option>
                         <option value="swap">Swap</option>
@@ -133,7 +133,7 @@ export function TradeTable({ transactions }: TradeTableProps) {
                     <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
-                        className="px-4 py-2 rounded-lg border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF] dark:focus:ring-[#22C1AE] text-sm"
+                        className="px-4 py-2 rounded-lg border border-[#E2E8F0] dark:border-[#1F2937] bg-white dark:bg-[#111827] text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] dark:focus:ring-[#2563EB] text-sm"
                     >
                         <option value="all">All Status</option>
                         <option value="success">Success</option>
@@ -197,7 +197,7 @@ export function TradeTable({ transactions }: TradeTableProps) {
                                                 href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom&customUrl=http://localhost:8899`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="text-[#2DD4BF] dark:text-[#22C1AE] hover:text-[#26C8B4] dark:hover:text-[#1EB7A4] transition-colors"
+                                                className="text-[#3B82F6] dark:text-[#2563EB] hover:text-[#2563EB] dark:hover:text-[#1D4ED8] transition-colors"
                                             >
                                                 <ExternalLink className="h-4 w-4" />
                                             </a>

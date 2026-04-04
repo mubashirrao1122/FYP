@@ -182,7 +182,7 @@ export const usePortfolio = () => {
                     const [positionPda] = findPositionAddress(poolPubkey, publicKey);
 
                     // Try to fetch user's position for this pool
-                    const positionAccount = await program.account.userLiquidityPosition.fetch(positionPda);
+                    const positionAccount = await (program.account as any).userLiquidityPosition.fetch(positionPda);
 
                     if (positionAccount) {
                         const lpTokens = fromBN(positionAccount.lpTokens as BN, 6);

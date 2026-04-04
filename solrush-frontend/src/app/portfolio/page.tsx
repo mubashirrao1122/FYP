@@ -36,7 +36,7 @@ export default function PortfolioPage() {
                     </div>
                 ) : loading ? (
                     <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-[#2DD4BF] dark:text-[#22C1AE]" />
+                        <Loader2 className="h-8 w-8 animate-spin text-[#3B82F6] dark:text-[#2563EB]" />
                     </div>
                 ) : error ? (
                     <div className="rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/10 p-6">

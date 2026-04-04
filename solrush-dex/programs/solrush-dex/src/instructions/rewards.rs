@@ -154,10 +154,7 @@ pub fn claim_rush_rewards(
         position: position.key(),
         pool: pool.key(),
         rewards_amount: user_rewards,
-        // Emit raw integers — display formatting happens in frontend
-        rewards_display: user_rewards as f64 / 1_000_000.0,
         time_elapsed: time_elapsed as i64,
-        user_lp_share: (user_share_fixed / 1_000_000_000) as f64 / 1_000.0,
         claimed_at: current_time,
         total_claimed_lifetime: position.total_rush_claimed,
     });

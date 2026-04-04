@@ -460,7 +460,12 @@
           }
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "amount_base",
+          "type": "u64"
+        }
+      ]
     },
     {
       "name": "close_pool",
@@ -765,6 +770,118 @@
         {
           "name": "maintenance_margin_bps",
           "type": "u16"
+        },
+        {
+          "name": "max_funding_rate",
+          "type": "i64"
+        },
+        {
+          "name": "funding_interval_secs",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "deposit_insurance",
+      "discriminator": [
+        34,
+        221,
+        238,
+        103,
+        190,
+        136,
+        23,
+        194
+      ],
+      "accounts": [
+        {
+          "name": "depositor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.base_mint",
+                "account": "PerpsMarket"
+              },
+              {
+                "kind": "account",
+                "path": "market.quote_mint",
+                "account": "PerpsMarket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "insurance_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  117,
+                  114,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "insurance_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "depositor_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
         }
       ]
     },
@@ -932,6 +1049,140 @@
         {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_insurance_vault",
+      "discriminator": [
+        111,
+        217,
+        170,
+        216,
+        132,
+        97,
+        98,
+        30
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.base_mint",
+                "account": "PerpsMarket"
+              },
+              {
+                "kind": "account",
+                "path": "market.quote_mint",
+                "account": "PerpsMarket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "insurance_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  117,
+                  114,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "insurance_vault_ata",
+          "docs": [
+            "The SPL token account that will hold insurance funds (quote mint)."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "quote_mint"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": []
@@ -1376,6 +1627,214 @@
         {
           "name": "rent",
           "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "liquidate_position",
+      "discriminator": [
+        187,
+        74,
+        229,
+        149,
+        102,
+        81,
+        221,
+        68
+      ],
+      "accounts": [
+        {
+          "name": "liquidator",
+          "docs": [
+            "The liquidator — anyone can call this (permissionless)."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "docs": [
+            "The position owner's user account."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  117,
+                  115,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position_owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position_owner"
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.base_mint",
+                "account": "PerpsMarket"
+              },
+              {
+                "kind": "account",
+                "path": "market.quote_mint",
+                "account": "PerpsMarket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_price_account"
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position_owner"
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "insurance_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  117,
+                  114,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "insurance_vault_ata",
+          "writable": true
+        },
+        {
+          "name": "collateral_vault",
+          "docs": [
+            "Collateral vault of the market (to pay liquidator fee)."
+          ],
+          "writable": true
+        },
+        {
+          "name": "liquidator_ata",
+          "docs": [
+            "Liquidator's quote-token ATA to receive the liquidation fee."
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
@@ -1932,6 +2391,89 @@
       ]
     },
     {
+      "name": "update_perps_funding",
+      "discriminator": [
+        68,
+        228,
+        79,
+        24,
+        213,
+        16,
+        223,
+        38
+      ],
+      "accounts": [
+        {
+          "name": "global",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  115,
+                  95,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.base_mint",
+                "account": "PerpsMarket"
+              },
+              {
+                "kind": "account",
+                "path": "market.quote_mint",
+                "account": "PerpsMarket"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_price_account"
+        }
+      ],
+      "args": [
+        {
+          "name": "mark_price_i64",
+          "type": "i64"
+        }
+      ]
+    },
+    {
       "name": "update_rush_apy",
       "discriminator": [
         17,
@@ -2088,6 +2630,19 @@
   ],
   "accounts": [
     {
+      "name": "InsuranceVault",
+      "discriminator": [
+        131,
+        200,
+        252,
+        180,
+        131,
+        202,
+        30,
+        144
+      ]
+    },
+    {
       "name": "LimitOrder",
       "discriminator": [
         137,
@@ -2207,6 +2762,32 @@
   ],
   "events": [
     {
+      "name": "FundingSettled",
+      "discriminator": [
+        250,
+        241,
+        161,
+        50,
+        159,
+        70,
+        172,
+        196
+      ]
+    },
+    {
+      "name": "FundingUpdated",
+      "discriminator": [
+        206,
+        76,
+        89,
+        81,
+        126,
+        37,
+        255,
+        224
+      ]
+    },
+    {
       "name": "LimitOrderCancelled",
       "discriminator": [
         244,
@@ -2243,6 +2824,19 @@
         225,
         214,
         243
+      ]
+    },
+    {
+      "name": "Liquidated",
+      "discriminator": [
+        231,
+        57,
+        55,
+        75,
+        0,
+        170,
+        246,
+        68
       ]
     },
     {
@@ -2520,9 +3114,132 @@
       "code": 6033,
       "name": "MaintenanceMarginViolation",
       "msg": "Maintenance margin violation"
+    },
+    {
+      "code": 6034,
+      "name": "FundingTooSoon",
+      "msg": "Funding update too soon — interval not elapsed"
+    },
+    {
+      "code": 6035,
+      "name": "InvalidFundingParams",
+      "msg": "Invalid funding parameters"
+    },
+    {
+      "code": 6036,
+      "name": "NotLiquidatable",
+      "msg": "Position is not liquidatable"
+    },
+    {
+      "code": 6037,
+      "name": "InsuranceFundDepleted",
+      "msg": "Insurance fund insufficient — market in emergency"
+    },
+    {
+      "code": 6038,
+      "name": "MarketEmergency",
+      "msg": "Market is in emergency mode"
+    },
+    {
+      "code": 6039,
+      "name": "SelfLiquidation",
+      "msg": "Liquidator cannot liquidate own position"
+    },
+    {
+      "code": 6040,
+      "name": "CloseAmountExceedsPosition",
+      "msg": "Close amount exceeds position size"
+    },
+    {
+      "code": 6041,
+      "name": "InsufficientMargin",
+      "msg": "Initial margin violation — insufficient equity to increase position"
     }
   ],
   "types": [
+    {
+      "name": "FundingSettled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "funding_delta",
+            "type": "i128"
+          },
+          {
+            "name": "new_collateral",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FundingUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "funding_rate",
+            "type": "i64"
+          },
+          {
+            "name": "cumulative_funding",
+            "type": "i128"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InsuranceVault",
+      "docs": [
+        "Per-market insurance vault state.",
+        "",
+        "Holds a balance of quote tokens that covers socialized losses when",
+        "a liquidated position's equity is negative (bad debt)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "docs": [
+              "The market this vault belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_ata",
+            "docs": [
+              "SPL token account holding the insurance funds."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "balance_u64",
+            "docs": [
+              "Running balance tracked on-chain (mirrors the token account)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "LimitOrder",
       "type": {
@@ -2683,6 +3400,84 @@
           {
             "name": "executed_at",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Liquidated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "position",
+            "docs": [
+              "The position that was liquidated."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "docs": [
+              "Owner of the liquidated position."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "liquidator",
+            "docs": [
+              "The liquidator who triggered the liquidation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "docs": [
+              "Market of the position."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "size_closed_i64",
+            "docs": [
+              "Base size that was closed during liquidation."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "mark_price_i64",
+            "docs": [
+              "Mark price at liquidation."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "liquidator_fee_u64",
+            "docs": [
+              "Fee paid to the liquidator (quote token atomic units)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "insurance_penalty_u64",
+            "docs": [
+              "Penalty sent to the insurance fund (quote token atomic units)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bad_debt_u64",
+            "docs": [
+              "Bad debt absorbed by insurance fund (0 if equity >= 0)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "emergency",
+            "docs": [
+              "Whether the market entered emergency mode."
+            ],
+            "type": "bool"
           }
         ]
       }
@@ -2945,10 +3740,28 @@
           },
           {
             "name": "cumulative_funding_i128",
+            "docs": [
+              "Cumulative funding per base unit (atomic quote units, signed).",
+              "Long positions pay when this increases; shorts receive."
+            ],
             "type": "i128"
           },
           {
             "name": "last_funding_ts",
+            "type": "i64"
+          },
+          {
+            "name": "max_funding_rate_i64",
+            "docs": [
+              "Maximum absolute funding rate per interval, scaled by PRICE_SCALE."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "funding_interval_secs",
+            "docs": [
+              "Minimum seconds between funding updates."
+            ],
             "type": "i64"
           },
           {
@@ -2958,6 +3771,27 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "liquidation_fee_bps",
+            "docs": [
+              "Liquidation fee rewarded to the liquidator (basis points of closed notional)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "liquidation_penalty_bps",
+            "docs": [
+              "Penalty sent to the insurance fund (basis points of closed notional)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "emergency",
+            "docs": [
+              "Emergency flag — set when insurance fund is depleted on bad-debt liquidation."
+            ],
+            "type": "bool"
           }
         ]
       }
@@ -2988,6 +3822,17 @@
     },
     {
       "name": "PerpsPosition",
+      "docs": [
+        "Perps position account.",
+        "",
+        "`base_position_i64` is signed: positive = long, negative = short.",
+        "The legacy `side` field is kept for ABI compatibility but is now derived",
+        "from the sign of `base_position_i64`.",
+        "",
+        "`realized_pnl_i128` accumulates PnL from partial/full closes, in",
+        "PRICE_SCALE-squared units (base_units × price_units).  To get quote",
+        "value divide by PRICE_SCALE."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
@@ -3001,18 +3846,31 @@
           },
           {
             "name": "side",
+            "docs": [
+              "Legacy direction indicator.  Derived from `base_position_i64` sign.",
+              "0 = long (or empty), 1 = short."
+            ],
             "type": "u8"
           },
           {
-            "name": "size_i64",
+            "name": "base_position_i64",
+            "docs": [
+              "Signed base position.  +ve = long, -ve = short, 0 = no position."
+            ],
             "type": "i64"
           },
           {
             "name": "entry_price_i64",
+            "docs": [
+              "Weighted-average entry price (PRICE_SCALE units, always >= 0)."
+            ],
             "type": "i64"
           },
           {
             "name": "collateral_u64",
+            "docs": [
+              "Collateral locked for this position (quote token atomic units)."
+            ],
             "type": "u64"
           },
           {
@@ -3021,11 +3879,21 @@
           },
           {
             "name": "last_funding_i128",
+            "docs": [
+              "Cumulative funding index at last settlement (placeholder for Phase 3)."
+            ],
             "type": "i128"
           },
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "realized_pnl_i128",
+            "docs": [
+              "Accumulated realized PnL from partial/full closes (signed, scaled)."
+            ],
+            "type": "i128"
           }
         ]
       }

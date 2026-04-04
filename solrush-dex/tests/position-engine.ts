@@ -75,8 +75,10 @@ describe("position-engine (Phase 2)", () => {
 
   /** Close the position fully. */
   async function closePos() {
+    const pos = await program.account.perpsPositionAccount.fetch(positionPda);
+    const absBase = Math.abs(pos.basePositionI64.toNumber());
     await program.methods
-      .closePerpsPosition()
+      .closePerpsPosition(new anchor.BN(absBase))
       .accounts({
         owner: admin.publicKey,
         global: globalPda,
@@ -90,7 +92,7 @@ describe("position-engine (Phase 2)", () => {
 
   /** Fetch the position account. */
   async function fetchPosition() {
-    return program.account.perpsPosition.fetch(positionPda);
+    return program.account.perpsPositionAccount.fetch(positionPda);
   }
 
   /** Fetch the user account. */
@@ -299,8 +301,10 @@ describe("position-engine-v2 (Phase 2)", () => {
   }
 
   async function closePos() {
+    const pos = await program.account.perpsPosition.fetch(positionPda);
+    const absBase = Math.abs(pos.basePositionI64.toNumber());
     await program.methods
-      .closePerpsPosition()
+      .closePerpsPosition(new anchor.BN(absBase))
       .accounts({
         owner: admin.publicKey,
         global: globalPda,

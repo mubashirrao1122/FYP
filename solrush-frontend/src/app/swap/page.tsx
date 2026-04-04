@@ -32,18 +32,18 @@ export default function SwapPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0E14] transition-colors duration-200 selection:bg-[#8B5CF6]/20">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200 selection:bg-neon-cyan/20">
       <Navbar />
 
-      {/* Main Content - Added pt-24 to prevent navbar overlap */}
+      {/* Main Content */}
       <main className="relative z-10 min-h-screen pt-24 px-4 pb-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center space-y-2 mb-8">
-            <h1 className="text-4xl sm:text-5xl font-semibold text-[#0F172A] dark:text-[#E5E7EB] tracking-tight">
+            <h1 className="text-4xl sm:text-5xl font-semibold text-foreground tracking-tight">
               Trade
             </h1>
-            <p className="text-[#475569] dark:text-[#9CA3AF] text-base sm:text-lg">
+            <p className="text-foreground/60 text-base sm:text-lg">
               Swap, place limit orders, or execute routed trades with predictable pricing.
             </p>
           </div>
@@ -53,14 +53,16 @@ export default function SwapPage() {
             {/* Trading Chart - Left Side */}
             <div className="w-full lg:order-1">
               {isMounted ? (
-                <TradingChart
-                  tokenPair={`${selectedInputToken}/${selectedOutputToken}`}
-                  inputToken={selectedInputToken}
-                  outputToken={selectedOutputToken}
-                />
+                <div className="glass-card rounded-2xl overflow-hidden">
+                  <TradingChart
+                    tokenPair={`${selectedInputToken}/${selectedOutputToken}`}
+                    inputToken={selectedInputToken}
+                    outputToken={selectedOutputToken}
+                  />
+                </div>
               ) : (
-                <div className="w-full h-[400px] bg-white dark:bg-[#121826] rounded-2xl border border-[#E2E8F0] dark:border-white/10 p-6 flex items-center justify-center transition-colors duration-200">
-                  <div className="text-[#94A3B8] dark:text-[#6B7280]">Loading chart...</div>
+                <div className="w-full h-[400px] glass-card rounded-2xl p-6 flex items-center justify-center transition-colors duration-200">
+                  <div className="text-foreground/40 font-data">Loading chart...</div>
                 </div>
               )}
             </div>

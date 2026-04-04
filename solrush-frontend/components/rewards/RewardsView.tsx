@@ -20,20 +20,20 @@ export const RewardsView = () => {
 
                     <div className="bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#1F2937] rounded-2xl p-8 shadow-sm transition-colors duration-200">
                         <h3 className="text-xl font-bold text-[#0F172A] dark:text-[#E5E7EB] mb-6 flex items-center gap-2">
-                            <span className="w-1 h-6 bg-[#2DD4BF] dark:bg-[#22C1AE] rounded-full"></span>
+                            <span className="w-1 h-6 bg-[#3B82F6] dark:bg-[#2563EB] rounded-full"></span>
                             How it Works
                         </h3>
                         <ul className="space-y-4 text-[#475569] dark:text-[#9CA3AF]">
                             <li className="flex gap-4 items-start">
-                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#2DD4BF]/10 dark:bg-[#22C1AE]/10 text-[#0F172A] dark:text-[#22C1AE] font-bold text-sm flex items-center justify-center mt-0.5">1</span>
+                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#3B82F6]/10 dark:bg-[#2563EB]/10 text-[#3B82F6] dark:text-[#2563EB] font-bold text-sm flex items-center justify-center mt-0.5">1</span>
                                 <span>Provide liquidity to any of our pools</span>
                             </li>
                             <li className="flex gap-4 items-start">
-                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#2DD4BF]/10 dark:bg-[#22C1AE]/10 text-[#0F172A] dark:text-[#22C1AE] font-bold text-sm flex items-center justify-center mt-0.5">2</span>
+                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#3B82F6]/10 dark:bg-[#2563EB]/10 text-[#3B82F6] dark:text-[#2563EB] font-bold text-sm flex items-center justify-center mt-0.5">2</span>
                                 <span>Earn 80% of trading fees + RUSH rewards</span>
                             </li>
                             <li className="flex gap-4 items-start">
-                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#2DD4BF]/10 dark:bg-[#22C1AE]/10 text-[#0F172A] dark:text-[#22C1AE] font-bold text-sm flex items-center justify-center mt-0.5">3</span>
+                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#3B82F6]/10 dark:bg-[#2563EB]/10 text-[#3B82F6] dark:text-[#2563EB] font-bold text-sm flex items-center justify-center mt-0.5">3</span>
                                 <span>Claim your RUSH tokens anytime</span>
                             </li>
                         </ul>

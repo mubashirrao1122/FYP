@@ -11,7 +11,7 @@ interface Transaction {
     signature: string;
     slot: number;
     err: any;
-    memo?: string;
+    memo?: string | null;
     blockTime?: number | null;
 }
 
@@ -73,7 +73,7 @@ export function TransactionHistory() {
             <CardContent>
                 {loading && transactions.length === 0 ? (
                     <div className="flex justify-center p-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-[#2DD4BF] dark:text-[#22C1AE]" />
+                        <Loader2 className="h-6 w-6 animate-spin text-[#3B82F6] dark:text-[#2563EB]" />
                     </div>
                 ) : transactions.length === 0 ? (
                     <div className="text-center text-[#475569] dark:text-[#9CA3AF] py-4">
@@ -91,7 +91,7 @@ export function TransactionHistory() {
                                         {tx.err ? (
                                             <XCircle className="h-5 w-5 text-red-500" />
                                         ) : (
-                                            <CheckCircle2 className="h-5 w-5 text-[#2DD4BF] dark:text-[#22C1AE]" />
+                                            <CheckCircle2 className="h-5 w-5 text-[#3B82F6] dark:text-[#2563EB]" />
                                         )}
                                         <div className="flex flex-col">
                                             <span className="text-sm font-medium text-[#0F172A] dark:text-[#E5E7EB]">
@@ -109,7 +109,7 @@ export function TransactionHistory() {
                                         href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom&customUrl=http://localhost:8899`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-1 text-xs text-[#2DD4BF] dark:text-[#22C1AE] hover:text-[#26C8B4] dark:hover:text-[#1EB7A4] transition-colors"
+                                        className="flex items-center gap-1 text-xs text-[#3B82F6] dark:text-[#2563EB] hover:text-[#2563EB] dark:hover:text-[#1D4ED8] transition-colors"
                                     >
                                         {tx.signature.slice(0, 4)}...{tx.signature.slice(-4)}
                                         <ExternalLink className="h-3 w-3" />

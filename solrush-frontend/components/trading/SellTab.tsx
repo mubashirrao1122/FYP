@@ -134,7 +134,7 @@ export function SellTab({ slippageTolerance, onTokenChange }: SellTabProps) {
                             <button
                                 onClick={() => setSellAmount(sellBalance.balance.toString())}
                                 disabled={!publicKey || sellBalance.loading || sellBalance.balance === 0}
-                                className="text-[#8B5CF6] hover:text-[#7C3AED] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="text-[#3B82F6] hover:text-[#2563EB] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Max
                             </button>
@@ -173,7 +173,7 @@ export function SellTab({ slippageTolerance, onTokenChange }: SellTabProps) {
                         onClick={handleSwitchTokens}
                         className="rounded-full bg-white dark:bg-[#121826] border border-[#E2E8F0] dark:border-white/10 hover:bg-[#F1F5F9] dark:hover:bg-[#1B2234] transition-all h-11 w-11"
                     >
-                        <ArrowUpDown className="h-5 w-5 text-[#8B5CF6]" />
+                        <ArrowUpDown className="h-5 w-5 text-[#3B82F6]" />
                     </Button>
                 </div>
 
@@ -259,7 +259,7 @@ export function SellTab({ slippageTolerance, onTokenChange }: SellTabProps) {
                         handleSell();
                     }}
                     disabled={(!publicKey || loading || !isAmountValid) && !isSuccess}
-                    className="w-full h-12 text-base bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold rounded-xl transition-all"
+                    className="w-full h-12 text-base bg-[#3B82F6] hover:bg-[#2563EB] text-white font-semibold rounded-xl transition-all"
                     size="lg"
                 >
                     {ctaLabel}

@@ -82,8 +82,10 @@ describe("funding (Phase 3)", () => {
 
   /** Close the position fully. */
   async function closePos() {
+    const pos = await program.account.perpsPosition.fetch(positionPda);
+    const absBase = Math.abs(pos.basePositionI64.toNumber());
     await program.methods
-      .closePerpsPosition()
+      .closePerpsPosition(new anchor.BN(absBase))
       .accounts({
         owner: admin.publicKey,
         global: globalPda,
@@ -109,7 +111,7 @@ describe("funding (Phase 3)", () => {
 
   /** Fetch the position account. */
   async function fetchPosition() {
-    return program.account.perpsPosition.fetch(positionPda);
+    return program.account.perpsUserPosition.fetch(positionPda);
   }
 
   /** Fetch the user account. */
@@ -119,7 +121,7 @@ describe("funding (Phase 3)", () => {
 
   /** Fetch the market account. */
   async function fetchMarket() {
-    return program.account.perpsMarket.fetch(marketPda);
+    return program.account.perpsmarket.fetch(marketPda);
   }
 
   // ── Setup ─────────────────────────────────────────
