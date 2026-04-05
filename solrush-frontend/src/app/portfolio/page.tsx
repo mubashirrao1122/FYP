@@ -3,100 +3,24 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useWallet } from '@solana/wallet-adapter-react';
-import useSWR from 'swr';
+import { formatDistanceToNow } from 'date-fns';
 import {
     TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
     MoreHorizontal, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
     Wallet, PieChart, Zap, Shield, ArrowRight,
-    BarChart3, Layers, Activity, ExternalLink, RefreshCw,
+    BarChart3, Layers, Activity, ExternalLink, RefreshCw, Loader2,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
+import {
+    usePortfolioLive,
+    type LiveHolding,
+    type LivePerpPosition,
+    type LiveLpPosition,
+    type LiveTransaction,
+} from '@/lib/hooks/usePortfolioLive';
+import type { NewsItem } from '@/lib/services/news';
 
-/* ── Types ─────────────────────────────────────────────────── */
-type TokenHolding = {
-    symbol: string;
-    name: string;
-    amount: number;
-    valueUSD: number;
-    price: number;
-    change24h: number;
-    allocation: number;
-    icon: string;
-};
-
-type PerpPosition = {
-    market: string;
-    side: 'LONG' | 'SHORT';
-    size: number;
-    entryPrice: number;
-    markPrice: number;
-    pnl: number;
-    pnlPct: number;
-    leverage: number;
-    liquidationPrice: number;
-};
-
-type LpPosition = {
-    pair: string;
-    tokenA: string;
-    tokenB: string;
-    valueUSD: number;
-    feesEarned: number;
-    apr: number;
-};
-
-type Transaction = {
-    type: 'SWAP' | 'PERP' | 'LP' | 'REWARD';
-    description: string;
-    amount: string;
-    valueUSD: number;
-    time: string;
-    status: 'SUCCESS' | 'PENDING' | 'FAILED';
-    txHash: string;
-};
-
-type NewsItem = {
-    category: string;
-    time: string;
-    title: string;
-    source: string;
-};
-
-/* ── Mock Data ─────────────────────────────────────────────── */
-const MOCK_HOLDINGS: TokenHolding[] = [
-    { symbol: 'SOL', name: 'Solana', amount: 24.5, valueUSD: 3675.0, price: 150.0, change24h: 4.2, allocation: 45, icon: 'https://assets.coingecko.com/coins/images/4128/small/solana.png' },
-    { symbol: 'USDC', name: 'USD Coin', amount: 2000, valueUSD: 2000.0, price: 1.0, change24h: 0.01, allocation: 25, icon: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png' },
-    { symbol: 'ETH', name: 'Ethereum', amount: 0.8, valueUSD: 1520.0, price: 1900.0, change24h: -1.8, allocation: 19, icon: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png' },
-    { symbol: 'BTC', name: 'Bitcoin', amount: 0.025, valueUSD: 915.0, price: 36600.0, change24h: 2.1, allocation: 11, icon: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png' },
-];
-
-const MOCK_PERPS: PerpPosition[] = [
-    { market: 'SOL/USD', side: 'LONG', size: 500, entryPrice: 138.5, markPrice: 150.0, pnl: 57.5, pnlPct: 8.3, leverage: 5, liquidationPrice: 110.8 },
-    { market: 'BTC/USD', side: 'SHORT', size: 200, entryPrice: 38200, markPrice: 36600, pnl: 8.38, pnlPct: 4.2, leverage: 3, liquidationPrice: 42000 },
-];
-
-const MOCK_LP: LpPosition[] = [
-    { pair: 'SOL/USDC', tokenA: 'SOL', tokenB: 'USDC', valueUSD: 1200, feesEarned: 48.5, apr: 24.8 },
-    { pair: 'ETH/SOL', tokenA: 'ETH', tokenB: 'SOL', valueUSD: 850, feesEarned: 21.2, apr: 18.3 },
-];
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-    { type: 'SWAP', description: 'SOL → USDC', amount: '5 SOL', valueUSD: 750, time: '2 min ago', status: 'SUCCESS', txHash: '3xKp...9fQr' },
-    { type: 'PERP', description: 'Opened LONG SOL/USD 5x', amount: '$500', valueUSD: 500, time: '1 hr ago', status: 'SUCCESS', txHash: '7mNt...2hJk' },
-    { type: 'LP', description: 'Added SOL/USDC Liquidity', amount: '$600', valueUSD: 600, time: '3 hrs ago', status: 'SUCCESS', txHash: '9pLq...4wXz' },
-    { type: 'REWARD', description: 'RUSH Rewards Claimed', amount: '125 RUSH', valueUSD: 31.25, time: '1 day ago', status: 'SUCCESS', txHash: '2cRa...8vBn' },
-    { type: 'SWAP', description: 'USDC → ETH', amount: '500 USDC', valueUSD: 500, time: '2 days ago', status: 'SUCCESS', txHash: '6kFw...1mPo' },
-];
-
-const MOCK_NEWS: NewsItem[] = [
-    { category: 'Solana', time: '5 min ago', title: 'Solana DeFi TVL Surpasses $8B as Network Activity Hits All-Time High', source: 'CoinDesk' },
-    { category: 'Markets', time: '32 min ago', title: 'BTC Reclaims $37K Support as Institutional Inflows Accelerate', source: 'The Block' },
-    { category: 'DeFi', time: '1 hr ago', title: 'Perpetual DEX Volume Hits Record $45B in November, Led by Solana Protocols', source: 'DeFiLlama' },
-    { category: 'Regulation', time: '3 hrs ago', title: 'SEC Signals New Framework for Token Classifications in 2025', source: 'Reuters' },
-    { category: 'Solana', time: '5 hrs ago', title: 'Firedancer Validator Client Reaches Beta Milestone on Mainnet Preparations', source: 'Decrypt' },
-];
-
-/* ── Colors & Token Icons ──────────────────────────────────── */
+/* ── Colors ────────────────────────────────────────────────── */
 const ALLOCATION_COLORS = ['#9945FF', '#14F195', '#3B82F6', '#F59E0B', '#EC4899'];
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -110,14 +34,22 @@ function pct(n: number): string {
     return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
 }
 
-const CHAT_API = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://127.0.0.1:8001';
+function timeAgo(isoOrDate: string | Date): string {
+    try {
+        const d = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
+        if (isNaN(d.getTime())) return '—';
+        return formatDistanceToNow(d, { addSuffix: true });
+    } catch {
+        return '—';
+    }
+}
 
-/* ── SWR fetcher ────────────────────────────────────────────── */
-const swrFetcher = async (url: string) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-};
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:8899';
+
+function solscanLink(txHash: string): string {
+    // For localnet, link to the validator explorer
+    return `${RPC_URL.replace('//', '//explorer.')}/tx/${txHash}`;
+}
 
 /* ── Animation Variants ────────────────────────────────────── */
 const containerVariants: Variants = {
@@ -171,14 +103,23 @@ function TokenIcon({ symbol, icon, size = 36 }: { symbol: string; icon?: string;
     );
 }
 
+function EmptyState({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
+    return (
+        <div className="flex flex-col items-center justify-center py-12 text-[#4B5563]">
+            <Icon className="w-10 h-10 mb-3 opacity-40" />
+            <p className="text-[13px]">{label}</p>
+        </div>
+    );
+}
+
 /* ─────────────────────────────────────────────────────────────
    SECTION 1 — Overview Metrics
 ───────────────────────────────────────────────────────────── */
-function OverviewSection({ holdings, lp, perps }: { holdings: TokenHolding[]; lp: LpPosition[]; perps: PerpPosition[] }) {
+function OverviewSection({ holdings, lp, perps }: { holdings: LiveHolding[]; lp: LiveLpPosition[]; perps: LivePerpPosition[] }) {
     const totalPortfolio = holdings.reduce((s, h) => s + h.valueUSD, 0)
         + lp.reduce((s, l) => s + l.valueUSD, 0);
     const totalPnL = perps.reduce((s, p) => s + p.pnl, 0) + lp.reduce((s, l) => s + l.feesEarned, 0);
-    const totalReturn = (totalPnL / totalPortfolio) * 100;
+    const totalReturn = totalPortfolio > 0 ? (totalPnL / totalPortfolio) * 100 : 0;
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     return (
@@ -192,14 +133,14 @@ function OverviewSection({ holdings, lp, perps }: { holdings: TokenHolding[]; lp
                     <div className={`mt-3 flex items-center gap-2 text-sm font-semibold ${totalReturn >= 0 ? 'text-[#14F195]' : 'text-[#F87171]'}`}>
                         {totalReturn >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                         <span>{pct(totalReturn)} Return</span>
-                        <span className="text-[#6B7280] font-normal">(+{fmtUSD(totalPnL)} total gain)</span>
+                        <span className="text-[#6B7280] font-normal">({totalPnL >= 0 ? '+' : ''}{fmtUSD(totalPnL)} total gain)</span>
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-3">
                     <p className="text-[12px] text-[#6B7280]">As of {today}</p>
                     <div className="flex gap-2">
                         <StatBadge label="Spot" value={fmtUSD(holdings.reduce((s, h) => s + h.valueUSD, 0))} positive={true} />
-                        <StatBadge label="LP" value={fmtUSD(lp.reduce((s, l) => s + l.valueUSD, 0))} positive={true} />
+                        <StatBadge label="LP" value={fmtUSD(lp.reduce((s, l) => s + l.valueUSD, 0))} positive={lp.length > 0} />
                     </div>
                 </div>
             </div>
@@ -228,7 +169,7 @@ function OverviewSection({ holdings, lp, perps }: { holdings: TokenHolding[]; lp
 /* ─────────────────────────────────────────────────────────────
    SECTION 2 — Holdings + Allocation (side-by-side)
 ───────────────────────────────────────────────────────────── */
-function HoldingsSection({ holdings, lp }: { holdings: TokenHolding[]; lp: LpPosition[] }) {
+function HoldingsSection({ holdings, lpTotal }: { holdings: LiveHolding[]; lpTotal: number }) {
     const totalValue = holdings.reduce((s, h) => s + h.valueUSD, 0);
 
     return (
@@ -239,38 +180,40 @@ function HoldingsSection({ holdings, lp }: { holdings: TokenHolding[]; lp: LpPos
                     <h3 className="text-base font-bold text-white">Token Holdings</h3>
                     <div className="flex items-center gap-3">
                         <span className="text-[12px] text-[#6B7280] font-medium">Total {fmtUSD(totalValue)}</span>
-                        <button className="p-1.5 rounded-lg border border-white/10 hover:bg-white/5 transition-colors text-[#6B7280] hover:text-white">
-                            <MoreHorizontal className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#14F195]/10 border border-[#14F195]/20">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#14F195] animate-pulse" />
+                            <span className="text-[10px] text-[#14F195] font-bold">LIVE</span>
+                        </div>
                     </div>
                 </div>
 
-                <div className="divide-y divide-white/[0.04]">
-                    {holdings.map((h) => (
-                        <div key={h.symbol} className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.025] transition-colors group">
-                            <div className="flex items-center gap-3">
-                                <TokenIcon symbol={h.symbol} icon={h.icon} size={40} />
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-bold text-white text-[15px]">{h.symbol}</span>
+                {holdings.length === 0 ? (
+                    <EmptyState icon={Wallet} label="No tokens found in wallet" />
+                ) : (
+                    <div className="divide-y divide-white/[0.04]">
+                        {holdings.map((h) => (
+                            <div key={h.symbol} className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.025] transition-colors group">
+                                <div className="flex items-center gap-3">
+                                    <TokenIcon symbol={h.symbol} icon={h.icon} size={40} />
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-white text-[15px]">{h.symbol}</span>
+                                        </div>
+                                        <span className="text-[12px] text-[#6B7280]">{h.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} tokens</span>
                                     </div>
-                                    <span className="text-[12px] text-[#6B7280]">{h.amount.toLocaleString()} tokens</span>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-white text-[15px] tabular-nums">{fmtUSD(h.price)}</p>
+                                    <span className="text-[12px] text-[#6B7280]">mark price</span>
+                                </div>
+                                <div className="ml-6 text-right min-w-[80px]">
+                                    <p className="font-bold text-white tabular-nums">{fmtUSD(h.valueUSD)}</p>
+                                    <p className="text-[12px] text-[#6B7280]">{h.allocation}%</p>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <p className="font-bold text-white text-[15px] tabular-nums">{fmtUSD(h.price)}</p>
-                                <div className={`flex items-center justify-end gap-1 text-[12px] font-semibold ${h.change24h >= 0 ? 'text-[#14F195]' : 'text-[#F87171]'}`}>
-                                    {h.change24h >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                                    {pct(h.change24h)} today
-                                </div>
-                            </div>
-                            <div className="ml-6 text-right min-w-[80px]">
-                                <p className="font-bold text-white tabular-nums">{fmtUSD(h.valueUSD)}</p>
-                                <p className="text-[12px] text-[#6B7280]">{h.allocation}%</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
             </GlassCard>
 
             {/* Donut allocation */}
@@ -289,7 +232,7 @@ function HoldingsSection({ holdings, lp }: { holdings: TokenHolding[]; lp: LpPos
                             animate={{ width: `${h.allocation}%` }}
                             transition={{ delay: i * 0.1, duration: 0.6, ease: 'easeOut' }}
                             className="h-full first:rounded-l-full last:rounded-r-full"
-                            style={{ backgroundColor: ALLOCATION_COLORS[i] }}
+                            style={{ backgroundColor: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length] }}
                         />
                     ))}
                 </div>
@@ -298,7 +241,7 @@ function HoldingsSection({ holdings, lp }: { holdings: TokenHolding[]; lp: LpPos
                     {holdings.map((h, i) => (
                         <div key={h.symbol} className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ALLOCATION_COLORS[i] }} />
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length] }} />
                                 <div className="flex items-center gap-2">
                                     <TokenIcon symbol={h.symbol} icon={h.icon} size={20} />
                                     <span className="text-[13px] font-semibold text-[#D1D5DB]">{h.symbol}</span>
@@ -311,7 +254,7 @@ function HoldingsSection({ holdings, lp }: { holdings: TokenHolding[]; lp: LpPos
                                         animate={{ width: `${h.allocation}%` }}
                                         transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}
                                         className="h-full rounded-full"
-                                        style={{ backgroundColor: ALLOCATION_COLORS[i] }}
+                                        style={{ backgroundColor: ALLOCATION_COLORS[i % ALLOCATION_COLORS.length] }}
                                     />
                                 </div>
                                 <span className="text-[13px] font-bold text-white tabular-nums w-8 text-right">{h.allocation}%</span>
@@ -320,11 +263,11 @@ function HoldingsSection({ holdings, lp }: { holdings: TokenHolding[]; lp: LpPos
                     ))}
                 </div>
 
-                {/* Value breakdown */}
+                {/* Value breakdown — dynamic */}
                 <div className="mt-6 pt-5 border-t border-white/[0.06] space-y-2">
                     {[
-                        { label: 'Spot Holdings', val: fmtUSD(holdings.reduce((s, h) => s + h.valueUSD, 0)), icon: <Wallet className="w-3.5 h-3.5 text-[#9945FF]" /> },
-                        { label: 'LP Positions', val: fmtUSD(lp.reduce((s, l) => s + l.valueUSD, 0)), icon: <Layers className="w-3.5 h-3.5 text-[#14F195]" /> },
+                        { label: 'Spot Holdings', val: fmtUSD(totalValue), icon: <Wallet className="w-3.5 h-3.5 text-[#9945FF]" /> },
+                        { label: 'LP Positions', val: fmtUSD(lpTotal), icon: <Layers className="w-3.5 h-3.5 text-[#14F195]" /> },
                     ].map((row, i) => (
                         <div key={i} className="flex justify-between items-center text-[13px]">
                             <div className="flex items-center gap-2 text-[#6B7280]">
@@ -341,9 +284,9 @@ function HoldingsSection({ holdings, lp }: { holdings: TokenHolding[]; lp: LpPos
 }
 
 /* ─────────────────────────────────────────────────────────────
-   SECTION 3 — Perpetual Positions
+   SECTION 3 — Perpetual Positions  (on-chain via usePerps)
 ───────────────────────────────────────────────────────────── */
-function PerpsSection({ perps }: { perps: PerpPosition[] }) {
+function PerpsSection({ perps }: { perps: LivePerpPosition[] }) {
     return (
         <GlassCard className="overflow-hidden">
             <div className="flex justify-between items-center px-6 py-5 border-b border-white/[0.06]">
@@ -356,66 +299,71 @@ function PerpsSection({ perps }: { perps: PerpPosition[] }) {
                 </span>
             </div>
 
-            <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead>
-                        <tr className="border-b border-white/[0.04]">
-                            {['Market', 'Side', 'Size / Entry', 'Mark Price', 'Liq. Price', 'PnL'].map(h => (
-                                <th key={h} className="px-6 py-3 text-left text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">{h}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.04]">
-                        {perps.map((p, i) => (
-                            <tr key={i} className="hover:bg-white/[0.025] transition-colors">
-                                <td className="px-6 py-4">
-                                    <div className="font-bold text-white text-[14px]">{p.market}</div>
-                                    <div className="text-[11px] text-[#6B7280] mt-0.5">{p.leverage}x Leverage</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-md text-[11px] font-bold border tracking-wider ${p.side === 'LONG'
-                                        ? 'bg-[#14F195]/10 text-[#14F195] border-[#14F195]/30'
-                                        : 'bg-[#F87171]/10 text-[#F87171] border-[#F87171]/30'
-                                        }`}>
-                                        {p.side}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="font-semibold text-white tabular-nums">${p.size.toLocaleString()}</div>
-                                    <div className="text-[12px] text-[#6B7280]">@ ${p.entryPrice.toLocaleString()}</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="font-semibold text-white tabular-nums">${p.markPrice.toLocaleString()}</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="font-semibold text-[#F87171] tabular-nums">${p.liquidationPrice.toLocaleString()}</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className={`font-bold text-[15px] tabular-nums ${p.pnl >= 0 ? 'text-[#14F195]' : 'text-[#F87171]'}`}>
-                                        {p.pnl >= 0 ? '+' : ''}{fmtUSD(p.pnl)}
-                                    </div>
-                                    <div className={`flex items-center gap-1 text-[12px] font-semibold ${p.pnlPct >= 0 ? 'text-[#14F195]' : 'text-[#F87171]'}`}>
-                                        {p.pnlPct >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                                        {pct(p.pnlPct)}
-                                    </div>
-                                </td>
+            {perps.length === 0 ? (
+                <EmptyState icon={BarChart3} label="No open perpetual positions" />
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b border-white/[0.04]">
+                                {['Market', 'Side', 'Size / Entry', 'Mark Price', 'Liq. Price', 'PnL'].map(h => (
+                                    <th key={h} className="px-6 py-3 text-left text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">{h}</th>
+                                ))}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody className="divide-y divide-white/[0.04]">
+                            {perps.map((p, i) => (
+                                <tr key={i} className="hover:bg-white/[0.025] transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="font-bold text-white text-[14px]">{p.market}</div>
+                                        <div className="text-[11px] text-[#6B7280] mt-0.5">{p.leverage}x Leverage</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-3 py-1 rounded-md text-[11px] font-bold border tracking-wider ${p.side === 'LONG'
+                                            ? 'bg-[#14F195]/10 text-[#14F195] border-[#14F195]/30'
+                                            : 'bg-[#F87171]/10 text-[#F87171] border-[#F87171]/30'
+                                            }`}>
+                                            {p.side}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="font-semibold text-white tabular-nums">{fmtUSD(p.size)}</div>
+                                        <div className="text-[12px] text-[#6B7280]">@ {fmtUSD(p.entryPrice)}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="font-semibold text-white tabular-nums">{fmtUSD(p.markPrice)}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="font-semibold text-[#F87171] tabular-nums">{fmtUSD(p.liquidationPrice)}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className={`font-bold text-[15px] tabular-nums ${p.pnl >= 0 ? 'text-[#14F195]' : 'text-[#F87171]'}`}>
+                                            {p.pnl >= 0 ? '+' : ''}{fmtUSD(p.pnl)}
+                                        </div>
+                                        <div className={`flex items-center gap-1 text-[12px] font-semibold ${p.pnlPct >= 0 ? 'text-[#14F195]' : 'text-[#F87171]'}`}>
+                                            {p.pnlPct >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                                            {pct(p.pnlPct)}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </GlassCard>
     );
 }
 
 /* ─────────────────────────────────────────────────────────────
-   SECTION 4 — LP Positions
+   SECTION 4 — LP Positions  (on-chain via usePortfolioLive)
 ───────────────────────────────────────────────────────────── */
-function LpSection({ lp }: { lp: LpPosition[] }) {
+function LpSection({ lp, onRefresh, refreshing }: { lp: LiveLpPosition[]; onRefresh: () => void; refreshing: boolean }) {
     const tokenIcons: Record<string, string> = {
         SOL: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
         USDC: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png',
-        ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+        USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+        WETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
     };
 
     return (
@@ -425,63 +373,78 @@ function LpSection({ lp }: { lp: LpPosition[] }) {
                     <h3 className="text-base font-bold text-white">Liquidity Positions</h3>
                     <p className="text-[12px] text-[#6B7280] mt-0.5">Earn fees by providing liquidity to trading pairs</p>
                 </div>
-                <button className="flex items-center gap-2 text-[12px] font-semibold text-[#14F195] hover:text-white transition-colors border border-[#14F195]/25 hover:border-white/20 px-3 py-1.5 rounded-lg">
-                    <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                <button
+                    onClick={onRefresh}
+                    disabled={refreshing}
+                    className="flex items-center gap-2 text-[12px] font-semibold text-[#14F195] hover:text-white transition-colors border border-[#14F195]/25 hover:border-white/20 px-3 py-1.5 rounded-lg disabled:opacity-50"
+                >
+                    <motion.div animate={refreshing ? { rotate: 360 } : { rotate: 0 }} transition={refreshing ? { repeat: Infinity, duration: 0.8, ease: 'linear' } : {}}>
+                        <RefreshCw className="w-3.5 h-3.5" />
+                    </motion.div>
+                    {refreshing ? 'Refreshing…' : 'Refresh'}
                 </button>
             </div>
 
-            <div className="divide-y divide-white/[0.04]">
-                {lp.map((lpItem, i) => (
-                    <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-5 hover:bg-white/[0.025] transition-colors gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="flex -space-x-2">
-                                <TokenIcon symbol={lpItem.tokenA} icon={tokenIcons[lpItem.tokenA]} size={36} />
-                                <TokenIcon symbol={lpItem.tokenB} icon={tokenIcons[lpItem.tokenB]} size={36} />
+            {lp.length === 0 ? (
+                <EmptyState icon={Layers} label="No active liquidity positions" />
+            ) : (
+                <div className="divide-y divide-white/[0.04]">
+                    {lp.map((lpItem, i) => (
+                        <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-5 hover:bg-white/[0.025] transition-colors gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="flex -space-x-2">
+                                    <TokenIcon symbol={lpItem.tokenA} icon={tokenIcons[lpItem.tokenA]} size={36} />
+                                    <TokenIcon symbol={lpItem.tokenB} icon={tokenIcons[lpItem.tokenB]} size={36} />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-white text-[15px]">{lpItem.pair}</div>
+                                    <div className="text-[12px] text-[#6B7280] mt-0.5">Liquidity Pool</div>
+                                </div>
                             </div>
-                            <div>
-                                <div className="font-bold text-white text-[15px]">{lpItem.pair}</div>
-                                <div className="text-[12px] text-[#6B7280] mt-0.5">Liquidity Pool</div>
+                            <div className="flex flex-wrap gap-6 sm:gap-10">
+                                <div>
+                                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Value</div>
+                                    <div className="font-bold text-white tabular-nums">{fmtUSD(lpItem.valueUSD)}</div>
+                                </div>
+                                <div>
+                                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Fees Earned</div>
+                                    <div className="font-bold text-[#14F195] tabular-nums">+{fmtUSD(lpItem.feesEarned)}</div>
+                                </div>
+                                <div>
+                                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">APR</div>
+                                    <div className="font-bold text-[#9945FF] tabular-nums">{lpItem.apr.toFixed(1)}%</div>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex flex-wrap gap-6 sm:gap-10">
-                            <div>
-                                <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Value</div>
-                                <div className="font-bold text-white tabular-nums">{fmtUSD(lpItem.valueUSD)}</div>
-                            </div>
-                            <div>
-                                <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Fees Earned</div>
-                                <div className="font-bold text-[#14F195] tabular-nums">+{fmtUSD(lpItem.feesEarned)}</div>
-                            </div>
-                            <div>
-                                <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">APR</div>
-                                <div className="font-bold text-[#9945FF] tabular-nums">{lpItem.apr}%</div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </GlassCard>
     );
 }
 
 /* ─────────────────────────────────────────────────────────────
-   SECTION 5 — Transaction History + Related News
+   SECTION 5 — Transaction History + Market News
 ───────────────────────────────────────────────────────────── */
-function ActivitySection({ transactions }: { transactions: Transaction[] }) {
+function ActivitySection({ transactions, news }: { transactions: LiveTransaction[]; news: NewsItem[] }) {
     const [newsPage, setNewsPage] = useState(0);
     const newsPerPage = 3;
-    const visibleNews = MOCK_NEWS.slice(newsPage * newsPerPage, newsPage * newsPerPage + newsPerPage);
+    const visibleNews = news.slice(newsPage * newsPerPage, newsPage * newsPerPage + newsPerPage);
 
     const TYPE_STYLES: Record<string, string> = {
         SWAP: 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/25',
         PERP: 'bg-[#9945FF]/10 text-[#9945FF] border-[#9945FF]/25',
+        PERP_OPEN: 'bg-[#9945FF]/10 text-[#9945FF] border-[#9945FF]/25',
+        PERP_CLOSE: 'bg-[#9945FF]/10 text-[#9945FF] border-[#9945FF]/25',
         LP: 'bg-[#14F195]/10 text-[#14F195] border-[#14F195]/25',
+        LP_ADD: 'bg-[#14F195]/10 text-[#14F195] border-[#14F195]/25',
+        LP_REMOVE: 'bg-[#14F195]/10 text-[#14F195] border-[#14F195]/25',
         REWARD: 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/25',
     };
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Transaction History */}
+            {/* Transaction History — from DB */}
             <GlassCard className="overflow-hidden">
                 <div className="flex justify-between items-center px-6 py-5 border-b border-white/[0.06]">
                     <h3 className="text-base font-bold text-white">Recent Activity</h3>
@@ -490,33 +453,46 @@ function ActivitySection({ transactions }: { transactions: Transaction[] }) {
                     </button>
                 </div>
 
-                <div className="divide-y divide-white/[0.04]">
-                    {transactions.map((tx, i) => (
-                        <div key={i} className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.025] transition-colors">
-                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border tracking-wider shrink-0 ${TYPE_STYLES[tx.type]}`}>
-                                {tx.type}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-[#D1D5DB] text-[13px] truncate">{tx.description}</div>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-[11px] text-[#6B7280]">{tx.time}</span>
-                                    <span className="text-[11px] text-[#4B5563]">·</span>
-                                    <span className="text-[11px] font-mono text-[#4B5563]">{tx.txHash}</span>
+                {transactions.length === 0 ? (
+                    <EmptyState icon={Activity} label="No recent activity" />
+                ) : (
+                    <div className="divide-y divide-white/[0.04]">
+                        {transactions.map((tx, i) => (
+                            <div key={i} className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.025] transition-colors">
+                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border tracking-wider shrink-0 ${TYPE_STYLES[tx.type] ?? TYPE_STYLES.SWAP}`}>
+                                    {tx.type}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-semibold text-[#D1D5DB] text-[13px] truncate">{tx.description}</div>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-[11px] text-[#6B7280]">{timeAgo(tx.time)}</span>
+                                        <span className="text-[11px] text-[#4B5563]">·</span>
+                                        <span className="text-[11px] font-mono text-[#4B5563]">
+                                            {tx.txHash ? `${tx.txHash.slice(0, 4)}…${tx.txHash.slice(-4)}` : '—'}
+                                        </span>
+                                    </div>
                                 </div>
+                                <div className="text-right shrink-0">
+                                    <div className="text-[13px] font-semibold text-white">{tx.amount}</div>
+                                    <div className="text-[11px] text-[#6B7280] tabular-nums">{fmtUSD(tx.valueUSD)}</div>
+                                </div>
+                                {tx.fullTxHash && (
+                                    <a
+                                        href={solscanLink(tx.fullTxHash)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[#4B5563] hover:text-[#9CA3AF] transition-colors shrink-0"
+                                    >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                )}
                             </div>
-                            <div className="text-right shrink-0">
-                                <div className="text-[13px] font-semibold text-white">{tx.amount}</div>
-                                <div className="text-[11px] text-[#6B7280] tabular-nums">{fmtUSD(tx.valueUSD)}</div>
-                            </div>
-                            <button className="text-[#4B5563] hover:text-[#9CA3AF] transition-colors shrink-0">
-                                <ExternalLink className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
             </GlassCard>
 
-            {/* Related News */}
+            {/* Market News — external feed */}
             <GlassCard className="overflow-hidden">
                 <div className="flex justify-between items-center px-6 py-5 border-b border-white/[0.06]">
                     <h3 className="text-base font-bold text-white">Market News</h3>
@@ -529,8 +505,8 @@ function ActivitySection({ transactions }: { transactions: Transaction[] }) {
                             <ChevronLeft className="w-4 h-4" />
                         </button>
                         <button
-                            onClick={() => setNewsPage(p => (p + 1) * newsPerPage < MOCK_NEWS.length ? p + 1 : p)}
-                            disabled={(newsPage + 1) * newsPerPage >= MOCK_NEWS.length}
+                            onClick={() => setNewsPage(p => (p + 1) * newsPerPage < news.length ? p + 1 : p)}
+                            disabled={(newsPage + 1) * newsPerPage >= news.length}
                             className="p-1.5 rounded-lg border border-white/10 hover:bg-white/5 text-[#6B7280] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             <ChevronRight className="w-4 h-4" />
@@ -538,32 +514,41 @@ function ActivitySection({ transactions }: { transactions: Transaction[] }) {
                     </div>
                 </div>
 
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={newsPage}
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className="divide-y divide-white/[0.04]"
-                    >
-                        {visibleNews.map((article, i) => (
-                            <div key={i} className="px-6 py-4 hover:bg-white/[0.025] transition-colors group">
-                                <div className="flex items-center gap-2 text-[11px] text-[#6B7280] mb-2">
-                                    <span className="text-[#9945FF] font-semibold">{article.category}</span>
-                                    <span>·</span>
-                                    <span>{article.time}</span>
+                {news.length === 0 ? (
+                    <EmptyState icon={ArrowRight} label="Loading news…" />
+                ) : (
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={newsPage}
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="divide-y divide-white/[0.04]"
+                        >
+                            {visibleNews.map((article, i) => (
+                                <div key={i} className="px-6 py-4 hover:bg-white/[0.025] transition-colors group">
+                                    <div className="flex items-center gap-2 text-[11px] text-[#6B7280] mb-2">
+                                        <span className="text-[#9945FF] font-semibold">{article.category}</span>
+                                        <span>·</span>
+                                        <span>{timeAgo(article.publishedAt)}</span>
+                                    </div>
+                                    <p className="font-semibold text-[13px] text-[#D1D5DB] leading-snug mb-3 line-clamp-2 group-hover:text-white transition-colors">
+                                        {article.title}
+                                    </p>
+                                    <a
+                                        href={article.url !== '#' ? article.url : undefined}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center text-[12px] font-semibold text-[#6B7280] hover:text-[#14F195] transition-colors"
+                                    >
+                                        {article.source} <ArrowRight className="ml-1 w-3 h-3" />
+                                    </a>
                                 </div>
-                                <p className="font-semibold text-[13px] text-[#D1D5DB] leading-snug mb-3 line-clamp-2 group-hover:text-white transition-colors">
-                                    {article.title}
-                                </p>
-                                <a href="#" className="flex items-center text-[12px] font-semibold text-[#6B7280] hover:text-[#14F195] transition-colors">
-                                    {article.source} <ArrowRight className="ml-1 w-3 h-3" />
-                                </a>
-                            </div>
-                        ))}
-                    </motion.div>
-                </AnimatePresence>
+                            ))}
+                        </motion.div>
+                    </AnimatePresence>
+                )}
             </GlassCard>
         </div>
     );
@@ -574,64 +559,22 @@ function ActivitySection({ transactions }: { transactions: Transaction[] }) {
    ═══════════════════════════════════════════════════════ */
 export default function PortfolioPage() {
     const { publicKey } = useWallet();
-    const walletStr = publicKey?.toString() ?? null;
 
-    const swrKey = walletStr ? `${CHAT_API}/api/portfolio/${walletStr}` : null;
-    const { data: apiData, error: swrError, isLoading: apiLoading, mutate: refetch } = useSWR(swrKey, swrFetcher, {
-        refreshInterval: 30_000,
-        revalidateOnFocus: false,
-        shouldRetryOnError: false,
-    });
-    const apiError = swrError ? `Backend offline or DB not running: ${swrError.message}` : null;
+    const {
+        holdings,
+        perpPositions,
+        lpPositions,
+        transactions,
+        news,
+        spotTotal,
+        lpTotal,
+        loading,
+        lpLoading,
+        refreshAll,
+        refreshLp,
+    } = usePortfolioLive();
 
-    // ── Derive display data from API response, falling back to mocks ──
-    const holdings = useMemo<TokenHolding[]>(() => {
-        // The backend doesn't return token holdings (those come from on-chain).
-        // Keep mock for now; a future enhancement can merge on-chain balances.
-        return MOCK_HOLDINGS;
-    }, []);
-
-    const perps = useMemo<PerpPosition[]>(() => {
-        if (!apiData?.open_positions?.length) return MOCK_PERPS;
-        return apiData.open_positions.map((p: any) => ({
-            market: p.market ?? 'SOL/USD',
-            side: (p.side ?? 'LONG').toUpperCase() as 'LONG' | 'SHORT',
-            size: p.size_usd ?? 0,
-            entryPrice: p.entry_price ?? 0,
-            markPrice: p.entry_price ?? 0, // mark price not stored in DB; use entry as placeholder
-            pnl: p.realized_pnl ?? 0,
-            pnlPct: p.entry_price ? ((p.realized_pnl ?? 0) / (p.size_usd ?? 1)) * 100 : 0,
-            leverage: p.leverage ?? 1,
-            liquidationPrice: p.liquidation_price ?? 0,
-        }));
-    }, [apiData]);
-
-    const lpPositions = useMemo<LpPosition[]>(() => {
-        if (!apiData?.active_lp_positions?.length) return MOCK_LP;
-        return apiData.active_lp_positions.map((lp: any) => ({
-            pair: lp.pool_pair ?? '',
-            tokenA: lp.token_a ?? '',
-            tokenB: lp.token_b ?? '',
-            valueUSD: lp.value_usd ?? 0,
-            feesEarned: lp.fees_earned_usd ?? 0,
-            apr: lp.apr ?? 0,
-        }));
-    }, [apiData]);
-
-    const transactions = useMemo<Transaction[]>(() => {
-        if (!apiData?.recent_trades?.length) return MOCK_TRANSACTIONS;
-        return apiData.recent_trades.map((t: any) => ({
-            type: (t.type ?? 'SWAP') as Transaction['type'],
-            description: t.description ?? `${t.token_in ?? ''} → ${t.token_out ?? ''}`,
-            amount: t.amount_in ? `${t.amount_in} ${t.token_in ?? ''}` : `$${t.value_usd ?? 0}`,
-            valueUSD: t.value_usd ?? 0,
-            time: t.created_at ? new Date(t.created_at).toLocaleString() : '—',
-            status: (t.status ?? 'SUCCESS') as Transaction['status'],
-            txHash: t.tx_hash ? `${String(t.tx_hash).slice(0, 4)}...${String(t.tx_hash).slice(-4)}` : '—',
-        }));
-    }, [apiData]);
-
-    const isLive = !!apiData && !swrError;
+    const hasData = holdings.length > 0 || perpPositions.length > 0 || lpPositions.length > 0;
 
     return (
         <div className="min-h-screen bg-[#0B1220] relative overflow-hidden">
@@ -663,18 +606,20 @@ export default function PortfolioPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        {isLive && (
+                        {publicKey && (
                             <button
-                                onClick={() => refetch()}
-                                className="flex items-center gap-2 text-[12px] font-semibold text-[#14F195] border border-[#14F195]/25 px-3 py-1.5 rounded-xl hover:bg-[#14F195]/5 transition-all"
+                                onClick={refreshAll}
+                                disabled={loading}
+                                className="flex items-center gap-2 text-[12px] font-semibold text-[#14F195] border border-[#14F195]/25 px-3 py-1.5 rounded-xl hover:bg-[#14F195]/5 transition-all disabled:opacity-50"
                             >
-                                <Activity className="w-3.5 h-3.5" /> Refresh
+                                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
+                                Refresh
                             </button>
                         )}
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${isLive ? 'bg-[#14F195]/10 border-[#14F195]/20' : 'bg-[#F59E0B]/10 border-[#F59E0B]/20'}`}>
-                            <div className={`w-2 h-2 rounded-full animate-pulse ${isLive ? 'bg-[#14F195] shadow-[0_0_8px_rgba(20,241,149,0.8)]' : 'bg-[#F59E0B] shadow-[0_0_8px_rgba(245,158,11,0.8)]'}`} />
-                            <span className={`text-[11px] font-bold tracking-wider uppercase ${isLive ? 'text-[#14F195]' : 'text-[#F59E0B]'}`}>
-                                {isLive ? 'DB Live' : apiLoading ? 'Connecting…' : 'Mock Data'}
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${publicKey ? 'bg-[#14F195]/10 border-[#14F195]/20' : 'bg-[#F59E0B]/10 border-[#F59E0B]/20'}`}>
+                            <div className={`w-2 h-2 rounded-full animate-pulse ${publicKey ? 'bg-[#14F195] shadow-[0_0_8px_rgba(20,241,149,0.8)]' : 'bg-[#F59E0B] shadow-[0_0_8px_rgba(245,158,11,0.8)]'}`} />
+                            <span className={`text-[11px] font-bold tracking-wider uppercase ${publicKey ? 'text-[#14F195]' : 'text-[#F59E0B]'}`}>
+                                {publicKey ? (loading ? 'Syncing…' : 'On-chain') : 'Not Connected'}
                             </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280] border border-white/10 px-3 py-1.5 rounded-full">
@@ -683,13 +628,6 @@ export default function PortfolioPage() {
                         </div>
                     </div>
                 </motion.div>
-
-                {/* API error banner (non-blocking — still shows mock data) */}
-                {apiError && publicKey && (
-                    <div className="mb-4 px-4 py-3 rounded-xl border border-[#F59E0B]/25 bg-[#F59E0B]/5 text-[#F59E0B] text-[12px] flex items-center gap-2">
-                        <span className="font-bold">⚠ DB Warning:</span> {apiError} — showing demo data.
-                    </div>
-                )}
 
                 {/* Not connected */}
                 {!publicKey ? (
@@ -708,7 +646,6 @@ export default function PortfolioPage() {
                         <div className="flex justify-center">
                             <button
                                 onClick={() => {
-                                    // Trigger the wallet button in the Navbar
                                     const walletBtn = document.querySelector<HTMLButtonElement>('.wallet-adapter-button');
                                     walletBtn?.click();
                                 }}
@@ -725,11 +662,11 @@ export default function PortfolioPage() {
                         animate="visible"
                         className="space-y-6"
                     >
-                        <OverviewSection holdings={holdings} lp={lpPositions} perps={perps} />
-                        <HoldingsSection holdings={holdings} lp={lpPositions} />
-                        <PerpsSection perps={perps} />
-                        <LpSection lp={lpPositions} />
-                        <ActivitySection transactions={transactions} />
+                        <OverviewSection holdings={holdings} lp={lpPositions} perps={perpPositions} />
+                        <HoldingsSection holdings={holdings} lpTotal={lpTotal} />
+                        <PerpsSection perps={perpPositions} />
+                        <LpSection lp={lpPositions} onRefresh={refreshLp} refreshing={lpLoading} />
+                        <ActivitySection transactions={transactions} news={news} />
                     </motion.div>
                 )}
             </main>
