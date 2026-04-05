@@ -143,10 +143,26 @@ export function usePerpsTrading(): UsePerpsTrading {
         if (simResult.value.err) {
           console.error('Simulation failed:', simResult.value.err);
           console.error('Simulation logs:', simResult.value.logs);
-          const errMsg = simResult.value.logs?.find(
-            (l: string) => l.includes('Error Number:') || l.includes('Error Message:') || l.includes('custom program error')
+          const logs = simResult.value.logs || [];
+          const errLog = logs.find(
+            (l: string) => l.includes('Error Message:') || l.includes('Error Number:') || l.includes('custom program error')
           );
-          throw new Error(errMsg || `Transaction simulation failed: ${JSON.stringify(simResult.value.err)}`);
+
+          // Map known program errors to user-friendly messages
+          let userMessage: string;
+          const joined = logs.join(' ');
+          if (joined.includes('InsufficientCollateral')) {
+            userMessage = 'Insufficient collateral — deposit more USDC before opening a position.';
+          } else if (joined.includes('InsufficientMargin')) {
+            userMessage = 'Insufficient margin for this position size and leverage.';
+          } else if (joined.includes('InvalidAmount')) {
+            userMessage = 'Invalid trade size. Please enter a valid amount.';
+          } else if (joined.includes('InvalidLeverage')) {
+            userMessage = 'Leverage is outside the allowed range for this market.';
+          } else {
+            userMessage = errLog || `Transaction simulation failed: ${JSON.stringify(simResult.value.err)}`;
+          }
+          throw new Error(userMessage);
         }
 
         const sig = await sendTransaction(tx, connection, {

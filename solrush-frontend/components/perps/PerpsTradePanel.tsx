@@ -146,8 +146,11 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
     notional && market && market.fundingRate !== null ? (notional * market.fundingRate) / 100 : null;
   const availableBalance = publicKey ? onChainCollateral : null;
 
-  const needsDeposit = publicKey && estimatedMargin !== null && !hasEnoughCollateral(estimatedMargin);
   const hasNoCollateral = publicKey && onChainCollateral === 0;
+  const needsDeposit = publicKey && (
+    hasNoCollateral ||
+    (estimatedMargin !== null && !hasEnoughCollateral(estimatedMargin))
+  );
 
   const isFormValid = Boolean(market && hasSize && hasLimitPrice);
   const isReady = tradeState.state === 'ready';
@@ -160,7 +163,7 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
       : !isFormValid
         ? 'Enter Size'
         : needsDeposit
-          ? 'Deposit USDC'
+          ? hasNoCollateral ? 'Deposit USDC to Trade' : 'Deposit More USDC'
           : tradeState.state === 'quoting'
             ? 'Quoting…'
             : tradeState.state === 'submitting'
@@ -188,7 +191,7 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
 
   const handleSubmit = () => {
     if (!publicKey) return;
-    if (needsDeposit) {
+    if (needsDeposit || hasNoCollateral) {
       setShowDepositModal(true);
       return;
     }
@@ -198,6 +201,15 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
 
   const confirmSubmit = async () => {
     if (!publicKey || !isReady || !market) return;
+
+    // Re-check collateral right before submission
+    if (needsDeposit || hasNoCollateral) {
+      setShowReview(false);
+      setShowDepositModal(true);
+      dispatch({ type: 'SUBMIT_ERROR', message: 'Insufficient collateral — please deposit USDC first.' });
+      return;
+    }
+
     dispatch({ type: 'SUBMIT' });
     try {
       const sig = await onChainOpen({

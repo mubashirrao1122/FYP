@@ -1,0 +1,139 @@
+"""
+Portfolio advice tools for the SolRush AI chatbot.
+Generates allocation recommendations based on risk tolerance and market conditions.
+"""
+
+from langchain_core.tools import tool
+from tools.price_tools import get_token_price
+from tools.analysis_tools import analyze_token
+
+
+# FIX: Restricted to tokens deployed on the local Solana validator (setup-localnet.ts).
+# Recommending BTC/ETH/AVAX/LINK would hallucinate — those mints don't exist on localnet.
+PORTFOLIO_TOKENS = ["SOL", "USDC", "USDT", "WETH", "RUSH"]
+
+
+@tool
+def suggest_portfolio(amount: float, risk_tolerance: str = "medium") -> dict:
+    """Suggest a cryptocurrency portfolio allocation based on investment amount and risk tolerance.
+    
+    Analyzes multiple tokens and creates a diversified allocation based on:
+    - Current market conditions and technical signals
+    - Risk tolerance (conservative, medium, aggressive)
+    - Market cap and liquidity considerations
+    
+    Args:
+        amount: Total investment amount in USD (e.g., 1000)
+        risk_tolerance: One of 'conservative', 'medium', 'aggressive'. Default 'medium'.
+    
+    Returns:
+        Dictionary with recommended allocations, reasoning, and risk assessment.
+    """
+    risk_tolerance = risk_tolerance.lower().strip()
+    if risk_tolerance not in ("conservative", "medium", "aggressive"):
+        risk_tolerance = "medium"
+
+    # Analyze top tokens
+    analyses = {}
+    prices = {}
+    for token in PORTFOLIO_TOKENS:
+        try:
+            analysis = analyze_token.invoke({"token": token})
+            price_data = get_token_price.invoke({"token": token})
+            if "error" not in analysis and "error" not in price_data:
+                analyses[token] = analysis
+                prices[token] = price_data
+        except Exception:
+            continue
+
+    if not analyses:
+        return {"error": "Could not fetch market data. Please try again later."}
+
+    # Base allocation templates by risk level.
+    # FIX: Only use tokens available on the SolRush localnet deployment.
+    # Conservative: stablecoin-heavy (USDC/USDT) for capital preservation.
+    # Medium: balanced SOL exposure with stablecoin anchor.
+    # Aggressive: maximum SOL + WETH + RUSH upside potential.
+    base_allocations = {
+        "conservative": {
+            "USDC": 40, "USDT": 30, "SOL": 20, "WETH": 8, "RUSH": 2,
+        },
+        "medium": {
+            "SOL": 35, "USDC": 20, "USDT": 15, "WETH": 20, "RUSH": 10,
+        },
+        "aggressive": {
+            "SOL": 40, "RUSH": 25, "WETH": 25, "USDC": 7, "USDT": 3,
+        },
+    }
+
+    base = base_allocations[risk_tolerance]
+
+    # Adjust allocations based on analysis signals
+    adjustments = {}
+    for token, analysis in analyses.items():
+        signal = analysis.get("analysis", {}).get("signal", "HOLD")
+        if signal in ("BUY",):
+            adjustments[token] = 5  # boost by 5%
+        elif signal in ("WEAK BUY",):
+            adjustments[token] = 2
+        elif signal in ("SELL",):
+            adjustments[token] = -5
+        elif signal in ("WEAK SELL",):
+            adjustments[token] = -2
+        else:
+            adjustments[token] = 0
+
+    # Apply adjustments
+    adjusted = {}
+    for token in PORTFOLIO_TOKENS:
+        adj = adjustments.get(token, 0)
+        pct = base.get(token, 0) + adj
+        adjusted[token] = max(pct, 5)  # minimum 5% per token
+
+    # Normalize to 100%
+    total = sum(adjusted.values())
+    for token in adjusted:
+        adjusted[token] = round((adjusted[token] / total) * 100, 1)
+
+    # Build final allocations
+    allocations = []
+    for token in PORTFOLIO_TOKENS:
+        if token not in adjusted or token not in analyses:
+            continue
+        pct = adjusted[token]
+        usd_amount = round(amount * pct / 100, 2)
+        analysis = analyses[token]
+        price = prices.get(token, {})
+        
+        allocations.append({
+            "token": token,
+            "name": price.get("name", token),
+            "allocation_pct": pct,
+            "usd_amount": usd_amount,
+            "current_price": price.get("current_price"),
+            "estimated_tokens": round(usd_amount / price["current_price"], 6) if price.get("current_price") else None,
+            "signal": analysis.get("analysis", {}).get("signal", "HOLD"),
+            "trend": analysis.get("analysis", {}).get("trend", "NEUTRAL"),
+            "reasoning": f"{analysis.get('analysis', {}).get('signal', 'HOLD')} signal — RSI: {analysis.get('indicators', {}).get('rsi_14', 'N/A')}, {analysis.get('analysis', {}).get('trend', 'NEUTRAL')} trend",
+        })
+
+    # Sort by allocation
+    allocations.sort(key=lambda x: x["allocation_pct"], reverse=True)
+
+    # Risk assessment
+    if risk_tolerance == "conservative":
+        risk_note = "This portfolio emphasizes stablecoin holdings (USDC/USDT heavy) for capital preservation, with a small SOL and WETH position for upside."
+    elif risk_tolerance == "aggressive":
+        risk_note = "This portfolio tilts toward high-beta Solana ecosystem assets (SOL/RUSH/WETH heavy). Higher upside potential but significantly more volatile."
+    else:
+        risk_note = "This is a balanced portfolio mixing SOL liquidity with stablecoin anchor tokens and moderate WETH/RUSH exposure."
+
+    return {
+        "total_investment": amount,
+        "risk_tolerance": risk_tolerance,
+        "allocations": allocations,
+        "risk_assessment": risk_note,
+        "rebalance_suggestion": "Review and rebalance monthly or when any position drifts >10% from target.",
+        "disclaimer": "This is algorithmic analysis for educational purposes, not financial advice. Always do your own research (DYOR).",
+        "source": "CoinGecko + Technical Analysis",
+    }
