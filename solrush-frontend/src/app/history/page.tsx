@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeftRight, TrendingUp, TrendingDown, Layers,
     Zap, ExternalLink, RefreshCw, Wallet, Clock,
-    ChevronDown, Filter,
+    ChevronDown, Filter, BarChart3, DollarSign, Receipt, Activity,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
+import { HealthStatCard } from '@/components/ui/health-stat-card';
 
 const CHAT_API = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://127.0.0.1:8001';
 
@@ -27,13 +28,13 @@ type Trade = {
     created_at: string;
 };
 
-const TYPE_CONFIG: Record<string, { label: string; color: string; border: string; icon: React.ReactNode }> = {
-    SWAP:       { label: 'Swap',       color: 'text-[#3B82F6]', border: 'border-[#3B82F6]/30 bg-[#3B82F6]/10', icon: <ArrowLeftRight className="w-3.5 h-3.5" /> },
-    PERP_OPEN:  { label: 'Perp Open',  color: 'text-[#9945FF]', border: 'border-[#9945FF]/30 bg-[#9945FF]/10', icon: <TrendingUp className="w-3.5 h-3.5" />     },
-    PERP_CLOSE: { label: 'Perp Close', color: 'text-[#F87171]', border: 'border-[#F87171]/30 bg-[#F87171]/10', icon: <TrendingDown className="w-3.5 h-3.5" />    },
-    LP_ADD:     { label: 'LP Add',     color: 'text-[#14F195]', border: 'border-[#14F195]/30 bg-[#14F195]/10', icon: <Layers className="w-3.5 h-3.5" />          },
-    LP_REMOVE:  { label: 'LP Remove',  color: 'text-[#F59E0B]', border: 'border-[#F59E0B]/30 bg-[#F59E0B]/10', icon: <Layers className="w-3.5 h-3.5" />          },
-    REWARD:     { label: 'Reward',     color: 'text-[#F59E0B]', border: 'border-[#F59E0B]/30 bg-[#F59E0B]/10', icon: <Zap className="w-3.5 h-3.5" />             },
+const TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode }> = {
+    SWAP:       { label: 'Swap',       icon: <ArrowLeftRight className="w-3.5 h-3.5" /> },
+    PERP_OPEN:  { label: 'Perp Open',  icon: <TrendingUp className="w-3.5 h-3.5" />   },
+    PERP_CLOSE: { label: 'Perp Close', icon: <TrendingDown className="w-3.5 h-3.5" />  },
+    LP_ADD:     { label: 'LP Add',     icon: <Layers className="w-3.5 h-3.5" />        },
+    LP_REMOVE:  { label: 'LP Remove',  icon: <Layers className="w-3.5 h-3.5" />        },
+    REWARD:     { label: 'Reward',     icon: <Zap className="w-3.5 h-3.5" />           },
 };
 
 function fmtUSD(n: number | null): string {
@@ -79,6 +80,40 @@ export default function HistoryPage() {
 
     const filtered = filter === 'ALL' ? trades : trades.filter(t => t.type === filter);
     const allTypes = ['ALL', ...Array.from(new Set(trades.map(t => t.type)))];
+
+    /* ── Derived stats for cards ───────────────────────────── */
+    const totalVolume = useMemo(() => trades.reduce((s, t) => s + (t.value_usd || 0), 0), [trades]);
+    const totalFees = useMemo(() => trades.reduce((s, t) => s + (t.fee_usd || 0), 0), [trades]);
+
+    const typeCounts = useMemo(() => {
+        const counts: Record<string, number> = {};
+        trades.forEach(t => { counts[t.type] = (counts[t.type] || 0) + 1; });
+        return counts;
+    }, [trades]);
+
+    const typeVolumes = useMemo(() => {
+        const vols: Record<string, number> = {};
+        trades.forEach(t => { vols[t.type] = (vols[t.type] || 0) + (t.value_usd || 0); });
+        return vols;
+    }, [trades]);
+
+    const tradeDistribution = useMemo(() => {
+        const total = trades.length || 1;
+        return Object.entries(typeCounts).map(([type, count]) => ({
+            label: TYPE_CONFIG[type]?.label || type,
+            value: (count / total) * 100,
+            tooltip: `${count} trades (${((count / total) * 100).toFixed(1)}%)`,
+        }));
+    }, [typeCounts, trades.length]);
+
+    const volumeDistribution = useMemo(() => {
+        const total = totalVolume || 1;
+        return Object.entries(typeVolumes).map(([type, vol]) => ({
+            label: TYPE_CONFIG[type]?.label || type,
+            value: (vol / total) * 100,
+            tooltip: `${fmtUSD(vol)} (${((vol / total) * 100).toFixed(1)}%)`,
+        }));
+    }, [typeVolumes, totalVolume]);
 
     return (
         <div className="min-h-screen bg-[#0B1220] relative overflow-hidden">
@@ -137,19 +172,34 @@ export default function HistoryPage() {
                     <div className="rounded-2xl border border-[#F87171]/20 bg-[#F87171]/5 p-6 text-[#F87171] text-sm">{error}</div>
                 ) : (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                        {/* Summary cards */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                            {[
-                                { label: 'Total Trades', value: trades.length, color: '#9945FF' },
-                                { label: 'Total Volume', value: fmtUSD(trades.reduce((s, t) => s + (t.value_usd || 0), 0)), color: '#14F195' },
-                                { label: 'Fees Paid', value: fmtUSD(trades.reduce((s, t) => s + (t.fee_usd || 0), 0)), color: '#F59E0B' },
-                                { label: 'Swaps', value: trades.filter(t => t.type === 'SWAP').length, color: '#3B82F6' },
-                            ].map((stat, i) => (
-                                <div key={i} className="rounded-xl border border-white/8 bg-[#0F172A]/70 backdrop-blur-md p-4">
-                                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1.5">{stat.label}</div>
-                                    <div className="text-xl font-bold text-white" style={{ color: stat.color }}>{stat.value}</div>
-                                </div>
-                            ))}
+                        {/* Stat cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <HealthStatCard
+                                title="Trade Activity"
+                                description="Breakdown by trade type"
+                                icon={<Activity className="w-4 h-4" />}
+                                accent="#9945FF"
+                                stats={[
+                                    { label: 'Total Trades', value: trades.length, icon: <BarChart3 className="w-3.5 h-3.5" /> },
+                                    { label: 'Swaps', value: typeCounts['SWAP'] || 0, icon: <ArrowLeftRight className="w-3.5 h-3.5" /> },
+                                    { label: 'Perps', value: (typeCounts['PERP_OPEN'] || 0) + (typeCounts['PERP_CLOSE'] || 0), icon: <TrendingUp className="w-3.5 h-3.5" /> },
+                                    { label: 'LP Actions', value: (typeCounts['LP_ADD'] || 0) + (typeCounts['LP_REMOVE'] || 0), icon: <Layers className="w-3.5 h-3.5" /> },
+                                ]}
+                                graphData={tradeDistribution}
+                            />
+                            <HealthStatCard
+                                title="Volume & Fees"
+                                description="Financial breakdown"
+                                icon={<DollarSign className="w-4 h-4" />}
+                                accent="#14F195"
+                                stats={[
+                                    { label: 'Total Volume', value: fmtUSD(totalVolume), icon: <DollarSign className="w-3.5 h-3.5" /> },
+                                    { label: 'Fees Paid', value: fmtUSD(totalFees), icon: <Receipt className="w-3.5 h-3.5" /> },
+                                    { label: 'Avg Trade', value: fmtUSD(trades.length ? totalVolume / trades.length : 0), icon: <BarChart3 className="w-3.5 h-3.5" /> },
+                                    { label: 'Rewards', value: typeCounts['REWARD'] || 0, icon: <Zap className="w-3.5 h-3.5" /> },
+                                ]}
+                                graphData={volumeDistribution}
+                            />
                         </div>
 
                         {/* Filter pills */}
@@ -191,9 +241,9 @@ export default function HistoryPage() {
                                                     transition={{ delay: i * 0.03 }}
                                                     className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.025] transition-colors"
                                                 >
-                                                    {/* Type badge */}
-                                                    <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border tracking-wider shrink-0 ${cfg.color} ${cfg.border}`}>
-                                                        {cfg.icon}
+                                                    {/* Type badge — monochrome with subtle left accent */}
+                                                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-white/[0.06] bg-white/[0.03] text-[#9CA3AF] tracking-wider shrink-0">
+                                                        <span className="text-[#9945FF]/70">{cfg.icon}</span>
                                                         {cfg.label}
                                                     </span>
 
@@ -223,13 +273,13 @@ export default function HistoryPage() {
                                                         )}
                                                     </div>
 
-                                                    {/* Status badge */}
+                                                    {/* Status badge — subdued */}
                                                     <div className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold border ${
                                                         trade.status === 'SUCCESS'
-                                                            ? 'text-[#14F195] border-[#14F195]/25 bg-[#14F195]/5'
+                                                            ? 'text-[#14F195]/80 border-[#14F195]/15 bg-[#14F195]/[0.04]'
                                                             : trade.status === 'PENDING'
-                                                            ? 'text-[#F59E0B] border-[#F59E0B]/25 bg-[#F59E0B]/5'
-                                                            : 'text-[#F87171] border-[#F87171]/25 bg-[#F87171]/5'
+                                                            ? 'text-[#6B7280] border-white/[0.06] bg-white/[0.02]'
+                                                            : 'text-[#F87171]/70 border-[#F87171]/15 bg-[#F87171]/[0.04]'
                                                     }`}>
                                                         {trade.status}
                                                     </div>

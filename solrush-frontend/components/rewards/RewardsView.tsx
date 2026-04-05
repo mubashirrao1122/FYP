@@ -40,6 +40,14 @@ export const RewardsView = () => {
                     </div>
 
                     <ClaimRewards />
+
+                    {/* Demo note for evaluators */}
+                    <div className="bg-[#FEF3C7] dark:bg-[#78350F]/20 border border-[#F59E0B]/30 rounded-xl p-4 text-center">
+                        <p className="text-[#92400E] dark:text-[#FCD34D] text-sm">
+                            <strong>Demo Mode:</strong> In a production environment, rewards accrue per block at a sustainable rate.
+                            For this demo, a high reward rate is set so you can see real-time accrual of the RUSH utility token.
+                        </p>
+                    </div>
                 </div>
             </main>
         </div>

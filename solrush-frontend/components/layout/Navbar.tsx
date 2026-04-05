@@ -22,6 +22,7 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const pathname = usePathname();
+  const isPerpsPage = pathname === '/perps' || pathname.startsWith('/perps/');
   const { publicKey } = useWallet();
   const { setVisible } = useWalletModal();
   const shortAddress = publicKey
@@ -49,19 +50,21 @@ export function Navbar() {
 
   return (
     <>
-      {/* Invisible hover trigger zone — always present at viewport top */}
-      <div
-        className="fixed top-0 left-0 right-0 h-[10px] z-[60]"
-        onMouseEnter={() => setIsVisible(true)}
-      />
+      {/* Invisible hover trigger zone — only on perps page */}
+      {isPerpsPage && (
+        <div
+          className="fixed top-0 left-0 right-0 h-[10px] z-[60]"
+          onMouseEnter={() => setIsVisible(true)}
+        />
+      )}
 
       {/* Animated Navbar */}
       <motion.nav
-        initial={{ y: '-100%' }}
-        animate={{ y: isVisible ? '0%' : '-100%' }}
+        initial={{ y: isPerpsPage ? '-100%' : '0%' }}
+        animate={{ y: isPerpsPage ? (isVisible ? '0%' : '-100%') : '0%' }}
         transition={springTransition}
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
+        onMouseEnter={isPerpsPage ? () => setIsVisible(true) : undefined}
+        onMouseLeave={isPerpsPage ? () => setIsVisible(false) : undefined}
         className={cn(
           'fixed top-0 left-0 right-0 z-50',
           'backdrop-blur-md bg-background/60 border-b border-white/[0.06]',

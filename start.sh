@@ -158,6 +158,10 @@ echo ""
 echo "--- Step 4e: Pushing initial SOL oracle price ---"
 npx ts-node scripts/push-price.ts 145 || echo "  ⚠️  Oracle price push error"
 
+echo ""
+echo "--- Step 4f: Initializing RUSH Rewards System ---"
+npx ts-node scripts/init-rewards.ts || echo "  ⚠️  RUSH rewards init error"
+
 cd ..
 echo "  Staggering… waiting 5 seconds"
 sleep 5

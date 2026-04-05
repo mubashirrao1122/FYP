@@ -8,6 +8,7 @@ import {
     ChevronRight, Shield, Zap, Search, Bot,
     Wallet, RefreshCw, Layers, BarChart2, HelpCircle,
 } from 'lucide-react';
+import { MeshGradientSVG } from '@/components/ui/shader-svg';
 
 /* ── Types ─────────────────────────────────────────────────── */
 interface ToolCall { tool: string; output: unknown; }
@@ -608,17 +609,14 @@ export default function ChatPage() {
                         transition={{ duration: 0.4 }}
                         className="relative z-10 flex-1 flex flex-col items-center justify-center w-full px-6"
                     >
-                        {/* Logo */}
+                        {/* Animated Shader Character */}
                         <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
-                            className="mb-6 relative"
+                            className="mb-2 relative w-32 h-40"
                         >
-                            <div className="absolute inset-0 bg-[#9945FF] blur-[40px] opacity-25 rounded-full" />
-                            <div className="w-20 h-20 rounded-2xl solana-gradient flex items-center justify-center relative shadow-2xl border border-white/10">
-                                <Bot className="w-10 h-10 text-white" />
-                            </div>
+                            <MeshGradientSVG />
                         </motion.div>
 
                         <motion.h1

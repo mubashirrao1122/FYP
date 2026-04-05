@@ -7,6 +7,7 @@ import { BN } from '@coral-xyz/anchor';
 import {
     getAssociatedTokenAddress,
     TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
     createAssociatedTokenAccountInstruction,
     getAccount,
 } from '@solana/spl-token';
@@ -54,13 +55,28 @@ export const useRewardsService = () => {
     const [poolRewards, setPoolRewards] = useState<PoolReward[]>([]);
 
     /**
-     * Fetch RUSH token balance
+     * Fetch RUSH token balance (reads mint from on-chain RushConfig)
      */
     const fetchRushBalance = useCallback(async (): Promise<number> => {
         if (!wallet.publicKey) return 0;
 
         try {
-            const rushMint = TOKENS.RUSH;
+            // Try to get the rewards mint from RushConfig PDA
+            const program = getReadOnlyProgram(connection);
+            let rushMint: PublicKey = TOKENS.RUSH; // fallback
+
+            if (program) {
+                try {
+                    const [rushConfigPda] = findRushConfigAddress();
+                    const rushConfig = await (program.account as any).rushConfig.fetchNullable(rushConfigPda);
+                    if (rushConfig?.mint) {
+                        rushMint = rushConfig.mint as PublicKey;
+                    }
+                } catch {
+                    // use fallback
+                }
+            }
+
             const rushAccount = await getAssociatedTokenAddress(rushMint, wallet.publicKey);
             const balance = await connection.getTokenAccountBalance(rushAccount);
             return parseFloat(balance.value.uiAmountString || '0');
@@ -93,9 +109,12 @@ export const useRewardsService = () => {
 
     /**
      * Calculate pending rewards for a pool position
+     * Formula mirrors on-chain: (rewardsPerSec × timeElapsed × userShare) / 10^12
+     * where userShare = (userLpTokens × 10^12) / totalLpSupply
      */
     const calculatePendingRewards = useCallback(async (
-        poolAddress: PublicKey
+        poolAddress: PublicKey,
+        rushConfig?: any,
     ): Promise<number> => {
         if (!wallet.publicKey) return 0;
 
@@ -107,21 +126,34 @@ export const useRewardsService = () => {
             const [positionPda] = findPositionAddress(poolAddress, wallet.publicKey);
 
             const positionAccount = await (program.account as any).userLiquidityPosition.fetch(positionPda);
-
-            // Get pool data for reward calculation
             const poolAccount = await (program.account as any).liquidityPool.fetch(poolAddress);
 
-            // Calculate rewards based on LP tokens and time
-            const lpTokens = (positionAccount.lpTokens as BN).toNumber();
-            const lastRewardTime = (positionAccount.lastRewardTime as BN)?.toNumber() || 0;
+            // Fetch RushConfig if not provided (for rewards_per_second)
+            if (!rushConfig) {
+                const [rushConfigPda] = findRushConfigAddress();
+                rushConfig = await (program.account as any).rushConfig.fetchNullable(rushConfigPda);
+            }
+            if (!rushConfig || rushConfig.isPaused) return 0;
+
+            const lpTokens = Number((positionAccount.lpTokens as BN).toString());
+            const totalLpSupply = Number((poolAccount.totalLpSupply as BN).toString());
+            const lastClaimTimestamp = Number((positionAccount.lastClaimTimestamp as BN).toString());
+            const rewardsPerSecond = Number((rushConfig.rewardsPerSecond as BN).toString());
+
+            if (lpTokens === 0 || totalLpSupply === 0) return 0;
+
             const currentTime = Math.floor(Date.now() / 1000);
+            const timeElapsed = Math.max(0, currentTime - lastClaimTimestamp);
+            if (timeElapsed === 0) return 0;
 
-            // Simple reward calculation (in production, use actual reward rate from config)
-            const timeElapsed = currentTime - lastRewardTime;
-            const rewardRate = 0.0001; // RUSH per LP token per second (example)
-            const pendingRewards = lpTokens * rewardRate * timeElapsed;
+            // Fixed-point math matching on-chain (10^12 precision)
+            const PRECISION = 1_000_000_000_000;
+            const userShare = (lpTokens / totalLpSupply) * PRECISION;
+            const periodRewards = rewardsPerSecond * timeElapsed;
+            const userRewards = (periodRewards * userShare) / PRECISION;
 
-            return pendingRewards / Math.pow(10, 6); // RUSH has 6 decimals
+            // Convert from base units (6 decimals) to display
+            return userRewards / 1_000_000;
         } catch (err) {
             console.error("Failed to calculate rewards:", err);
             return 0;
@@ -154,6 +186,10 @@ export const useRewardsService = () => {
             // Fetch RUSH balance
             const rushBalance = await fetchRushBalance();
 
+            // Fetch RushConfig once for reward rate
+            const [rushConfigPda] = findRushConfigAddress();
+            const rushConfig = await (program.account as any).rushConfig.fetchNullable(rushConfigPda);
+
             // Dynamically fetch all user's liquidity positions using memcmp filter
             const positions = await (program.account as any).userLiquidityPosition.all([
                 {
@@ -181,14 +217,14 @@ export const useRewardsService = () => {
                     const tokenA = getTokenSymbol(tokenAMintStr) || 'UNKNOWN';
                     const tokenB = getTokenSymbol(tokenBMintStr) || 'UNKNOWN';
 
-                    // Calculate pending rewards for this pool
-                    const pending = await calculatePendingRewards(poolAddress);
+                    // Calculate pending rewards using on-chain formula
+                    const pending = await calculatePendingRewards(poolAddress, rushConfig);
 
                     // Get LP token balance from position
                     const lpTokens = fromBN(position.lpTokens as BN, 6);
 
-                    // Get total earned from position
-                    const totalEarned = fromBN(position.totalRushClaimed as BN, 6);
+                    // Get total earned from position (safe BigInt→Number)
+                    const totalEarned = Number((position.totalRushClaimed as BN).toString()) / 1_000_000;
 
                     // Only add to list if user has LP tokens or pending rewards
                     if (pending > 0 || lpTokens > 0) {
@@ -249,7 +285,7 @@ export const useRewardsService = () => {
             if (!rushConfig) {
                 throw new Error('RUSH rewards not initialized');
             }
-            const rushMint = rushConfig.rushMint as PublicKey;
+            const rushMint = rushConfig.mint as PublicKey;
 
             // 2. Check user has position
             const [positionPda] = findPositionAddress(poolAddress, wallet.publicKey);
@@ -287,6 +323,8 @@ export const useRewardsService = () => {
                         rushMint,
                         userRushAccount: rushATAResult.address,
                         tokenProgram: TOKEN_PROGRAM_ID,
+                        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                        systemProgram: SystemProgram.programId,
                     })
                     .instruction();
 
@@ -307,6 +345,8 @@ export const useRewardsService = () => {
                         rushMint,
                         userRushAccount: rushATAResult.address,
                         tokenProgram: TOKEN_PROGRAM_ID,
+                        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                        systemProgram: SystemProgram.programId,
                     })
                     .rpc();
             }
@@ -372,11 +412,11 @@ export const useRewardsService = () => {
         fetchRewardsData();
     }, [fetchRewardsData]);
 
-    // Refresh rewards periodically (every 60 seconds)
+    // Refresh rewards periodically (every 10 seconds for demo visibility)
     useEffect(() => {
         const interval = setInterval(() => {
             fetchRewardsData();
-        }, 60000);
+        }, 10_000);
 
         return () => clearInterval(interval);
     }, [fetchRewardsData]);

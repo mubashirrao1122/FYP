@@ -11,6 +11,7 @@ import {
     BarChart3, Layers, Activity, ExternalLink, RefreshCw, Loader2,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
+import { TokenCard } from '@/components/ui/token-card';
 import {
     usePortfolioLive,
     type LiveHolding,
@@ -22,6 +23,19 @@ import type { NewsItem } from '@/lib/services/news';
 
 /* ── Colors ────────────────────────────────────────────────── */
 const ALLOCATION_COLORS = ['#9945FF', '#14F195', '#3B82F6', '#F59E0B', '#EC4899'];
+
+/* ── Token display names ───────────────────────────────────── */
+const TOKEN_NAMES: Record<string, string> = {
+    SOL: 'Solana',
+    USDC: 'USD Coin',
+    USDT: 'Tether',
+    WETH: 'Wrapped Ethereum',
+    RUSH: 'SolRush Token',
+    RAY: 'Raydium',
+    JUP: 'Jupiter',
+    BONK: 'Bonk',
+    PYTH: 'Pyth Network',
+};
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 function fmtUSD(n: number): string {
@@ -190,27 +204,21 @@ function HoldingsSection({ holdings, lpTotal }: { holdings: LiveHolding[]; lpTot
                 {holdings.length === 0 ? (
                     <EmptyState icon={Wallet} label="No tokens found in wallet" />
                 ) : (
-                    <div className="divide-y divide-white/[0.04]">
+                    <div className="flex flex-col gap-2 p-3">
                         {holdings.map((h) => (
-                            <div key={h.symbol} className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.025] transition-colors group">
-                                <div className="flex items-center gap-3">
-                                    <TokenIcon symbol={h.symbol} icon={h.icon} size={40} />
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold text-white text-[15px]">{h.symbol}</span>
-                                        </div>
-                                        <span className="text-[12px] text-[#6B7280]">{h.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} tokens</span>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-white text-[15px] tabular-nums">{fmtUSD(h.price)}</p>
-                                    <span className="text-[12px] text-[#6B7280]">mark price</span>
-                                </div>
-                                <div className="ml-6 text-right min-w-[80px]">
-                                    <p className="font-bold text-white tabular-nums">{fmtUSD(h.valueUSD)}</p>
-                                    <p className="text-[12px] text-[#6B7280]">{h.allocation}%</p>
-                                </div>
-                            </div>
+                            <TokenCard
+                                key={h.symbol}
+                                logoSrc={h.icon}
+                                ticker={h.symbol}
+                                name={TOKEN_NAMES[h.symbol] || h.symbol}
+                                price={h.price}
+                                allocation={h.allocation}
+                                balance={h.amount}
+                                valueUSD={h.valueUSD}
+                                onTrade={(ticker) => {
+                                    window.location.href = `/swap?token=${ticker}`;
+                                }}
+                            />
                         ))}
                     </div>
                 )}

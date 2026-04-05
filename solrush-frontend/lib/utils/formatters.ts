@@ -25,32 +25,34 @@ export const formatPercentage = (value: number, decimals: number = 2): string =>
  * Format token amount with proper decimals and optional abbreviation
  */
 export function formatTokenAmount(
-  amount: number,
+  amount: number | bigint | string,
   decimals: number = 2,
   abbreviate: boolean = false
 ): string {
-  if (amount === 0) return '0';
+  // Safety: convert BigInt/string to number to prevent React hydration errors
+  const num = typeof amount === 'bigint' ? Number(amount) : typeof amount === 'string' ? parseFloat(amount) || 0 : (amount ?? 0);
+  if (num === 0) return '0';
 
   // Abbreviate large numbers
   if (abbreviate) {
-    if (amount >= 1e9) {
-      return `${(amount / 1e9).toFixed(decimals)}B`;
+    if (num >= 1e9) {
+      return `${(num / 1e9).toFixed(decimals)}B`;
     }
-    if (amount >= 1e6) {
-      return `${(amount / 1e6).toFixed(decimals)}M`;
+    if (num >= 1e6) {
+      return `${(num / 1e6).toFixed(decimals)}M`;
     }
-    if (amount >= 1e3) {
-      return `${(amount / 1e3).toFixed(decimals)}K`;
+    if (num >= 1e3) {
+      return `${(num / 1e3).toFixed(decimals)}K`;
     }
   }
 
   // Very small numbers - use scientific notation
-  if (amount < 0.0001 && amount > 0) {
-    return amount.toExponential(2);
+  if (num < 0.0001 && num > 0) {
+    return num.toExponential(2);
   }
 
   // Format with commas and decimals
-  return amount.toLocaleString('en-US', {
+  return num.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
