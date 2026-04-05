@@ -41,3 +41,5 @@ test-ledger/
 .anchor/
 target/
 **/*.rs.bk
+__pycache__/
+*.pyc
