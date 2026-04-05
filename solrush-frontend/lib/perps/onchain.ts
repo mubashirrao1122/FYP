@@ -4,7 +4,10 @@ import BN from 'bn.js';
 import { PROGRAM_ID, SOL_MINT, USDC_MINT, USDT_MINT, WETH_MINT, RUSH_MINT } from '@/lib/solana/constants';
 import { findPerpsPositionAddress } from '@/lib/anchor/pda';
 
-const PERPS_MARKET_LEN_V1 = 8 + 32 + 32 + 32 + 32 + 2 + 2 + 8 + 16 + 16 + 8 + 32 + 1;
+const PRICE_SCALE = 1_000_000; // mock oracle uses 6-decimal fixed-point
+const isLocalnet = () => process.env.NEXT_PUBLIC_NETWORK === 'localnet';
+
+const PERPS_MARKET_LEN_V1 = 8 + 32 + 32 + 32 + 32 + 2 + 2 + 8 + 16 + 16 + 8 + 8 + 8 + 32 + 1 + 2 + 2 + 1;
 
 const bnToNumber = (value: BN) => {
   const max = new BN(Number.MAX_SAFE_INTEGER.toString());
@@ -101,7 +104,7 @@ export const fetchPerpsMarkets = async (
   const limit = options.limit ?? records.length;
   const paged = records.slice(offset, offset + limit);
 
-  return paged.map(({ publicKey, account }: { publicKey: PublicKey; account: any }) => {
+  return Promise.all(paged.map(async ({ publicKey, account }: { publicKey: PublicKey; account: any }) => {
     const cached = marketCache.get(publicKey.toBase58());
     if (cached && !options.forceRefresh && now - cached.ts < CACHE_TTL_MS) {
       return cached.data;
@@ -112,17 +115,33 @@ export const fetchPerpsMarkets = async (
       quoteMint: account.quoteMint.toBase58(),
       oraclePriceId: `0x${bytesToHex(Uint8Array.from(account.pythFeedId))}`,
       oraclePriceAccount: account.oraclePriceAccount.toBase58(),
-      markPrice: 0,
+      markPrice: 0, // populated below for localnet
       fundingRateBps: bnToNumber(account.fundingRateI64 as unknown as BN),
       openInterest: bnToNumber(account.openInterestI128 as unknown as BN),
       cumulativeFunding: bnToNumber(account.cumulativeFundingI128 as unknown as BN),
       lastFundingTs: bnToNumber(account.lastFundingTs as unknown as BN),
-      maxLeverage: account.maxLeverage,
-      maintenanceMarginBps: account.maintenanceMarginBps,
+      maxLeverage: typeof account.maxLeverage === 'number' ? account.maxLeverage : Number(account.maxLeverage),
+      maintenanceMarginBps: typeof account.maintenanceMarginBps === 'number' ? account.maintenanceMarginBps : Number(account.maintenanceMarginBps),
     };
+
+    // On localnet, read mark price from the mock oracle account
+    if (isLocalnet() && parsed.oraclePriceAccount) {
+      try {
+        const oracleKey = new PublicKey(parsed.oraclePriceAccount);
+        const oracleInfo = await connection.getAccountInfo(oracleKey);
+        if (oracleInfo && oracleInfo.data.length >= 48) {
+          // PerpsOraclePrice layout: disc(8) + admin(32) + price_i64(8)
+          const priceBuf = oracleInfo.data.subarray(40, 48);
+          const priceRaw = Number(priceBuf.readBigInt64LE(0));
+          parsed.markPrice = priceRaw / PRICE_SCALE;
+        }
+      } catch {
+        // oracle read failed — leave markPrice at 0
+      }
+    }
     marketCache.set(publicKey.toBase58(), { data: parsed, ts: Date.now() });
     return parsed;
-  });
+  }));
 };
 
 export const fetchPerpsPositions = async (

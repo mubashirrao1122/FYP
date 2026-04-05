@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { PerpsChart } from '@/components/perps/PerpsChart';
 import { PerpsTradePanel } from '@/components/perps/PerpsTradePanel';
@@ -39,6 +39,13 @@ export function PerpsView({
   const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
   const [closePercents, setClosePercents] = useState<Record<string, number>>({});
 
+  // Auto-select the first available market when markets load
+  useEffect(() => {
+    if (!selectedMarketId && markets.length > 0) {
+      setSelectedMarketId(markets[0].id);
+    }
+  }, [markets, selectedMarketId]);
+
   const getClosePercent = (id: string) => closePercents[id] ?? 100;
   const setClosePercent = (id: string, pct: number) =>
     setClosePercents((prev) => ({ ...prev, [id]: pct }));
@@ -60,16 +67,26 @@ export function PerpsView({
   // Mock Data Generation
   const currentPrice = usePythPrice(selectedMarketId ? markets.find(m => m.id === selectedMarketId)?.oraclePriceId : null).price?.price || 0;
 
+  // ── Seeded PRNG to avoid hydration mismatch (Math.random() differs server vs client) ──
+  function seededRandom(seed: number) {
+    let s = seed;
+    return () => {
+      s = (s * 16807 + 0) % 2147483647;
+      return (s - 1) / 2147483646;
+    };
+  }
+
   const { bids: mockBids, asks: mockAsks } = useMemo(() => {
     const depth = 12;
     const price = currentPrice || 100;
     const askData: OrderLevel[] = [];
     const bidData: OrderLevel[] = [];
+    const rng = seededRandom(Math.floor(price * 100) || 42);
     let currentTotal = 0;
 
     for (let i = 0; i < depth; i++) {
       const p = price * (1 + (i + 1) * 0.0005);
-      const s = Math.random() * 100 + 10;
+      const s = rng() * 100 + 10;
       currentTotal += s;
       askData.push({ price: p, size: s, total: currentTotal });
     }
@@ -77,7 +94,7 @@ export function PerpsView({
     currentTotal = 0;
     for (let i = 0; i < depth; i++) {
       const p = price * (1 - (i + 1) * 0.0005);
-      const s = Math.random() * 100 + 10;
+      const s = rng() * 100 + 10;
       currentTotal += s;
       bidData.push({ price: p, size: s, total: currentTotal });
     }
@@ -88,15 +105,16 @@ export function PerpsView({
     const data: Trade[] = [];
     const now = Date.now();
     const price = currentPrice || 100;
+    const rng = seededRandom(Math.floor(price * 100 + 1) || 99);
 
     for (let i = 0; i < 20; i++) {
-      const side = Math.random() > 0.5 ? 'buy' : 'sell';
-      const priceOffset = (Math.random() * 2) - 1;
+      const side = rng() > 0.5 ? 'buy' : 'sell';
+      const priceOffset = (rng() * 2) - 1;
       data.push({
         id: `trade-${i}`,
         price: price + priceOffset,
-        size: Math.random() * 10 + 0.1,
-        time: now - (i * Math.random() * 5000),
+        size: rng() * 10 + 0.1,
+        time: now - (i * 5000),
         side,
       });
     }
@@ -130,9 +148,7 @@ export function PerpsView({
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
-      <div className="shrink-0">
-        <Navbar />
-      </div>
+      <Navbar />
 
       {/* Stats Bar */}
       <div className="h-14 border-b border-border/30 flex items-center px-4 glass-card shrink-0 z-20 gap-6">
@@ -310,7 +326,7 @@ export function PerpsView({
         </div>
 
         {/* Right Column: Trade Form */}
-        <div className="w-[320px] bg-card/50 shrink-0 flex flex-col border-l border-border/20 z-10 overflow-y-auto no-scrollbar">
+        <div className="w-[320px] bg-[#0B0E11]/80 backdrop-blur-xl shrink-0 flex flex-col border-l border-white/[0.05] z-10 overflow-y-auto no-scrollbar">
           <PerpsTradePanel
             market={liveMarket}
             disabled={loading || markets.length === 0 || Boolean(warning) || !hasMarkets}

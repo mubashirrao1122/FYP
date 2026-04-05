@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 import { getProgram } from '@/lib/anchor/setup';
 import { findPerpsGlobalAddress, findPerpsUserAddress, findPerpsPositionAddress } from '@/lib/anchor/pda';
@@ -94,6 +94,23 @@ export function usePerpsTrading(): UsePerpsTrading {
         if (!marketInfo) throw new Error('Market account not found');
         const oraclePriceAccount = parseOracleFromMarket(marketInfo.data as Buffer);
 
+        const tx = new Transaction();
+
+        // Auto-initialize perps user account if it doesn't exist
+        const userInfo = await connection.getAccountInfo(userPda);
+        if (!userInfo || userInfo.data.length === 0) {
+          console.log('Perps user account not found — adding initializePerpsUser ix');
+          const initIx = await program.methods
+            .initializePerpsUser()
+            .accounts({
+              owner: publicKey,
+              user: userPda,
+              systemProgram: SystemProgram.programId,
+            } as any)
+            .instruction();
+          tx.add(initIx);
+        }
+
         // Convert size to PRICE_SCALE fixed-point (i64)
         const sizeI64 = new BN(Math.round(size * PRICE_SCALE));
         const leverageU16 = Math.min(Math.max(Math.round(leverage), 1), 200);
@@ -102,7 +119,7 @@ export function usePerpsTrading(): UsePerpsTrading {
         const sideArg = side === 'long' ? { long: {} } : { short: {} };
         const orderTypeArg = orderType === 'market' ? { market: {} } : { limit: {} };
 
-        const tx = await program.methods
+        const openIx = await program.methods
           .openPerpsPosition(sideArg, sizeI64, leverageU16, orderTypeArg)
           .accounts({
             owner: publicKey,
@@ -113,15 +130,27 @@ export function usePerpsTrading(): UsePerpsTrading {
             position: positionPda,
             systemProgram: SystemProgram.programId,
           } as any)
-          .transaction();
+          .instruction();
+        tx.add(openIx);
 
         const { blockhash, lastValidBlockHeight } =
           await connection.getLatestBlockhash('confirmed');
         tx.recentBlockhash = blockhash;
         tx.feePayer = publicKey;
 
+        // Simulate first to get detailed error logs
+        const simResult = await connection.simulateTransaction(tx);
+        if (simResult.value.err) {
+          console.error('Simulation failed:', simResult.value.err);
+          console.error('Simulation logs:', simResult.value.logs);
+          const errMsg = simResult.value.logs?.find(
+            (l: string) => l.includes('Error Number:') || l.includes('Error Message:') || l.includes('custom program error')
+          );
+          throw new Error(errMsg || `Transaction simulation failed: ${JSON.stringify(simResult.value.err)}`);
+        }
+
         const sig = await sendTransaction(tx, connection, {
-          skipPreflight: false,
+          skipPreflight: true,
           preflightCommitment: 'confirmed',
         });
 
@@ -167,8 +196,12 @@ export function usePerpsTrading(): UsePerpsTrading {
         return sig;
       } catch (err: any) {
         console.error('open_perps_position failed:', err);
+        // Try to extract the program error from logs
+        const logs = err?.logs || err?.cause?.logs || [];
+        if (logs.length) console.error('Transaction logs:', logs);
+        const programError = logs.find((l: string) => l.includes('Error Number:') || l.includes('Error Message:'));
         const msg =
-          err?.message || err?.toString() || 'Unknown error opening position';
+          programError || err?.message || err?.toString() || 'Unknown error opening position';
         setError(msg);
         setStatus('error');
         return null;

@@ -129,7 +129,7 @@ export function usePerps(): UsePerpsResult {
           const quoteSymbol = resolveSymbol(market.quoteMint);
           const normalizedOracle = market.oraclePriceId ?? '';
           const priceData = normalizedOracle ? prices[normalizedOracle] : undefined;
-          const indexPrice = priceData?.price ?? null;
+          const indexPrice = priceData?.price ?? (market.markPrice > 0 ? market.markPrice : null);
           const markPrice = market.markPrice > 0 ? market.markPrice : indexPrice;
 
           return {

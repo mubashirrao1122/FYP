@@ -150,6 +150,14 @@ echo ""
 echo "--- Step 4c: Initializing SOL/USDT Liquidity Pool ---"
 npx ts-node scripts/setup-sol-usdt-pool.ts || echo "  ⚠️  SOL/USDT pool setup error"
 
+echo ""
+echo "--- Step 4d: Initializing SOL/USDC Perpetual Market ---"
+npx ts-node scripts/init-perp-market.ts || echo "  ⚠️  Perp market setup error"
+
+echo ""
+echo "--- Step 4e: Pushing initial SOL oracle price ---"
+npx ts-node scripts/push-price.ts 145 || echo "  ⚠️  Oracle price push error"
+
 cd ..
 echo "  Staggering… waiting 5 seconds"
 sleep 5

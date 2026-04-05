@@ -35,7 +35,8 @@ export function PerpsChart({ market, loading = false, error }: PerpsChartProps) 
 
     const buildWidget = () => {
       if (!(window as typeof window & { TradingView?: any }).TradingView) return;
-      containerRef.current!.innerHTML = '';
+      if (!containerRef.current) return;
+      containerRef.current.innerHTML = '';
       new (window as typeof window & { TradingView: any }).TradingView.widget({
         autosize: true,
         symbol,

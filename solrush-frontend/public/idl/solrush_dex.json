@@ -1647,7 +1647,7 @@
         {
           "name": "liquidator",
           "docs": [
-            "The liquidator — anyone can call this (permissionless)."
+            "The liquidator \u2014 anyone can call this (permissionless)."
           ],
           "writable": true,
           "signer": true
@@ -1854,7 +1854,30 @@
       "accounts": [
         {
           "name": "pool",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.token_a_mint",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool.token_b_mint",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
         },
         {
           "name": "user_token_in",
@@ -1912,7 +1935,30 @@
       "accounts": [
         {
           "name": "pool",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.token_a_mint",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool.token_b_mint",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
         },
         {
           "name": "user_token_in",
@@ -2343,7 +2389,30 @@
       "accounts": [
         {
           "name": "pool",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.token_a_mint",
+                "account": "LiquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "pool.token_b_mint",
+                "account": "LiquidityPool"
+              }
+            ]
+          }
         },
         {
           "name": "user_token_in",
@@ -3118,7 +3187,7 @@
     {
       "code": 6034,
       "name": "FundingTooSoon",
-      "msg": "Funding update too soon — interval not elapsed"
+      "msg": "Funding update too soon \u2014 interval not elapsed"
     },
     {
       "code": 6035,
@@ -3133,7 +3202,7 @@
     {
       "code": 6037,
       "name": "InsuranceFundDepleted",
-      "msg": "Insurance fund insufficient — market in emergency"
+      "msg": "Insurance fund insufficient \u2014 market in emergency"
     },
     {
       "code": 6038,
@@ -3153,7 +3222,12 @@
     {
       "code": 6041,
       "name": "InsufficientMargin",
-      "msg": "Initial margin violation — insufficient equity to increase position"
+      "msg": "Initial margin violation \u2014 insufficient equity to increase position"
+    },
+    {
+      "code": 6042,
+      "name": "PositionUnderwater",
+      "msg": "Position is underwater \u2014 close amount would generate unrecoverable bad debt"
     }
   ],
   "types": [
@@ -3789,7 +3863,7 @@
           {
             "name": "emergency",
             "docs": [
-              "Emergency flag — set when insurance fund is depleted on bad-debt liquidation."
+              "Emergency flag \u2014 set when insurance fund is depleted on bad-debt liquidation."
             ],
             "type": "bool"
           }
@@ -3830,7 +3904,7 @@
         "from the sign of `base_position_i64`.",
         "",
         "`realized_pnl_i128` accumulates PnL from partial/full closes, in",
-        "PRICE_SCALE-squared units (base_units × price_units).  To get quote",
+        "PRICE_SCALE-squared units (base_units \u00d7 price_units).  To get quote",
         "value divide by PRICE_SCALE."
       ],
       "type": {

@@ -216,8 +216,9 @@ export function usePerpsCollateral(): UsePerpsCollateralReturn {
         // Parse collateral_vault: discriminator(8) + base_mint(32) + quote_mint(32) + pyth_feed_id(32)
         // + oracle_price_account(32) + max_leverage(2) + maintenance_margin_bps(2)
         // + funding_rate_i64(8) + open_interest_i128(16) + cumulative_funding_i128(16)
-        // + last_funding_ts(8) + collateral_vault(32) = offset 220
-        const collateralVaultOffset = 8 + 32 + 32 + 32 + 32 + 2 + 2 + 8 + 16 + 16 + 8;
+        // + last_funding_ts(8) + max_funding_rate_i64(8) + funding_interval_secs(8)
+        // + collateral_vault(32) = offset 204
+        const collateralVaultOffset = 8 + 32 + 32 + 32 + 32 + 2 + 2 + 8 + 16 + 16 + 8 + 8 + 8;
         const vaultPubkeyBytes = marketInfo.data.subarray(
           collateralVaultOffset,
           collateralVaultOffset + 32

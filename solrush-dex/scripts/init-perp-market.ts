@@ -16,10 +16,10 @@ import * as fs from "fs";
 import * as path from "path";
 
 const LOCALNET_URL = "http://127.0.0.1:8899";
-const SOL_PRICE_SCALED = 145_000_000;
-const MAX_LEVERAGE = 50;
-const MAINTENANCE_MARGIN_BPS = 100;
-const FEE_BPS = 10;
+const SOL_PRICE_SCALED = 145_000_000;  // $145.00 (6 decimal scaled)
+const MAX_LEVERAGE = 20;                // 20x max leverage
+const MAINTENANCE_MARGIN_BPS = 1000;    // 10% maintenance margin
+const FEE_BPS = 10;                     // 0.1% trading fee
 
 function findPerpsGlobalPda(programId: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync([Buffer.from("perps_global")], programId);
@@ -113,6 +113,18 @@ async function main() {
   } else {
     console.log("  Market already initialized:", marketPda.toBase58());
   }
+
+  // Save perp addresses to localnet-config.json so the frontend can find them
+  configInfo.perps = {
+    globalState: globalPda.toBase58(),
+    oracle: oraclePda.toBase58(),
+    market: marketPda.toBase58(),
+    oraclePrice: SOL_PRICE_SCALED,
+    maxLeverage: MAX_LEVERAGE,
+    maintenanceMarginBps: MAINTENANCE_MARGIN_BPS,
+  };
+  fs.writeFileSync(configPath, JSON.stringify(configInfo, null, 2));
+  console.log("  ✅ Saved perp config to localnet-config.json");
 }
 
 main().catch(console.error);

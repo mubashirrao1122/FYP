@@ -46,7 +46,12 @@ export const parseHermesPriceFeed = (feed: HermesPriceFeed): PythPrice | null =>
 const cache = new Map<string, { data: PythPrice; ts: number }>();
 const inflight = new Map<string, Promise<PythPrice>>();
 
+const isLocalnet = () => process.env.NEXT_PUBLIC_NETWORK === 'localnet';
+
 const fetchHermesPrices = async (ids: string[]): Promise<Record<string, PythPrice>> => {
+  // On localnet, skip Hermes entirely — prices come from on-chain mock oracle
+  if (isLocalnet()) return {};
+
   const uniqueIds = Array.from(new Set(ids.map(normalizeId))).filter(Boolean);
   if (uniqueIds.length === 0) return {};
 
@@ -145,6 +150,11 @@ export const subscribePrice = (
   onUpdate: (price: PythPrice) => void,
   options: SubscribeOptions & { onError?: (error: Error) => void } = {}
 ) => {
+  // On localnet, don't poll Pyth — the price is served via on-chain mock oracle
+  if (isLocalnet()) {
+    return () => {};
+  }
+
   let active = true;
   let delay = options.intervalMs ?? 800;
   const maxDelay = options.maxIntervalMs ?? 8000;

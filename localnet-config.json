@@ -3,22 +3,30 @@
   "rpcUrl": "http://127.0.0.1:8899",
   "walletPublicKey": "9LW5JnrZfSymwaxCSKqqwvA9SWXZcASvsas5YAKFLLvp",
   "mints": {
-    "USDC": "2Tu9HJszTjh2vx2hFu9hecbP1AnyjrNgNruF3dp6SmD3",
-    "USDT": "3BNm1373C4g8QfoV8UTRNDW2yyHxXTd1xUf6SHbqg6xy",
-    "WETH": "Cyu4hC3basseyPBAxMnja7eqwCsZwBqTDV2SvMPfxawk",
-    "RUSH": "FDgPkHUAukXvYrVqodj9sv1uUmp2Qx4iWCzTNp8tUMzD",
+    "USDC": "214fnT44WxdsbRZQPLAgm6HbjTEjBk7YsCkdwYkDe9vX",
+    "USDT": "7qQB2tS4MaVdC5StPJVsqYTQw3kkqNUiX2XF2rdE1eNZ",
+    "WETH": "BfNb6SbGcVwA9wcvrZDbbYLBPVscoeWA8V4Tw9HJaYjp",
+    "RUSH": "BWXk9CBjSAA6BeW76TyoNwZ2GQcfyUgUda4vAHb4x9nj",
     "SOL": "So11111111111111111111111111111111111111112"
   },
   "tokenAccounts": {
-    "USDC": "Di8j4iaAFTpetLNhR8fX2WfiZcmVQfSWBGioD5DpmcmJ",
-    "USDT": "3AKhhicU4B4vpEwZZqdXGpLxQJCPKgLV9LrhzVPACxca",
-    "WETH": "93VGEifQx2fXAQyHEdiH92Lqk2xeiJqHynoHsgQSZ8mY",
-    "RUSH": "Bcivc1j9aZrxH6ocSvbUduQYzmtsFgk9i3PhF4SJch3k"
+    "USDC": "3d4VBdDV9GEmFFo8YqEiYiyZQNVBL92rXAX4s7Nh9qok",
+    "USDT": "ofbTnguHq9LgcyBzYw5UgT5g2q8M3iQ6hDobjShkJU4",
+    "WETH": "3Jx7LFMRyrCkXfxybv7hy1w6XE6smWoHJi8LaZqZ8gGP",
+    "RUSH": "5zgPLiMz5Kub2SytWBfPVBhRfTMzEqMdwPKs9UwZwPHe"
   },
   "decimals": {
     "USDC": 6,
     "USDT": 6,
     "WETH": 8,
     "RUSH": 6
+  },
+  "perps": {
+    "globalState": "EWdNcwcAYsmYPL7zktnG6oTe5HuDwvEMorq9MmNEtJmQ",
+    "oracle": "EykwEzmfiyvnRmszqybDdCy4duCygyyianjnyNF4geJY",
+    "market": "7qEiEwxCwuYdqjjaqkoDncmqgdUtitzWpjVHENucEMmG",
+    "oraclePrice": 145000000,
+    "maxLeverage": 20,
+    "maintenanceMarginBps": 1000
   }
 }
