@@ -26,12 +26,18 @@ import {
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID,
     getAssociatedTokenAddress,
+    NATIVE_MINT,
+    createSyncNativeInstruction,
 } from "@solana/spl-token";
 import * as fs from "fs";
 import * as path from "path";
 
 // Configuration
 const LOCALNET_URL = "http://127.0.0.1:8899";
+
+// Phantom wallet to fund (browser wallet)
+const PHANTOM_WALLET = new PublicKey("8Qmx5CZtR22YRKvjXkCgfMXfg5n9BHMmJmwCAno4cxrf");
+
 const TOKEN_DECIMALS = {
     USDC: 6,
     USDT: 6,
@@ -193,6 +199,40 @@ async function setupLocalnet(): Promise<SetupResult> {
     userTokenAccounts.RUSH = await mintTokensToUser(
         connection, wallet, rushMint, wallet.publicKey, MINT_AMOUNTS.RUSH, "RUSH"
     );
+    
+    // ────────────────────────────────────────────────────────────
+    // Fund the Phantom wallet (browser wallet) with tokens
+    // ────────────────────────────────────────────────────────────
+    console.log("\n" + "=".repeat(60));
+    console.log("Funding Phantom Wallet with Tokens...");
+    console.log(`Phantom: ${PHANTOM_WALLET.toBase58()}`);
+    console.log("=".repeat(60));
+    
+    // Airdrop SOL to Phantom for gas
+    console.log("\n💰 Airdropping 100 SOL to Phantom wallet...");
+    try {
+        const sig = await connection.requestAirdrop(PHANTOM_WALLET, 100 * LAMPORTS_PER_SOL);
+        await connection.confirmTransaction(sig, "confirmed");
+        console.log("✅ 100 SOL airdropped to Phantom wallet");
+    } catch (e) {
+        console.log("⚠️  SOL airdrop to Phantom failed (may already have SOL)");
+    }
+    
+    // Mint 10,000 USDC to Phantom
+    const phantomUsdc = await getOrCreateAssociatedTokenAccount(
+        connection, wallet, usdcMint, PHANTOM_WALLET
+    );
+    await mintTo(connection, wallet, usdcMint, phantomUsdc.address, wallet,
+        BigInt(10_000 * 10 ** TOKEN_DECIMALS.USDC));
+    console.log(`✅ Minted 10,000 USDC to Phantom ATA: ${phantomUsdc.address.toBase58()}`);
+    
+    // Mint 10,000 USDT to Phantom
+    const phantomUsdt = await getOrCreateAssociatedTokenAccount(
+        connection, wallet, usdtMint, PHANTOM_WALLET
+    );
+    await mintTo(connection, wallet, usdtMint, phantomUsdt.address, wallet,
+        BigInt(10_000 * 10 ** TOKEN_DECIMALS.USDT));
+    console.log(`✅ Minted 10,000 USDT to Phantom ATA: ${phantomUsdt.address.toBase58()}`);
     
     // Save configuration for frontend
     const configPath = path.join(__dirname, "..", "..", "localnet-config.json");

@@ -2,9 +2,18 @@
 
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { useState, useEffect, useCallback } from 'react';
-import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Keypair } from '@solana/web3.js';
+import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Keypair, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import {
+  getAssociatedTokenAddress,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  NATIVE_MINT,
+  createAssociatedTokenAccountInstruction,
+  createSyncNativeInstruction,
+  createCloseAccountInstruction,
+  getAccount,
+} from '@solana/spl-token';
 import { getProgram, getReadOnlyProgram, toBN, fromBN } from '../anchor/setup';
 import { findPoolAddress, findLpMintAddress, findPositionAddress } from '../anchor/pda';
 import { getTokenMint, TOKEN_DECIMALS } from '../constants';
@@ -19,6 +28,8 @@ export interface PoolData {
   tokenBMint: PublicKey;
   reserveA: number;
   reserveB: number;
+  tokenADecimals: number;
+  tokenBDecimals: number;
   totalLPSupply: number;
   lpTokenDecimals: number;
   fee: number;
@@ -103,6 +114,10 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
       const reserveA = (poolAccount.reserveA as BN).toNumber();
       const reserveB = (poolAccount.reserveB as BN).toNumber();
 
+      // Get on-chain token decimals
+      const poolDecimalA = poolAccount.tokenADecimals || 9;
+      const poolDecimalB = poolAccount.tokenBDecimals || 6;
+
       // Fetch real token prices
       const decimalA = TOKEN_DECIMALS[tokenASymbol] || 9;
       const decimalB = TOKEN_DECIMALS[tokenBSymbol] || 6;
@@ -142,6 +157,8 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
         tokenBMint: poolAccount.tokenBMint as PublicKey,
         reserveA,
         reserveB,
+        tokenADecimals: poolDecimalA,
+        tokenBDecimals: poolDecimalB,
         totalLPSupply,
         lpTokenDecimals: 6,
         fee: feeBasisPoints / 10000,
@@ -354,7 +371,75 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
         amountB: amountBBN.toString(),
       });
 
-      // Use camelCase account names (Anchor SDK converts snake_case IDL to camelCase)
+      // Validate amounts are non-zero before building transaction
+      if (amountABN.isZero() || amountBBN.isZero()) {
+        throw new Error(`Invalid amounts: amountA=${amountABN.toString()}, amountB=${amountBBN.toString()}. Both must be greater than zero.`);
+      }
+
+      // Build transaction with pre-instructions for ATA creation and WSOL wrapping
+      const tx = new Transaction();
+      const tokenAIsNativeSOL = poolTokenAMint.equals(NATIVE_MINT);
+      const tokenBIsNativeSOL = poolTokenBMint.equals(NATIVE_MINT);
+
+      // Ensure user token A ATA exists (and handle WSOL wrapping)
+      try {
+        await getAccount(connection, userTokenA);
+      } catch {
+        tx.add(
+          createAssociatedTokenAccountInstruction(
+            wallet.publicKey, userTokenA, wallet.publicKey, poolTokenAMint
+          )
+        );
+      }
+      if (tokenAIsNativeSOL) {
+        const lamportsA = userSelectedAMatchesPoolA
+          ? Math.ceil(params.amountA * LAMPORTS_PER_SOL)
+          : Math.ceil(params.amountB * LAMPORTS_PER_SOL);
+        tx.add(
+          SystemProgram.transfer({
+            fromPubkey: wallet.publicKey,
+            toPubkey: userTokenA,
+            lamports: lamportsA,
+          })
+        );
+        tx.add(createSyncNativeInstruction(userTokenA));
+      }
+
+      // Ensure user token B ATA exists (and handle WSOL wrapping)
+      try {
+        await getAccount(connection, userTokenB);
+      } catch {
+        tx.add(
+          createAssociatedTokenAccountInstruction(
+            wallet.publicKey, userTokenB, wallet.publicKey, poolTokenBMint
+          )
+        );
+      }
+      if (tokenBIsNativeSOL) {
+        const lamportsB = userSelectedAMatchesPoolA
+          ? Math.ceil(params.amountB * LAMPORTS_PER_SOL)
+          : Math.ceil(params.amountA * LAMPORTS_PER_SOL);
+        tx.add(
+          SystemProgram.transfer({
+            fromPubkey: wallet.publicKey,
+            toPubkey: userTokenB,
+            lamports: lamportsB,
+          })
+        );
+        tx.add(createSyncNativeInstruction(userTokenB));
+      }
+
+      // Ensure LP token ATA exists
+      try {
+        await getAccount(connection, userLpToken);
+      } catch {
+        tx.add(
+          createAssociatedTokenAccountInstruction(
+            wallet.publicKey, userLpToken, wallet.publicKey, lpMint
+          )
+        );
+      }
+
       // Calculate expected LP tokens and apply 5% slippage tolerance
       let expectedLp: number;
       if (!pool || pool.reserveA === 0 || pool.reserveB === 0 || pool.totalLPSupply === 0) {
@@ -369,7 +454,8 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
 
       const minLpBN = new BN(Math.max(0, Math.floor(expectedLp * 0.95)));
 
-      const tx = await program.methods
+      // Build the addLiquidity instruction
+      const addLiqIx = await program.methods
         .addLiquidity(amountABN, amountBBN, minLpBN)
         .accounts({
           pool: poolPda,
@@ -385,14 +471,34 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
         })
-        .rpc();
+        .instruction();
+      tx.add(addLiqIx);
 
-      setTxSignature(tx);
+      // Close WSOL accounts after to recover SOL
+      if (tokenAIsNativeSOL) {
+        tx.add(
+          createCloseAccountInstruction(userTokenA, wallet.publicKey, wallet.publicKey)
+        );
+      }
+      if (tokenBIsNativeSOL) {
+        tx.add(
+          createCloseAccountInstruction(userTokenB, wallet.publicKey, wallet.publicKey)
+        );
+      }
+
+      // Send transaction
+      tx.feePayer = wallet.publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+      const signed = await wallet.signTransaction!(tx);
+      const sig = await connection.sendRawTransaction(signed.serialize());
+      await connection.confirmTransaction(sig, 'confirmed');
+
+      setTxSignature(sig);
 
       // Refresh pool data
       await fetchPoolData();
 
-      return tx;
+      return sig;
     } catch (err: any) {
       console.error("Add liquidity error:", err);
       const errorMsg = err.message || 'Failed to add liquidity';
@@ -458,8 +564,35 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
         lpAmount: lpAmountBN.toString(),
       });
 
-      // Use camelCase account names (Anchor SDK converts snake_case IDL to camelCase)
-      const tx = await program.methods
+      // Build transaction with pre-instructions for ATA creation
+      const tx = new Transaction();
+      const tokenAIsNativeSOL = poolTokenAMint.equals(NATIVE_MINT);
+      const tokenBIsNativeSOL = poolTokenBMint.equals(NATIVE_MINT);
+
+      // Ensure user token A ATA exists (needed to receive withdrawn tokens)
+      try {
+        await getAccount(connection, userTokenA);
+      } catch {
+        tx.add(
+          createAssociatedTokenAccountInstruction(
+            wallet.publicKey, userTokenA, wallet.publicKey, poolTokenAMint
+          )
+        );
+      }
+
+      // Ensure user token B ATA exists
+      try {
+        await getAccount(connection, userTokenB);
+      } catch {
+        tx.add(
+          createAssociatedTokenAccountInstruction(
+            wallet.publicKey, userTokenB, wallet.publicKey, poolTokenBMint
+          )
+        );
+      }
+
+      // Build the removeLiquidity instruction
+      const removeLiqIx = await program.methods
         .removeLiquidity(lpAmountBN, minAmountABN, minAmountBBN)
         .accounts({
           pool: poolPda,
@@ -473,14 +606,34 @@ export function usePool(poolAddress?: string, tokenASymbol?: string, tokenBSymbo
           user: wallet.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .rpc();
+        .instruction();
+      tx.add(removeLiqIx);
 
-      setTxSignature(tx);
+      // Close WSOL accounts after to recover SOL
+      if (tokenAIsNativeSOL) {
+        tx.add(
+          createCloseAccountInstruction(userTokenA, wallet.publicKey, wallet.publicKey)
+        );
+      }
+      if (tokenBIsNativeSOL) {
+        tx.add(
+          createCloseAccountInstruction(userTokenB, wallet.publicKey, wallet.publicKey)
+        );
+      }
+
+      // Send transaction
+      tx.feePayer = wallet.publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+      const signed = await wallet.signTransaction!(tx);
+      const sig = await connection.sendRawTransaction(signed.serialize());
+      await connection.confirmTransaction(sig, 'confirmed');
+
+      setTxSignature(sig);
 
       // Refresh pool data
       await fetchPoolData();
 
-      return tx;
+      return sig;
     } catch (err: any) {
       console.error("Remove liquidity error:", err);
       const errorMsg = err.message || 'Failed to remove liquidity';

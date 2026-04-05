@@ -279,23 +279,22 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {filteredPools.map((pool) => {
-                                            // Mock stats for demo purposes if real data is missing
-                                            const mockVolume = pool.volume24h ? pool.volume24h : (Math.random() * 50000 + 1000);
-                                            const mockFormattedVolume = mockVolume >= 1000000
-                                                ? `$${(mockVolume / 1000000).toFixed(2)}M`
-                                                : mockVolume >= 1000
-                                                    ? `$${(mockVolume / 1000).toFixed(2)}K`
-                                                    : `$${mockVolume.toFixed(2)}`;
+                                            // Format volume
+                                            const vol = pool.volume24h || 0;
+                                            const formattedVolume = vol >= 1000000
+                                                ? `$${(vol / 1000000).toFixed(2)}M`
+                                                : vol >= 1000
+                                                    ? `$${(vol / 1000).toFixed(2)}K`
+                                                    : `$${vol.toFixed(2)}`;
 
-                                            const mockApy = pool.apy && pool.apy !== 0 ? pool.apy : (Math.random() * 20 + 5);
-                                            const mockFormattedApy = `${mockApy.toFixed(2)}%`;
+                                            const formattedApy = `${(pool.apy || 0).toFixed(2)}%`;
 
-                                            // Format TVL
-                                            const formattedTvl = pool.tvl >= 1000000
-                                                ? `$${(pool.tvl / 1000000).toFixed(2)}M`
-                                                : pool.tvl >= 1000
-                                                    ? `$${(pool.tvl / 1000).toFixed(2)}K`
-                                                    : `$${pool.tvl.toFixed(2)}`;
+                                            const tvl = pool.tvl || 0;
+                                            const formattedTvl = tvl >= 1000000
+                                                ? `$${(tvl / 1000000).toFixed(2)}M`
+                                                : tvl >= 1000
+                                                    ? `$${(tvl / 1000).toFixed(2)}K`
+                                                    : `$${tvl.toFixed(2)}`;
 
                                             return (
                                                 <PoolCard
@@ -310,8 +309,8 @@ export const PoolsView: React.FC<PoolsViewProps> = ({
                                                         icon: getTokenIcon(pool.tokens[1]),
                                                         reserve: pool.formattedReserveB || '0'
                                                     }}
-                                                    volume24h={mockFormattedVolume}
-                                                    apy={mockFormattedApy}
+                                                    volume24h={formattedVolume}
+                                                    apy={formattedApy}
                                                     fee={`${pool.fee}%`}
                                                     tvl={formattedTvl}
                                                     onAddLiquidity={() => {

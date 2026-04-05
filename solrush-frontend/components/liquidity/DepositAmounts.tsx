@@ -4,7 +4,8 @@ import React from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
-import { SolIcon, UsdcIcon, UsdtIcon } from '@/components/icons/TokenIcons';
+import { SolIcon, UsdcIcon, UsdtIcon, WethIcon, RushIcon } from '@/components/icons/TokenIcons';
+import { useTokenBalance } from '@/lib/hooks/useBalance';
 
 interface DepositAmountsProps {
     tokenA: string;
@@ -20,15 +21,10 @@ const getTokenIcon = (symbol: string) => {
         case 'SOL': return <SolIcon className="w-6 h-6" />;
         case 'USDC': return <UsdcIcon className="w-6 h-6" />;
         case 'USDT': return <UsdtIcon className="w-6 h-6" />;
+        case 'WETH': return <WethIcon className="w-6 h-6" />;
+        case 'RUSH': return <RushIcon className="w-6 h-6" />;
         default: return <span className="w-6 h-6">?</span>;
     }
-};
-
-// Mock balances - in real app, fetch from blockchain
-const mockBalances: Record<string, number> = {
-    'SOL': 10.5,
-    'USDC': 1000,
-    'USDT': 500,
 };
 
 export const DepositAmounts: React.FC<DepositAmountsProps> = ({
@@ -40,54 +36,56 @@ export const DepositAmounts: React.FC<DepositAmountsProps> = ({
     onAmountBChange,
 }) => {
     const { connected } = useWallet();
+    const tokenABalance = useTokenBalance(tokenA);
+    const tokenBBalance = useTokenBalance(tokenB);
 
-    const balanceA = mockBalances[tokenA] || 0;
-    const balanceB = mockBalances[tokenB] || 0;
+    const balanceA = tokenABalance.loading ? 0 : tokenABalance.balance;
+    const balanceB = tokenBBalance.loading ? 0 : tokenBBalance.balance;
 
     const insufficientBalanceA = parseFloat(amountA || '0') > balanceA;
     const insufficientBalanceB = parseFloat(amountB || '0') > balanceB;
 
     const handleMaxA = () => {
-        onAmountAChange(balanceA.toString());
+        if (balanceA > 0) onAmountAChange(balanceA.toString());
     };
 
     const handleMaxB = () => {
-        onAmountBChange(balanceB.toString());
+        if (balanceB > 0) onAmountBChange(balanceB.toString());
     };
 
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-lg font-semibold text-white mb-2">Deposit balance</h3>
-                <p className="text-sm text-white/60 mb-4">
-                    Specify the token amounts  for your liquidity contribution.
+                <h3 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-2">Deposit balance</h3>
+                <p className="text-sm text-[#475569] dark:text-[#9CA3AF] mb-4">
+                    Specify the token amounts for your liquidity contribution.
                 </p>
             </div>
 
             {/* Token A Input */}
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-semibold text-white">{tokenA}</label>
-                    <div className="text-xs text-white/40">
-                        Balance: {balanceA.toLocaleString()} {tokenA}
+                    <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB]">{tokenA}</label>
+                    <div className="text-xs text-[#94A3B8] dark:text-white/40">
+                        Balance: {tokenABalance.loading ? '...' : balanceA.toLocaleString()} {tokenA}
                     </div>
                 </div>
-                <div className={`relative bg-white/5 border rounded-xl transition-colors ${insufficientBalanceA
+                <div className={`relative bg-[#F8FAFC] dark:bg-white/5 border rounded-xl transition-colors ${insufficientBalanceA
                         ? 'border-red-500 ring-2 ring-red-500/20'
                         : amountA
                             ? 'border-green-500/50 ring-2 ring-green-500/10'
-                            : 'border-white/10'
+                            : 'border-[#E2E8F0] dark:border-white/10'
                     }`}>
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                         {getTokenIcon(tokenA)}
-                        <span className="font-semibold text-white">{tokenA}</span>
+                        <span className="font-semibold text-[#0F172A] dark:text-[#E5E7EB]">{tokenA}</span>
                     </div>
                     <input
                         type="number"
                         value={amountA}
                         onChange={(e) => onAmountAChange(e.target.value)}
                         placeholder="0"
-                        className="w-full bg-transparent px-4 py-4 pl-32 pr-24 text-right text-2xl font-semibold text-white focus:outline-none"
+                        className="w-full bg-transparent px-4 py-4 pl-32 pr-24 text-right text-2xl font-semibold text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none"
                         step="any"
                         min="0"
                     />
@@ -95,19 +93,19 @@ export const DepositAmounts: React.FC<DepositAmountsProps> = ({
                         onClick={handleMaxA}
                         size="sm"
                         variant="ghost"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-#3B82F6 hover:text-#2563EB text-xs font-semibold"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[#3B82F6] hover:text-[#2563EB] text-xs font-semibold"
                     >
                         MAX
                     </Button>
                 </div>
                 {insufficientBalanceA && (
-                    <div className="flex items-center gap-2 mt-2 text-sm text-red-400">
+                    <div className="flex items-center gap-2 mt-2 text-sm text-red-500 dark:text-red-400">
                         <AlertCircle className="w-4 h-4" />
                         Insufficient balance
                     </div>
                 )}
                 {amountA && !insufficientBalanceA && (
-                    <div className="text-xs text-white/40 mt-2">
+                    <div className="text-xs text-[#94A3B8] dark:text-white/40 mt-2">
                         ≈ ${parseFloat(amountA).toLocaleString()}
                     </div>
                 )}
@@ -116,27 +114,27 @@ export const DepositAmounts: React.FC<DepositAmountsProps> = ({
             {/* Token B Input */}
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-semibold text-white">{tokenB}</label>
-                    <div className="text-xs text-white/40">
-                        Balance: {balanceB.toLocaleString()} {tokenB}
+                    <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB]">{tokenB}</label>
+                    <div className="text-xs text-[#94A3B8] dark:text-white/40">
+                        Balance: {tokenBBalance.loading ? '...' : balanceB.toLocaleString()} {tokenB}
                     </div>
                 </div>
-                <div className={`relative bg-white/5 border rounded-xl transition-colors ${insufficientBalanceB
+                <div className={`relative bg-[#F8FAFC] dark:bg-white/5 border rounded-xl transition-colors ${insufficientBalanceB
                         ? 'border-red-500 ring-2 ring-red-500/20'
                         : amountB
                             ? 'border-green-500/50 ring-2 ring-green-500/10'
-                            : 'border-white/10'
+                            : 'border-[#E2E8F0] dark:border-white/10'
                     }`}>
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                         {getTokenIcon(tokenB)}
-                        <span className="font-semibold text-white">{tokenB}</span>
+                        <span className="font-semibold text-[#0F172A] dark:text-[#E5E7EB]">{tokenB}</span>
                     </div>
                     <input
                         type="number"
                         value={amountB}
                         onChange={(e) => onAmountBChange(e.target.value)}
                         placeholder="0"
-                        className="w-full bg-transparent px-4 py-4 pl-32 pr-24 text-right text-2xl font-semibold text-white focus:outline-none"
+                        className="w-full bg-transparent px-4 py-4 pl-32 pr-24 text-right text-2xl font-semibold text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none"
                         step="any"
                         min="0"
                     />
@@ -144,19 +142,19 @@ export const DepositAmounts: React.FC<DepositAmountsProps> = ({
                         onClick={handleMaxB}
                         size="sm"
                         variant="ghost"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-#3B82F6 hover:text-#2563EB text-xs font-semibold"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[#3B82F6] hover:text-[#2563EB] text-xs font-semibold"
                     >
                         MAX
                     </Button>
                 </div>
                 {insufficientBalanceB && (
-                    <div className="flex items-center gap-2 mt-2 text-sm text-red-400">
+                    <div className="flex items-center gap-2 mt-2 text-sm text-red-500 dark:text-red-400">
                         <AlertCircle className="w-4 h-4" />
                         Insufficient balance
                     </div>
                 )}
                 {amountB && !insufficientBalanceB && (
-                    <div className="text-xs text-white/40 mt-2">
+                    <div className="text-xs text-[#94A3B8] dark:text-white/40 mt-2">
                         ≈ ${parseFloat(amountB).toLocaleString()}
                     </div>
                 )}
@@ -164,11 +162,11 @@ export const DepositAmounts: React.FC<DepositAmountsProps> = ({
 
             {/* Summary */}
             {amountA && amountB && !insufficientBalanceA && !insufficientBalanceB && (
-                <div className="bg-#3B82F6/10 border border-#3B82F6/20 rounded-xl p-4">
-                    <div className="text-sm font-semibold text-#2563EB mb-2">Position Summary</div>
+                <div className="bg-[#EFF6FF] dark:bg-[#3B82F6]/10 border border-[#BFDBFE] dark:border-[#3B82F6]/20 rounded-xl p-4">
+                    <div className="text-sm font-semibold text-[#1D4ED8] dark:text-[#60A5FA] mb-2">Position Summary</div>
                     <div className="flex justify-between text-sm">
-                        <span className="text-white/60">Total deposit value</span>
-                        <span className="text-white font-semibold">
+                        <span className="text-[#475569] dark:text-white/60">Total deposit value</span>
+                        <span className="text-[#0F172A] dark:text-[#E5E7EB] font-semibold">
                             ≈ ${(parseFloat(amountA) + parseFloat(amountB)).toLocaleString()}
                         </span>
                     </div>
@@ -176,9 +174,9 @@ export const DepositAmounts: React.FC<DepositAmountsProps> = ({
             )}
 
             {!connected && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex gap-2">
-                    <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-yellow-500">
+                <div className="bg-[#FFFBEB] dark:bg-yellow-500/10 border border-[#FDE68A] dark:border-yellow-500/20 rounded-xl p-4 flex gap-2">
+                    <AlertCircle className="w-5 h-5 text-[#D97706] dark:text-yellow-500 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-[#D97706] dark:text-yellow-500">
                         Connect your wallet to see your balances and add liquidity
                     </div>
                 </div>

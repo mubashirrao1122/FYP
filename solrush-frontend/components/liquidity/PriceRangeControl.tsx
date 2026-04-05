@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { SolIcon, UsdcIcon, UsdtIcon } from '@/components/icons/TokenIcons';
+import { SolIcon, UsdcIcon, UsdtIcon, WethIcon, RushIcon } from '@/components/icons/TokenIcons';
 import { Infinity } from 'lucide-react';
 
 interface PriceRangeControlProps {
@@ -21,6 +21,8 @@ const getTokenIcon = (symbol: string) => {
         case 'SOL': return <SolIcon className="w-5 h-5" />;
         case 'USDC': return <UsdcIcon className="w-5 h-5" />;
         case 'USDT': return <UsdtIcon className="w-5 h-5" />;
+        case 'WETH': return <WethIcon className="w-5 h-5" />;
+        case 'RUSH': return <RushIcon className="w-5 h-5" />;
         default: return <span className="w-5 h-5">?</span>;
     }
 };
@@ -42,7 +44,7 @@ export const PriceRangeControl: React.FC<PriceRangeControlProps> = ({
     onMinPriceChange,
     onMaxPriceChange,
 }) => {
-    const currentPrice = 0.9979; // Mock current price
+    const currentPrice = 0.9979; // TODO: fetch real price from pool
 
     const applyStrategy = (strategy: typeof priceStrategies[0]) => {
         onRangeTypeChange('custom');
@@ -54,17 +56,17 @@ export const PriceRangeControl: React.FC<PriceRangeControlProps> = ({
         <div className="space-y-6">
             {/* Range Type Toggle */}
             <div>
-                <h3 className="text-lg font-semibold text-white mb-3">Set price range</h3>
+                <h3 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-3">Set price range</h3>
                 <div className="grid grid-cols-2 gap-3">
                     <button
                         onClick={() => onRangeTypeChange('full')}
                         className={`p-4 rounded-xl border text-left transition-all ${rangeType === 'full'
-                            ? 'bg-white/10 border-white/30'
-                            : 'bg-white/5 border-white/10 hover:border-white/20'
+                            ? 'bg-[#EFF6FF] dark:bg-white/10 border-[#3B82F6] dark:border-white/30'
+                            : 'bg-[#F8FAFC] dark:bg-white/5 border-[#E2E8F0] dark:border-white/10 hover:border-[#CBD5E1] dark:hover:border-white/20'
                             }`}
                     >
-                        <div className="font-semibold text-white mb-1">Full range</div>
-                        <div className="text-xs text-white/60">
+                        <div className="font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-1">Full range</div>
+                        <div className="text-xs text-[#475569] dark:text-white/60">
                             Providing full liquidity for enhanced impermanent loss, market participation across all prices
                         </div>
                     </button>
@@ -72,12 +74,12 @@ export const PriceRangeControl: React.FC<PriceRangeControlProps> = ({
                     <button
                         onClick={() => onRangeTypeChange('custom')}
                         className={`p-4 rounded-xl border text-left transition-all ${rangeType === 'custom'
-                            ? 'bg-white/10 border-white/30'
-                            : 'bg-white/5 border-white/10 hover:border-white/20'
+                            ? 'bg-[#EFF6FF] dark:bg-white/10 border-[#3B82F6] dark:border-white/30'
+                            : 'bg-[#F8FAFC] dark:bg-white/5 border-[#E2E8F0] dark:border-white/10 hover:border-[#CBD5E1] dark:hover:border-white/20'
                             }`}
                     >
-                        <div className="font-semibold text-white mb-1">Custom range</div>
-                        <div className="text-xs text-white/60">
+                        <div className="font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-1">Custom range</div>
+                        <div className="text-xs text-[#475569] dark:text-white/60">
                             Select a specific price range to concentrate liquidity and earn more fees
                         </div>
                     </button>
@@ -85,28 +87,28 @@ export const PriceRangeControl: React.FC<PriceRangeControlProps> = ({
             </div>
 
             {/* Current Price */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <div className="text-sm text-white/60 mb-2">Current price</div>
-                <div className="flex items-center gap-2 text-xl font-bold text-white">
+            <div className="bg-[#F8FAFC] dark:bg-white/5 border border-[#E2E8F0] dark:border-white/10 rounded-xl p-4">
+                <div className="text-sm text-[#475569] dark:text-white/60 mb-2">Current price</div>
+                <div className="flex items-center gap-2 text-xl font-bold text-[#0F172A] dark:text-[#E5E7EB]">
                     {getTokenIcon(tokenA)}
                     <span>{currentPrice} {tokenA}/{tokenB}</span>
-                    <span className="text-white/40 text-sm">($1.00)</span>
+                    <span className="text-[#94A3B8] dark:text-white/40 text-sm">($1.00)</span>
                 </div>
             </div>
 
             {/* Price Strategies (only for custom range) */}
             {rangeType === 'custom' && (
                 <div>
-                    <div className="text-sm font-semibold text-white mb-3">Price strategies</div>
+                    <div className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-3">Price strategies</div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {priceStrategies.map((strategy) => (
                             <button
                                 key={strategy.label}
                                 onClick={() => applyStrategy(strategy)}
-                                className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all text-left"
+                                className="p-3 bg-[#F8FAFC] dark:bg-white/5 border border-[#E2E8F0] dark:border-white/10 rounded-xl hover:bg-[#F1F5F9] dark:hover:bg-white/10 hover:border-[#CBD5E1] dark:hover:border-white/20 transition-all text-left"
                             >
-                                <div className="text-sm font-semibold text-white mb-1">{strategy.label}</div>
-                                <div className="text-xs text-white/60">{strategy.description}</div>
+                                <div className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-1">{strategy.label}</div>
+                                <div className="text-xs text-[#475569] dark:text-white/60">{strategy.description}</div>
                             </button>
                         ))}
                     </div>
@@ -118,16 +120,16 @@ export const PriceRangeControl: React.FC<PriceRangeControlProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                     {/* Min Price */}
                     <div>
-                        <label className="text-sm font-semibold text-white mb-2 block">Min price</label>
+                        <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-2 block">Min price</label>
                         <div className="relative">
                             <input
                                 type="text"
                                 value={minPrice}
                                 onChange={(e) => onMinPriceChange(e.target.value)}
                                 placeholder="0"
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-28 text-white focus:outline-none focus:ring-2 focus:ring-#3B82F6"
+                                className="w-full bg-[#F8FAFC] dark:bg-white/5 border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 pr-28 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]"
                             />
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/40 pointer-events-none">
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] dark:text-white/40 pointer-events-none">
                                 {tokenB}/{tokenA}
                             </div>
                         </div>
@@ -135,20 +137,20 @@ export const PriceRangeControl: React.FC<PriceRangeControlProps> = ({
 
                     {/* Max Price */}
                     <div>
-                        <label className="text-sm font-semibold text-white mb-2 block">Max price</label>
+                        <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-2 block">Max price</label>
                         <div className="relative">
                             <input
                                 type="text"
                                 value={maxPrice}
                                 onChange={(e) => onMaxPriceChange(e.target.value)}
                                 placeholder="∞"
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-28 text-white focus:outline-none focus:ring-2 focus:ring-#3B82F6"
+                                className="w-full bg-[#F8FAFC] dark:bg-white/5 border border-[#E2E8F0] dark:border-white/10 rounded-xl px-4 py-3 pr-28 text-[#0F172A] dark:text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]"
                             />
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/40 pointer-events-none">
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] dark:text-white/40 pointer-events-none">
                                 {tokenB}/{tokenA}
                             </div>
                             {maxPrice === '∞' && (
-                                <Infinity className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 pointer-events-none" />
+                                <Infinity className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8] dark:text-white/40 pointer-events-none" />
                             )}
                         </div>
                     </div>
@@ -157,17 +159,17 @@ export const PriceRangeControl: React.FC<PriceRangeControlProps> = ({
 
             {/* Visual Price Range Indicator */}
             {rangeType === 'custom' && minPrice && maxPrice && (
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                    <div className="text-sm text-white/60 mb-3">Price range visualization</div>
-                    <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-#2563EB to-#3B82F6" style={{
+                <div className="bg-[#F8FAFC] dark:bg-white/5 border border-[#E2E8F0] dark:border-white/10 rounded-xl p-4">
+                    <div className="text-sm text-[#475569] dark:text-white/60 mb-3">Price range visualization</div>
+                    <div className="relative h-2 bg-[#E2E8F0] dark:bg-white/10 rounded-full overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#2563EB] to-[#3B82F6]" style={{
                             left: minPrice === '0' ? '0%' : '20%',
                             right: maxPrice === '∞' ? '0%' : '20%',
                         }} />
                     </div>
-                    <div className="flex justify-between mt-2 text-xs text-white/40">
+                    <div className="flex justify-between mt-2 text-xs text-[#94A3B8] dark:text-white/40">
                         <span>{minPrice === '0' ? 'Min' : minPrice}</span>
-                        <span className="text-white">Current: {currentPrice}</span>
+                        <span className="text-[#0F172A] dark:text-[#E5E7EB]">Current: {currentPrice}</span>
                         <span>{maxPrice === '∞' ? 'Max' : maxPrice}</span>
                     </div>
                 </div>

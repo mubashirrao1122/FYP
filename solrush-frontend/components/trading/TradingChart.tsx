@@ -5,6 +5,9 @@ import { createChart, ColorType, IChartApi, ISeriesApi, Time, CandlestickSeries 
 import { cn } from '@/lib/utils';
 import { Loader2, RefreshCw } from 'lucide-react';
 
+const NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'localnet';
+const IS_LOCALNET = NETWORK === 'localnet';
+
 interface TradingChartProps {
     tokenPair: string;
     inputToken?: string;
@@ -131,6 +134,15 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
                 // Fetch Data
                 setIsLoading(true);
                 setError(null);
+
+                // On localnet, external price APIs have no data for our mints.
+                // Show a static price placeholder instead of spinning forever.
+                if (IS_LOCALNET) {
+                    setCurrentPrice(null);
+                    setPriceChange24h(null);
+                    setIsLoading(false);
+                    return;
+                }
 
                 const inputAddress = TOKEN_ADDRESSES[inputToken] || TOKEN_ADDRESSES['SOL'];
                 const outputAddress = TOKEN_ADDRESSES[outputToken] || TOKEN_ADDRESSES['USDC'];
@@ -268,13 +280,25 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
             <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-[#E2E8F0] dark:border-white/10 bg-[#F1F5F9] dark:bg-[#161C2D] transition-colors duration-200">
                 <div ref={chartContainerRef} className="w-full h-full" />
 
-                {isLoading && (
+                {isLoading && !IS_LOCALNET && (
                     <div className="absolute inset-0 flex items-center justify-center bg-[#F1F5F9]/70 dark:bg-[#0B0E14]/70 backdrop-blur-sm z-10">
                         <Loader2 className="h-8 w-8 text-[#3B82F6] animate-spin" />
                     </div>
                 )}
 
-                {error && (
+                {IS_LOCALNET && !isLoading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+                        <p className="text-[#475569] dark:text-[#9CA3AF] text-sm mb-1">Localnet Mode</p>
+                        <p className="text-[#0F172A] dark:text-[#E5E7EB] text-lg font-semibold">
+                            Chart data unavailable on localnet
+                        </p>
+                        <p className="text-[#6B7280] dark:text-[#6B7280] text-xs mt-2">
+                            Swap prices are calculated from on-chain pool reserves
+                        </p>
+                    </div>
+                )}
+
+                {error && !IS_LOCALNET && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F1F5F9]/70 dark:bg-[#0B0E14]/70 backdrop-blur-sm z-10 p-4 text-center">
                         <p className="text-red-500 mb-2">{error}</p>
                         <button

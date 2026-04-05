@@ -20,7 +20,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 import { Settings, Plus, Info, Loader2 } from 'lucide-react';
 import { SolIcon, UsdcIcon, UsdtIcon, RushIcon, WethIcon } from '@/components/icons/TokenIcons';
-import { TOKEN_DECIMALS } from '@/lib/constants';
+import { TOKEN_DECIMALS, getTokenMint } from '@/lib/constants';
 
 const SLIPPAGE_PRESETS = [
   { label: '0.1%', value: 10 },
@@ -75,23 +75,36 @@ export function AddLiquidity({ poolAddress, onSuccess }: AddLiquidityProps) {
   const lpTokensToReceive = amountA && amountB ? calculateLPTokens(parseFloat(amountA), parseFloat(amountB)) : 0;
   const poolSharePercentage = lpTokensToReceive ? calculatePoolShare(lpTokensToReceive) : 0;
 
-  // Get token decimals for normalization
+  // Get token decimals for the user-facing display
   const tokenADecimals = TOKEN_DECIMALS[tokenA] || 9;
   const tokenBDecimals = TOKEN_DECIMALS[tokenB] || 6;
 
-  // Auto-calculate amount B based on pool ratio (normalized)
+  // Auto-calculate amount B based on pool ratio (normalized using pool's on-chain decimals)
   useEffect(() => {
     if (amountA && pool && pool.reserveA > 0) {
-      // Normalize reserves to human-readable values before calculating ratio
-      const normalizedReserveA = pool.reserveA / Math.pow(10, tokenADecimals);
-      const normalizedReserveB = pool.reserveB / Math.pow(10, tokenBDecimals);
-      const ratio = normalizedReserveB / normalizedReserveA;
+      // Use pool's on-chain decimals (reserveA/B are in pool-sorted order)
+      const poolDecA = pool.tokenADecimals || 9;
+      const poolDecB = pool.tokenBDecimals || 6;
+      const normalizedReserveA = pool.reserveA / Math.pow(10, poolDecA);
+      const normalizedReserveB = pool.reserveB / Math.pow(10, poolDecB);
+
+      // Check if the user's tokenA matches pool's tokenA (on-chain sorted order)
+      const userAMatchesPoolA = pool.tokenAMint?.toBase58() === getTokenMint(tokenA)?.toBase58();
+
+      let ratio: number;
+      if (userAMatchesPoolA) {
+        // User A = Pool A, User B = Pool B
+        ratio = normalizedReserveB / normalizedReserveA;
+      } else {
+        // User A = Pool B, User B = Pool A (display order is reversed)
+        ratio = normalizedReserveA / normalizedReserveB;
+      }
       const calculatedB = parseFloat(amountA) * ratio;
       setAmountB(calculatedB.toFixed(6));
     } else if (!amountA) {
       setAmountB('');
     }
-  }, [amountA, pool, tokenADecimals, tokenBDecimals]);
+  }, [amountA, pool, tokenA]);
 
   const handleCustomSlippage = (value: string) => {
     setCustomSlippage(value);

@@ -19,6 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('http://localhost:3000'),
   title: 'SolRush DEX - Decentralized Exchange on Solana',
   description: 'Trade, provide liquidity, and earn RUSH rewards on Solana',
   keywords: ['Solana', 'DEX', 'Trading', 'Liquidity', 'Rewards'],

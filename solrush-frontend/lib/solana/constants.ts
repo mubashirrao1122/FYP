@@ -15,7 +15,7 @@ export const RPC_ENDPOINT =
 
 // Program ID
 export const PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PROGRAM_ID || "HiBkUd2QX61NNJkAwU48EadUs9HDgKnbDFJ3Zoq6uFMp"
+  process.env.NEXT_PUBLIC_PROGRAM_ID || "7AeCL1kAuxjB9ktLdtoRFUW6KfquYwDNs8r291w6h9mC"
 );
 
 // Token Mints (Devnet)

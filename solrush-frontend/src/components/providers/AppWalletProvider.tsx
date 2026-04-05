@@ -1,5 +1,14 @@
 'use client';
 
+// Polyfill: BigInt cannot be serialized by JSON.stringify by default.
+// Solana/Anchor libraries use BigInt extensively; without this, any logging
+// or devtools serialization of objects containing BigInt will throw.
+if (typeof BigInt !== 'undefined') {
+    (BigInt.prototype as any).toJSON = function () {
+        return this.toString();
+    };
+}
+
 import { FC, ReactNode, useMemo, useCallback } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';

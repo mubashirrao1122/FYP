@@ -3,17 +3,17 @@
   "rpcUrl": "http://127.0.0.1:8899",
   "walletPublicKey": "9LW5JnrZfSymwaxCSKqqwvA9SWXZcASvsas5YAKFLLvp",
   "mints": {
-    "USDC": "68EPkxkqXDBcemdTYsJ6UFEbtAnFNn9eRAig7Dy4uBET",
-    "USDT": "6LSYAYrLZrFQhWvZdQEirJW4hu4iWsV8HsfAMbBjnY2L",
-    "WETH": "6vb7N5gSJ9efcKMxRV1CPr4GK2h4gnB43kFRpHUXTuX8",
-    "RUSH": "9oAMw8eSrussbrjrtYC5JjkNsLeGT4MFM1eMZeA6yeCh",
+    "USDC": "2Tu9HJszTjh2vx2hFu9hecbP1AnyjrNgNruF3dp6SmD3",
+    "USDT": "3BNm1373C4g8QfoV8UTRNDW2yyHxXTd1xUf6SHbqg6xy",
+    "WETH": "Cyu4hC3basseyPBAxMnja7eqwCsZwBqTDV2SvMPfxawk",
+    "RUSH": "FDgPkHUAukXvYrVqodj9sv1uUmp2Qx4iWCzTNp8tUMzD",
     "SOL": "So11111111111111111111111111111111111111112"
   },
   "tokenAccounts": {
-    "USDC": "4AzmgQayHyXq8TRJPoQNcpkNwgic2L7Aqz2Qbm7rKXmi",
-    "USDT": "5gCE5NbDC2eSXru4Py1Xif2L3hnuHGQ5Nd21cazmCCWn",
-    "WETH": "2ZnZfEFsL8NDJgPGfDmFq2xPhmJ1XkP1dyvfxDMWgwSp",
-    "RUSH": "5GnA5HnyceRa2rLW7g98RATXXKHrAfptDaioY3FB7Wec"
+    "USDC": "Di8j4iaAFTpetLNhR8fX2WfiZcmVQfSWBGioD5DpmcmJ",
+    "USDT": "3AKhhicU4B4vpEwZZqdXGpLxQJCPKgLV9LrhzVPACxca",
+    "WETH": "93VGEifQx2fXAQyHEdiH92Lqk2xeiJqHynoHsgQSZ8mY",
+    "RUSH": "Bcivc1j9aZrxH6ocSvbUduQYzmtsFgk9i3PhF4SJch3k"
   },
   "decimals": {
     "USDC": 6,

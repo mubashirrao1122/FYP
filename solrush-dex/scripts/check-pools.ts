@@ -4,7 +4,7 @@ import { Program, AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import type { SolrushDex } from "../target/types/solrush_dex";
 import idl from "../target/idl/solrush_dex.json";
 
-const PROGRAM_ID = new PublicKey("FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1");
+const PROGRAM_ID = new PublicKey("7AeCL1kAuxjB9ktLdtoRFUW6KfquYwDNs8r291w6h9mC");
 
 // Token mints from localnet
 const TOKENS = {

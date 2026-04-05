@@ -9,15 +9,17 @@ import { TokenPairSelector } from '@/components/liquidity/TokenPairSelector';
 import { FeeTierSelector } from '@/components/liquidity/FeeTierSelector';
 import { PriceRangeControl } from '@/components/liquidity/PriceRangeControl';
 import { DepositAmounts } from '@/components/liquidity/DepositAmounts';
+import { usePools } from '@/lib/hooks/usePools';
 
 export default function NewPositionPage() {
     const router = useRouter();
+    const { pools, totalTVL } = usePools();
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Step 1 state
-    const [tokenA, setTokenA] = useState('USDC');
-    const [tokenB, setTokenB] = useState('USDT');
+    const [tokenA, setTokenA] = useState('SOL');
+    const [tokenB, setTokenB] = useState('USDC');
     const [selectedFeeTier, setSelectedFeeTier] = useState(0.3);
 
     // Step 2 state
@@ -29,8 +31,8 @@ export default function NewPositionPage() {
 
     const handleReset = () => {
         setCurrentStep(1);
-        setTokenA('USDC');
-        setTokenB('USDT');
+        setTokenA('SOL');
+        setTokenB('USDC');
         setSelectedFeeTier(0.3);
         setRangeType('custom');
         setMinPrice('0');
@@ -220,19 +222,27 @@ export default function NewPositionPage() {
                 <div className="grid grid-cols-4 gap-4">
                     <div className="bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#1F2937] rounded-xl p-4 shadow-sm transition-colors duration-200">
                         <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-1">Total Value Locked</div>
-                        <div className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">$0</div>
+                        <div className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">
+                            {totalTVL >= 1000 ? `$${(totalTVL / 1000).toFixed(1)}K` : `$${totalTVL.toFixed(0)}`}
+                        </div>
                     </div>
                     <div className="bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#1F2937] rounded-xl p-4 shadow-sm transition-colors duration-200">
                         <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-1">24h Volume</div>
-                        <div className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">$0</div>
+                        <div className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">
+                            {pools.reduce((s, p) => s + (p.volume24h || 0), 0) >= 1000
+                                ? `$${(pools.reduce((s, p) => s + (p.volume24h || 0), 0) / 1000).toFixed(1)}K`
+                                : `$${pools.reduce((s, p) => s + (p.volume24h || 0), 0).toFixed(0)}`}
+                        </div>
                     </div>
                     <div className="bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#1F2937] rounded-xl p-4 shadow-sm transition-colors duration-200">
                         <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-1">Active Pools</div>
-                        <div className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">0</div>
+                        <div className="text-xl font-semibold text-[#0F172A] dark:text-[#E5E7EB]">{pools.length}</div>
                     </div>
                     <div className="bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#1F2937] rounded-xl p-4 shadow-sm transition-colors duration-200">
                         <div className="text-[#94A3B8] dark:text-[#6B7280] text-sm mb-1">Average APY</div>
-                        <div className="text-xl font-semibold text-[#22C55E]">0.0%</div>
+                        <div className="text-xl font-semibold text-[#22C55E]">
+                            {pools.length > 0 ? (pools.reduce((s, p) => s + p.apy, 0) / pools.length).toFixed(1) : '0.0'}%
+                        </div>
                     </div>
                 </div>
             </main>

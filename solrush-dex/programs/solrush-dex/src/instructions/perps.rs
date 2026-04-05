@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
-use pyth_sdk_solana::load_price_feed_from_account_info;
+use pyth_sdk_solana::state::SolanaPriceAccount;
 use crate::errors::CustomError;
 use crate::perps_math::{self, PositionState, notional_value, unrealized_pnl, PRICE_SCALE, initial_margin, compute_equity, can_increase_position};
 use crate::state::{PerpsGlobalState, PerpsMarket, PerpsOraclePrice, PerpsPosition, PerpsUserAccount, InsuranceVault};
@@ -68,7 +68,7 @@ fn read_oracle_price<'info>(oracle_price_account: &AccountInfo<'info>) -> Result
         let oracle = PerpsOraclePrice::try_deserialize(&mut slice)?;
         return Ok(oracle.price_i64);
     }
-    let price_feed = load_price_feed_from_account_info(oracle_price_account)
+    let price_feed = SolanaPriceAccount::account_info_to_feed(oracle_price_account)
         .map_err(|_| error!(CustomError::OraclePriceUnavailable))?;
     let clock = Clock::get()?;
     let price = price_feed

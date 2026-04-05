@@ -24,3 +24,7 @@ anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
 anchor-spl = "0.31.1"
 pyth-sdk-solana = "0.10.0"
 
+[lints.rust.unexpected_cfgs]
+level = "allow"
+check-cfg = ['cfg(feature, values("anchor-debug", "custom-heap", "custom-panic"))']
+

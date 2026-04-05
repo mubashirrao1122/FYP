@@ -6,13 +6,13 @@ import rawIdl from "../solana/idl.json";
 const idl = {
     ...rawIdl,
     metadata: {
-        address: process.env.NEXT_PUBLIC_PROGRAM_ID || "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1"
+        address: process.env.NEXT_PUBLIC_PROGRAM_ID || "7AeCL1kAuxjB9ktLdtoRFUW6KfquYwDNs8r291w6h9mC"
     }
 } as unknown as Idl;
 
 // Define the program ID - should match Anchor.toml
 export const PROGRAM_ID = new PublicKey(
-    process.env.NEXT_PUBLIC_PROGRAM_ID || "FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1"
+    process.env.NEXT_PUBLIC_PROGRAM_ID || "7AeCL1kAuxjB9ktLdtoRFUW6KfquYwDNs8r291w6h9mC"
 );
 
 // Network configuration - defaults to localnet

@@ -10,17 +10,29 @@ import {
 import type { SolrushDex } from "../target/types/solrush_dex";
 import idl from "../target/idl/solrush_dex.json";
 import * as fs from "fs";
+import * as path from "path";
 
-const PROGRAM_ID = new PublicKey("7AeCL1kAuxjB9ktLdtoRFUW6KfquYwDNs8r291w6h9mC");
+// Read program ID from the IDL file (updated by `anchor build`) — never hardcode.
+const _idlRaw = JSON.parse(fs.readFileSync(path.join(__dirname, "../target/idl/solrush_dex.json"), "utf-8"));
+const PROGRAM_ID = new PublicKey(_idlRaw.address);
+console.log(`Using Program ID: ${PROGRAM_ID.toBase58()}`);
 
-// Token mints from localnet
-const TOKENS: Record<string, PublicKey> = {
-    SOL: new PublicKey("6EkjjUgCf7srJumcgaGcrVSGJZLySxa6GJQngiydTRn9"),
-    USDC: new PublicKey("7yQ5HazBXopzJ5AEcEvGEwABF2tjsqQ46wE2CKwqvCyE"),
-    USDT: new PublicKey("5294sJnqtpBqbuLfd1g7Za5Z8cWoNKZwheXQC6VPFyPF"),
-    WETH: new PublicKey("D9pTWEJujgpkRYuEJGfSPpNzaUpX5pc5epKxGRFvFHD7"),
-    RUSH: new PublicKey("HJhRress95eLta1t22XH5byQBfFif7WKzz8B4AFQL2c4"),
-};
+// Load token mints from localnet-config.json (written by setup-localnet.ts)
+function loadTokensFromConfig(): Record<string, PublicKey> {
+    const configPath = path.join(__dirname, "..", "..", "localnet-config.json");
+    if (!fs.existsSync(configPath)) {
+        throw new Error("localnet-config.json not found. Run setup-localnet.ts first.");
+    }
+    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    const tokens: Record<string, PublicKey> = {};
+    for (const [symbol, address] of Object.entries(config.mints ?? {})) {
+        tokens[symbol] = new PublicKey(address as string);
+    }
+    return tokens;
+}
+
+const TOKENS = loadTokensFromConfig();
+console.log('Loaded tokens from localnet-config.json:', Object.keys(TOKENS));
 
 const TOKEN_DECIMALS: Record<string, number> = {
     SOL: 9,
@@ -68,11 +80,8 @@ async function main() {
     console.log("=== Adding Liquidity ===");
     console.log("Payer:", payer.publicKey.toBase58());
 
-    // Add liquidity to SOL/USDC pool
-    await addLiquidityToPool(program, connection, payer, "SOL", "USDC", 5, 1500);
-    
-    // Add liquidity to SOL/USDT pool
-    await addLiquidityToPool(program, connection, payer, "SOL", "USDT", 5, 1500);
+    // Add liquidity to SOL/USDC pool with 100 SOL and 10,000 USDC
+    await addLiquidityToPool(program, connection, payer, "SOL", "USDC", 100, 10000);
     
     console.log("\n=== Done! ===");
 }
@@ -93,12 +102,24 @@ async function addLiquidityToPool(
 
     console.log(`Input: ${tokenASymbol}/${tokenBSymbol}`);
 
+    // Sort mints to match how pool PDA was derived
     let mint1 = mintA;
     let mint2 = mintB;
+    let amt1 = amountA;
+    let amt2 = amountB;
+    let sym1 = tokenASymbol;
+    let sym2 = tokenBSymbol;
+    
     if (mintA.toBase58() > mintB.toBase58()) {
         mint1 = mintB;
         mint2 = mintA;
+        amt1 = amountB;  // Swap amounts too!
+        amt2 = amountA;
+        sym1 = tokenBSymbol;
+        sym2 = tokenASymbol;
     }
+    
+    console.log(`Sorted order: ${sym1}/${sym2}, amounts: ${amt1}/${amt2}`);
 
     const [poolPda] = findPoolAddress(mint1, mint2);
     const [lpMintPda] = findLpMintAddress(poolPda);
@@ -135,10 +156,9 @@ async function addLiquidityToPool(
     console.log("  Token B:", userTokenB.toBase58());
     console.log("  LP Token:", userLpToken.address.toBase58());
 
-    // Determine final amounts with extra buffer
-    const EXTRA_MULTIPLIER = 2; // double the requested amounts for extra liquidity
-    const finalAmountA = amountA * EXTRA_MULTIPLIER;
-    const finalAmountB = amountB * EXTRA_MULTIPLIER;
+    // Use the sorted amounts directly (no multiplier)
+    const finalAmountA = amt1;
+    const finalAmountB = amt2;
     const decimalsA = getDecimals(poolAccount.tokenAMint);
     const decimalsB = getDecimals(poolAccount.tokenBMint);
 
@@ -159,9 +179,8 @@ async function addLiquidityToPool(
                 payer,
                 poolAccount.tokenAMint,
                 userTokenA,
-                finalAmountA * Math.pow(10, decimalsA),
-                [],
-                undefined
+                payer, // mint authority
+                BigInt(Math.floor(finalAmountA * Math.pow(10, decimalsA)))
             );
         } else {
             console.log(`  Balance A: ${balanceA}`);
@@ -186,9 +205,8 @@ async function addLiquidityToPool(
                 payer,
                 poolAccount.tokenBMint,
                 userTokenB,
-                finalAmountB * Math.pow(10, decimalsB),
-                [],
-                undefined
+                payer, // mint authority
+                BigInt(Math.floor(finalAmountB * Math.pow(10, decimalsB)))
             );
         } else {
             console.log(`  Balance B: ${balanceB}`);

@@ -46,3 +46,15 @@ __pycache__/
 test-ledger/
 project_context.txt
 solrush-chatbot/test_*.py
+.claude/
+.cursorrules
+.mcp.json
+.opencode.json
+.windsurfrules
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+chatbot_output.log
+validator_output.log
+test-edit.js
+sync-program-id.sh

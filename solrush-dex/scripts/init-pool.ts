@@ -26,7 +26,10 @@ import * as fs from "fs";
 import * as path from "path";
 
 const LOCALNET_URL = "http://127.0.0.1:8899";
-const PROGRAM_ID = new PublicKey("7AeCL1kAuxjB9ktLdtoRFUW6KfquYwDNs8r291w6h9mC");
+
+// Read Program ID from IDL (updated by `anchor build`) — never hardcode.
+const _idl = JSON.parse(fs.readFileSync(path.join(__dirname, "../target/idl/solrush_dex.json"), "utf-8"));
+const PROGRAM_ID = new PublicKey(_idl.address);
 
 interface LocalnetConfig {
     mints: Record<string, string>;
@@ -35,20 +38,17 @@ interface LocalnetConfig {
 }
 
 async function loadConfig(): Promise<LocalnetConfig> {
-    const envPath = path.join(__dirname, "..", "..", "solrush-frontend", ".env.local");
-    if (!fs.existsSync(envPath)) {
-        throw new Error(".env.local not found in frontend directory.");
+    const configPath = path.join(__dirname, "..", "..", "localnet-config.json");
+    if (!fs.existsSync(configPath)) {
+        throw new Error("localnet-config.json not found. Run setup-localnet.ts first.");
     }
-    const envContent = fs.readFileSync(envPath, "utf-8");
-    const mints: Record<string, string> = {};
-    const lines = envContent.split("\n");
-    for (const line of lines) {
-        const match = line.match(/^NEXT_PUBLIC_([A-Z]+)_MINT=(.+)$/);
-        if (match) {
-            mints[match[1]] = match[2];
-        }
-    }
-    return { mints, decimals: { SOL: 9, USDC: 6, USDT: 6, WETH: 8, RUSH: 6 }, walletPublicKey: "" };
+    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    const mints: Record<string, string> = config.mints ?? {};
+    return {
+        mints,
+        decimals: config.decimals ?? { SOL: 9, USDC: 6, USDT: 6, WETH: 8, RUSH: 6 },
+        walletPublicKey: config.walletPublicKey ?? "",
+    };
 }
 
 async function loadWallet(): Promise<Keypair> {
@@ -164,7 +164,7 @@ async function initializePool(
     console.log(`📦 User Token B: ${userTokenB.address.toBase58()}`);
 
     try {
-        // ── Step 1: Initialize pool (create vaults & LP mint) ────────────────
+        // Initialize pool
         const tx = await program.methods
             .initializePool()
             .accounts({
@@ -187,91 +187,22 @@ async function initializePool(
         console.log(`\n✅ Pool initialized successfully!`);
         console.log(`🔗 Transaction: ${tx}`);
 
-        // ── Step 2: Mint initial tokens to wallet so addLiquidity succeeds ───
-        console.log(`\n💰 Minting initial tokens to wallet...`);
-        const { mintTo } = await import("@solana/spl-token");
-
-        await mintTo(
-            connection,
-            wallet,
-            mintA,
-            userTokenA.address,
-            wallet.publicKey,   // mint authority is the wallet on localnet
-            rawAmountA.toNumber() * 2  // mint 2x to leave headroom
-        );
-        console.log(`  Minted ${amtA * 2} ${symA} to wallet`);
-
-        await mintTo(
-            connection,
-            wallet,
-            mintB,
-            userTokenB.address,
-            wallet.publicKey,
-            rawAmountB.toNumber() * 2
-        );
-        console.log(`  Minted ${amtB * 2} ${symB} to wallet`);
-
-        // ── Step 3: Add initial liquidity so vaults have real reserves ───────
-        // FIX: Without this step the pool has zero reserves → zero price output.
-        console.log(`\n🌊 Adding initial liquidity (${amtA} ${symA} + ${amtB} ${symB})...`);
-
-        // Re-fetch pool to get confirmed vault addresses
-        const poolState = await (program.account as any).liquidityPool.fetch(poolPda);
-        const [userPositionPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("position"), poolPda.toBuffer(), wallet.publicKey.toBuffer()],
-            program.programId
-        );
-
-        const userLpTokenAta = await getAssociatedTokenAddress(lpMint, wallet.publicKey);
-
-        const addLiqTx = await (program.methods as any)
-            .addLiquidity(rawAmountA, rawAmountB, new anchor.BN(0))
-            .accounts({
-                pool: poolPda,
-                lpTokenMint: lpMint,
-                userPosition: userPositionPda,
-                tokenAVault: poolState.tokenAVault,
-                tokenBVault: poolState.tokenBVault,
-                userTokenA: userTokenA.address,
-                userTokenB: userTokenB.address,
-                userLpTokenAccount: userLpTokenAta,
-                user: wallet.publicKey,
-                tokenProgram: TOKEN_PROGRAM_ID,
-                systemProgram: SystemProgram.programId,
-                rent: SYSVAR_RENT_PUBKEY,
-            })
-            .rpc();
-
-        console.log(`✅ Liquidity added! TX: ${addLiqTx}`);
-
-        // ── Step 4: Verify final pool state ───────────────────────────────────
-        const finalPool = await (program.account as any).liquidityPool.fetch(poolPda);
-        console.log(`\n📊 Final Pool State:`);
-        console.log(`   Reserve A (${symA}): ${finalPool.reserveA.toString()}`);
-        console.log(`   Reserve B (${symB}): ${finalPool.reserveB.toString()}`);
-
-        // Spot price: B per A (scaled by 1_000_000 as per utils.rs calculate_pool_price)
-        if (!finalPool.reserveA.isZero()) {
-            const spotPrice = finalPool.reserveB.toNumber() / finalPool.reserveA.toNumber();
-            console.log(`   Spot price: 1 ${symA} = ${spotPrice.toFixed(4)} ${symB}`);
-        }
+        // Fetch and display pool info
+        const poolAccount = await (program.account as any).liquidityPool.fetch(poolPda);
+        console.log(`\n📊 Pool Info:`);
+        console.log(`   Reserve A: ${poolAccount.reserveA.toString()}`);
+        console.log(`   Reserve B: ${poolAccount.reserveB.toString()}`);
 
     } catch (error: any) {
         if (error.message?.includes("already in use")) {
-            console.log(`\n⚠️ Pool already exists! Checking if liquidity is needed...`);
+            console.log(`\n⚠️ Pool already exists!`);
             
+            // Try to fetch existing pool
             try {
                 const poolAccount = await (program.account as any).liquidityPool.fetch(poolPda);
                 console.log(`\n📊 Existing Pool Info:`);
                 console.log(`   Reserve A: ${poolAccount.reserveA.toString()}`);
                 console.log(`   Reserve B: ${poolAccount.reserveB.toString()}`);
-
-                if (poolAccount.reserveA.isZero() || poolAccount.reserveB.isZero()) {
-                    console.log(`⚠️  Pool has zero reserves — you need to run add-liquidity.ts separately.`);
-                    console.log(`   Run: npx ts-node scripts/add-liquidity.ts`);
-                } else {
-                    console.log(`✅ Pool already has liquidity.`);
-                }
             } catch (e) {
                 console.log("Could not fetch pool info.");
             }

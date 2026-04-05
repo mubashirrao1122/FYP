@@ -14,29 +14,25 @@ const feeTiers = [
         fee: 0.01,
         label: '0.01%',
         description: 'Best for very stable pairs',
-        tvl: '$21.6M',
-        mlv: '94.27%',
+        hint: 'e.g. USDC/USDT',
     },
     {
         fee: 0.05,
         label: '0.05%',
         description: 'Best for stable pairs',
-        tvl: '$8.7M',
-        mlv: '85.73%',
+        hint: 'e.g. correlated assets',
     },
     {
         fee: 0.3,
         label: '0.3%',
         description: 'Best for most pairs',
-        tvl: '$45.5M',
-        mlv: '95.7%',
+        hint: 'Recommended default',
     },
     {
         fee: 1.0,
         label: '1%',
         description: 'Best for exotic pairs',
-        tvl: '$29.4M',
-        mlv: '0.00%',
+        hint: 'e.g. volatile tokens',
     },
 ];
 
@@ -50,8 +46,8 @@ export const FeeTierSelector: React.FC<FeeTierSelectorProps> = ({
         <div>
             <div className="flex items-start justify-between mb-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Fee tier</h3>
-                    <p className="text-sm text-white/60">
+                    <h3 className="text-lg font-semibold text-[#0F172A] dark:text-[#E5E7EB] mb-1">Fee tier</h3>
+                    <p className="text-sm text-[#475569] dark:text-[#9CA3AF]">
                         The amount earned providing liquidity. Choose an amount that suits your risk tolerance and strategy.
                         The % you will earn in fees.
                     </p>
@@ -61,7 +57,7 @@ export const FeeTierSelector: React.FC<FeeTierSelectorProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowAll(true)}
-                        className="text-white/60 hover:text-white flex items-center gap-1"
+                        className="text-[#475569] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:hover:text-[#E5E7EB] flex items-center gap-1"
                     >
                         More
                         <ChevronRight className="w-4 h-4" />
@@ -76,7 +72,7 @@ export const FeeTierSelector: React.FC<FeeTierSelectorProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowAll(true)}
-                        className="text-white/60 hover:text-white"
+                        className="text-[#475569] dark:text-[#9CA3AF] hover:text-[#0F172A] dark:hover:text-[#E5E7EB]"
                     >
                         <ChevronLeft className="w-4 h-4" />
                         Less
@@ -87,17 +83,13 @@ export const FeeTierSelector: React.FC<FeeTierSelectorProps> = ({
                             .map(tier => (
                                 <div
                                     key={tier.fee}
-                                    className="bg-white/10 border border-white/20 rounded-xl p-4 cursor-pointer"
+                                    className="bg-[#F1F5F9] dark:bg-white/10 border border-[#CBD5E1] dark:border-white/20 rounded-xl p-4 cursor-pointer"
                                 >
                                     <div className="flex items-center justify-between mb-2">
-                                        <div className="text-lg font-bold text-white">{tier.label}</div>
-                                        <div className="text-sm text-white/60">Selected</div>
+                                        <div className="text-lg font-bold text-[#0F172A] dark:text-[#E5E7EB]">{tier.label}</div>
+                                        <div className="text-sm text-[#475569] dark:text-[#9CA3AF]">Selected</div>
                                     </div>
-                                    <div className="text-sm text-white/60 mb-2">{tier.description}</div>
-                                    <div className="flex items-center gap-4 text-xs text-white/40">
-                                        <span>{tier.tvl} TVL</span>
-                                        <span>{tier.mlv} MLV</span>
-                                    </div>
+                                    <div className="text-sm text-[#475569] dark:text-[#9CA3AF]">{tier.description}</div>
                                 </div>
                             ))}
                     </div>
@@ -112,25 +104,20 @@ export const FeeTierSelector: React.FC<FeeTierSelectorProps> = ({
                                 onSelect(tier.fee);
                                 setShowAll(false);
                             }}
-                            className={`p-4 rounded-xl border cursor-pointer transition-all hover:scale-105 ${selected === tier.fee
-                                    ? 'bg-white/10 border-white/30 ring-2 ring-#3B82F6'
-                                    : 'bg-white/5 border-white/10 hover:border-white/20'
+                            className={`p-4 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] ${selected === tier.fee
+                                    ? 'bg-[#EFF6FF] dark:bg-[#3B82F6]/10 border-[#3B82F6] ring-2 ring-[#3B82F6]'
+                                    : 'bg-[#F8FAFC] dark:bg-white/5 border-[#E2E8F0] dark:border-white/10 hover:border-[#CBD5E1] dark:hover:border-white/20'
                                 }`}
                         >
-                            <div className={`text-lg font-bold mb-1 ${selected === tier.fee ? 'text-white' : 'text-white/80'
+                            <div className={`text-lg font-bold mb-1 ${selected === tier.fee ? 'text-[#0F172A] dark:text-[#E5E7EB]' : 'text-[#334155] dark:text-white/80'
                                 }`}>
                                 {tier.label}
                             </div>
-                            <div className="text-xs text-white/60 mb-3 min-h-[32px]">
+                            <div className="text-xs text-[#475569] dark:text-white/60 mb-3 min-h-[32px]">
                                 {tier.description}
                             </div>
-                            <div className="space-y-1">
-                                <div className="text-xs text-white/40">
-                                    <span className="text-white/80">{tier.tvl}</span> TVL
-                                </div>
-                                <div className="text-xs text-white/40">
-                                    <span className="text-white/80">{tier.mlv}</span> MLV
-                                </div>
+                            <div className="text-xs text-[#94A3B8] dark:text-white/40">
+                                {tier.hint}
                             </div>
                         </div>
                     ))}
@@ -138,8 +125,8 @@ export const FeeTierSelector: React.FC<FeeTierSelectorProps> = ({
             )}
 
             {showAll && (
-                <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                    <p className="text-sm text-blue-300">
+                <div className="mt-4 p-3 bg-[#EFF6FF] dark:bg-blue-500/10 border border-[#BFDBFE] dark:border-blue-500/20 rounded-xl">
+                    <p className="text-sm text-[#1D4ED8] dark:text-blue-300">
                         <strong>Tip:</strong> Higher fees are better for volatile pairs where arbitrageurs are more likely to trade.
                         Lower fees are better for stable pairs.
                     </p>

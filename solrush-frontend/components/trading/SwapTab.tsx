@@ -126,15 +126,18 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
     const isAmountValid = inputAmount && parseFloat(inputAmount) > 0;
     const isBusy = swapLoading || status === 'pending' || status === 'confirming';
     const isSuccess = status === 'success' && signature;
+    const poolNotFound = currentQuote && currentQuote.poolExists === false;
     const ctaLabel = isSuccess
         ? 'View Transaction'
         : !publicKey
             ? 'Connect Wallet'
             : !isAmountValid
                 ? 'Enter Amount'
-                : isBusy
-                    ? 'Confirming...'
-                    : 'Review Trade';
+                : poolNotFound
+                    ? 'Pool Not Initialized'
+                    : isBusy
+                        ? 'Confirming...'
+                        : 'Review Trade';
 
     return (
         <div className="space-y-4">
@@ -284,6 +287,17 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
                 </div>
             )}
 
+            {/* Pool Not Found Warning */}
+            {poolNotFound && isAmountValid && (
+                <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-3 text-sm">
+                    <p className="text-destructive font-semibold">Pool Not Initialized</p>
+                    <p className="text-destructive/80 text-xs mt-1">
+                        The {inputToken}/{outputToken} liquidity pool has not been created yet.
+                        Run the init-pool script to create it first.
+                    </p>
+                </div>
+            )}
+
             <div className="space-y-3">
                 <Button
                     onClick={() => {
@@ -294,7 +308,7 @@ export function SwapTab({ slippageTolerance, onTokenChange }: SwapTabProps) {
                         }
                         handleSwap();
                     }}
-                    disabled={(!publicKey || !isAmountValid || isBusy) && !isSuccess}
+                    disabled={(!publicKey || !isAmountValid || isBusy || poolNotFound) && !isSuccess}
                     className="w-full h-12 text-base bg-neon-blue hover:bg-[#2563EB] text-white font-semibold rounded-xl animate-glow-pulse transition-all"
                     size="lg"
                 >

@@ -7,6 +7,7 @@ import { Plus, AlertCircle, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { SolIcon, UsdcIcon, UsdtIcon } from '@/components/icons/TokenIcons';
 import { TOKEN_LIST, getTokenMint } from '@/lib/constants';
 import { useCreatePool, usePool } from '@/lib/hooks/usePool';
+import { usePools } from '@/lib/hooks/usePools';
 import { useTokenBalance } from '@/lib/hooks/useBalance';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -23,6 +24,7 @@ export const CreatePool: React.FC = () => {
     const { connection } = useConnection();
     const { publicKey, connected } = useWallet();
     const { toast } = useToast();
+    const { refreshPools } = usePools();
 
     const [tokenA, setTokenA] = useState('SOL');
     const [tokenB, setTokenB] = useState('USDC');
@@ -147,6 +149,9 @@ export const CreatePool: React.FC = () => {
 
             // Success!
             setSuccess({ poolTx, liquidityTx });
+
+            // Refresh the global pools list so the new pool appears immediately
+            refreshPools();
 
             toast({
                 title: 'Pool Created Successfully!',

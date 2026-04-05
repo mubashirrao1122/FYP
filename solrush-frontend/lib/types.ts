@@ -71,6 +71,7 @@ export interface SwapQuote {
     minReceived: number;
     exchangeRate: number;
     route?: string[];
+    poolExists?: boolean;
 }
 
 export interface SwapParams {

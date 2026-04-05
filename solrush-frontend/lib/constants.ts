@@ -1,4 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
+import { NATIVE_MINT } from "@solana/spl-token";
 
 // Network Configuration - Use environment variables
 const NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'localnet';
@@ -19,8 +20,9 @@ export const PROGRAM_ID = new PublicKey(
 );
 
 // Token Mints - Use environment variables for flexibility across networks
+// SOL always uses the native WSOL mint so pools resolve correctly
 export const TOKENS: Record<string, PublicKey> = {
-    SOL: new PublicKey(process.env.NEXT_PUBLIC_SOL_MINT || "4K4BTsa8jfwwF8UpJoftuhPKQbM5g8d3PqB7wytuEK8a"),
+    SOL: NATIVE_MINT, // So11111111111111111111111111111111111111112
     USDC: new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT || "CnBcjXBqAVrJDh9BUsAxfVpprWyU6MoD7Kcq13qYUhzn"),
     USDT: new PublicKey(process.env.NEXT_PUBLIC_USDT_MINT || "CNP1MYZ1iF7h8d3E8fmzsDhUdxhuMJxaWv4YhKye6Soc"),
     WETH: new PublicKey(process.env.NEXT_PUBLIC_WETH_MINT || "7vfCXTUXx5WJV5JAWYwqBo7dropjUiWDPvR8Ch3HfFPc"),
