@@ -5,10 +5,6 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction } from '@solana/web3.js';
 import { TOKEN_INFO, SUPPORTED_TOKENS, PROGRAM_ID, FEE_NUMERATOR, FEE_DENOMINATOR, MINTS } from '@/lib/solana/constants';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface PoolState {
   reserveA: bigint;
   reserveB: bigint;
@@ -23,11 +19,6 @@ interface SwapInterfaceProps {
   onTokenChange?: (inputToken: string, outputToken: string) => void;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AMM Math — mirrors utils.rs calculate_output_amount exactly
-// All intermediate values use BigInt to match u128 on-chain precision.
-// ─────────────────────────────────────────────────────────────────────────────
-
 function calculateOutputAmount(
   inputAmount: bigint,
   inputReserve: bigint,
@@ -37,7 +28,6 @@ function calculateOutputAmount(
 ): bigint {
   if (inputAmount === 0n || inputReserve === 0n || outputReserve === 0n) return 0n;
 
-  // input * (feeDenominator - feeNumerator)  — mirrors u128 in Rust
   const amountInWithFee = inputAmount * (feeDenominator - feeNumerator);
 
   // numerator = amountInWithFee * outputReserve
@@ -80,10 +70,6 @@ function derivePoolPda(mintA: PublicKey, mintB: PublicKey, programId: PublicKey)
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
-
 export function SwapInterface({ onTokenChange }: SwapInterfaceProps) {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
@@ -100,7 +86,6 @@ export function SwapInterface({ onTokenChange }: SwapInterfaceProps) {
   const [txError, setTxError] = useState<string | null>(null);
   const [txSig, setTxSig] = useState<string | null>(null);
 
-  // ── Resolve mint PublicKeys ────────────────────────────────────────────────
 
   const getMintPubkey = useCallback(
     (symbol: string): PublicKey | null => {
@@ -112,7 +97,6 @@ export function SwapInterface({ onTokenChange }: SwapInterfaceProps) {
     [],
   );
 
-  // ── Fetch on-chain pool reserves ──────────────────────────────────────────
 
   const fetchPool = useCallback(async () => {
     if (!PROGRAM_ID) return;
@@ -149,14 +133,14 @@ export function SwapInterface({ onTokenChange }: SwapInterfaceProps) {
       // total_lp_supply: 8 | fee_numerator: 8 | fee_denominator: 8 | bump: 1
       const data = accountInfo.data;
       const off = 8; // skip discriminator
-      const tokenAMint   = new PublicKey(data.slice(off,       off + 32)).toBase58();
-      const tokenBMint   = new PublicKey(data.slice(off + 32,  off + 64)).toBase58();
+      const tokenAMint = new PublicKey(data.slice(off, off + 32)).toBase58();
+      const tokenBMint = new PublicKey(data.slice(off + 32, off + 64)).toBase58();
       //skip lp_token_mint (32 bytes)
-      const tokenAVault  = new PublicKey(data.slice(off + 96,  off + 128)).toBase58();
-      const tokenBVault  = new PublicKey(data.slice(off + 128, off + 160)).toBase58();
-      const reserveA     = data.readBigUInt64LE(off + 160);
-      const reserveB     = data.readBigUInt64LE(off + 168);
-      const bump         = data[off + 192] ?? 0;
+      const tokenAVault = new PublicKey(data.slice(off + 96, off + 128)).toBase58();
+      const tokenBVault = new PublicKey(data.slice(off + 128, off + 160)).toBase58();
+      const reserveA = data.readBigUInt64LE(off + 160);
+      const reserveB = data.readBigUInt64LE(off + 168);
+      const bump = data[off + 192] ?? 0;
 
       setPool({ reserveA, reserveB, tokenAMint, tokenBMint, tokenAVault, tokenBVault, bump });
     } catch (e: any) {
@@ -189,14 +173,14 @@ export function SwapInterface({ onTokenChange }: SwapInterfaceProps) {
     if (amount <= 0) { setOutputAmount(''); return; }
 
     // Determine which direction we're swapping relative to pool's canonical order
-    const inputMint  = getMintPubkey(inputToken)?.toBase58()  ?? '';
+    const inputMint = getMintPubkey(inputToken)?.toBase58() ?? '';
     const outputMint = getMintPubkey(outputToken)?.toBase58() ?? '';
 
     const isAtoB = inputMint === pool.tokenAMint;
-    const inputReserve  = isAtoB ? pool.reserveA : pool.reserveB;
+    const inputReserve = isAtoB ? pool.reserveA : pool.reserveB;
     const outputReserve = isAtoB ? pool.reserveB : pool.reserveA;
 
-    const rawIn  = toDecimals(amount, inputToken);
+    const rawIn = toDecimals(amount, inputToken);
     const rawOut = calculateOutputAmount(rawIn, inputReserve, outputReserve);
     const humanOut = fromDecimals(rawOut, outputToken);
 
@@ -216,10 +200,10 @@ export function SwapInterface({ onTokenChange }: SwapInterfaceProps) {
     if (!pool) return null;
     const inputMint = getMintPubkey(inputToken)?.toBase58() ?? '';
     const isAtoB = inputMint === pool.tokenAMint;
-    const inRes  = isAtoB ? pool.reserveA : pool.reserveB;
+    const inRes = isAtoB ? pool.reserveA : pool.reserveB;
     const outRes = isAtoB ? pool.reserveB : pool.reserveA;
     if (inRes === 0n) return null;
-    const sampleIn  = toDecimals(1, inputToken);
+    const sampleIn = toDecimals(1, inputToken);
     const sampleOut = calculateOutputAmount(sampleIn, inRes, outRes);
     return fromDecimals(sampleOut, outputToken);
   })();
@@ -356,10 +340,10 @@ export function SwapInterface({ onTokenChange }: SwapInterfaceProps) {
         {!publicKey
           ? 'Connect Wallet'
           : swapping
-          ? 'Swapping…'
-          : !pool
-          ? 'Pool Unavailable'
-          : 'Swap'}
+            ? 'Swapping…'
+            : !pool
+              ? 'Pool Unavailable'
+              : 'Swap'}
       </button>
 
       {/* Tx feedback */}

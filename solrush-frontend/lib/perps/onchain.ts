@@ -13,12 +13,14 @@ const bnToNumber = (value: BN) => {
   return value.toNumber();
 };
 
+// Build mint → symbol lookup.
+// SOL_MINT is null (native SOL has no mint address) so we skip it.
+// USDC/USDT/WETH/RUSH_MINT are plain strings from env vars.
 const mintToSymbol = new Map<string, string>([
-  [SOL_MINT.toBase58(), 'SOL'],
-  [USDC_MINT.toBase58(), 'USDC'],
-  [USDT_MINT.toBase58(), 'USDT'],
-  [WETH_MINT.toBase58(), 'WETH'],
-  [RUSH_MINT.toBase58(), 'RUSH'],
+  ...(USDC_MINT ? [[USDC_MINT, 'USDC']] as [string, string][] : []),
+  ...(USDT_MINT ? [[USDT_MINT, 'USDT']] as [string, string][] : []),
+  ...(WETH_MINT ? [[WETH_MINT, 'WETH']] as [string, string][] : []),
+  ...(RUSH_MINT ? [[RUSH_MINT, 'RUSH']] as [string, string][] : []),
 ]);
 
 const bytesToHex = (bytes: Uint8Array) =>
@@ -65,7 +67,9 @@ interface PaginatedOptions {
 }
 
 export const fetchPerpsMarketExists = async (connection: Connection): Promise<boolean> => {
-  const accounts = await connection.getProgramAccounts(PROGRAM_ID, {
+  const programPubkey = (() => { try { return new PublicKey(PROGRAM_ID); } catch { return null; } })();
+  if (!programPubkey) return false;
+  const accounts = await connection.getProgramAccounts(programPubkey, {
     filters: [{ dataSize: PERPS_MARKET_LEN_V1 }],
     dataSlice: { offset: 0, length: 0 },
   });
@@ -133,8 +137,10 @@ export const fetchPerpsPositions = async (
   options: PaginatedOptions = {}
 ): Promise<RawPerpsPosition[]> => {
   if (markets.length === 0) return [];
+  const programPubkey = (() => { try { return new PublicKey(PROGRAM_ID); } catch { return null; } })();
+  if (!programPubkey) return [];
   const positionKeys = markets.map((market) =>
-    findPerpsPositionAddress(owner, market, PROGRAM_ID)[0]
+    findPerpsPositionAddress(owner, market, programPubkey)[0]
   );
   const offset = options.offset ?? 0;
   const limit = options.limit ?? positionKeys.length;
