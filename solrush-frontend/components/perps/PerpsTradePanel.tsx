@@ -10,12 +10,15 @@ import { usePerpsCollateral } from '@/lib/hooks/usePerpsCollateral';
 import { usePerpsTrading } from '@/lib/hooks/usePerpsTrading';
 import { DepositUSDCModal } from '@/components/perps/DepositUSDCModal';
 import { parseSolanaError } from '@/lib/utils/solanaErrors';
+import { toast } from '@/components/ui/use-toast';
 
 interface PerpsTradePanelProps {
   market?: MarketView | null;
   disabled?: boolean;
   error?: string | null;
   emptyState?: boolean;
+  /** Called after a position is successfully opened or closed to refresh data */
+  onPositionChange?: () => void;
 }
 
 type TradeState = 'idle' | 'quoting' | 'ready' | 'submitting' | 'success' | 'error';
@@ -84,7 +87,7 @@ const initialTradeState: TradeMachine = {
   txSignature: null,
 };
 
-export function PerpsTradePanel({ market, disabled, error, emptyState = false }: PerpsTradePanelProps) {
+export function PerpsTradePanel({ market, disabled, error, emptyState = false, onPositionChange }: PerpsTradePanelProps) {
   const { publicKey } = useWallet();
   const [size, setSize] = React.useState('');
   const [leverage, setLeverage] = React.useState(5);
@@ -223,14 +226,26 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
         dispatch({ type: 'SUBMIT_SUCCESS', signature: sig });
         setShowReview(false);
         setSize('');
+
+        toast({
+          title: `${side === 'long' ? 'Long' : 'Short'} ${numericSize} ${market.baseSymbol} opened`,
+          description: `Tx: ${sig.slice(0, 8)}…${sig.slice(-8)}`,
+        });
+
+        // Refresh positions so the new trade appears immediately
+        onPositionChange?.();
+        refreshCollateral();
       } else {
         dispatch({ type: 'SUBMIT_ERROR', message: 'Transaction was not confirmed.' });
+        toast({ title: 'Trade failed', description: 'Transaction was not confirmed.' });
       }
     } catch (err: any) {
+      const errorMessage = parseSolanaError(err) || err?.message || 'Failed to open position.';
       dispatch({
         type: 'SUBMIT_ERROR',
-        message: parseSolanaError(err) || err?.message || 'Failed to open position.',
+        message: errorMessage,
       });
+      toast({ title: 'Trade failed', description: errorMessage });
     }
   };
 
@@ -551,20 +566,29 @@ export function PerpsTradePanel({ market, disabled, error, emptyState = false }:
             <div className="h-px bg-white/[0.04] my-2" />
             <div className="flex items-center gap-2 pt-1">
               <button
-                className="flex-1 h-9 rounded-lg border border-white/[0.06] text-zinc-400 text-xs hover:bg-white/[0.03] transition-colors"
+                className="flex-1 h-9 rounded-lg border border-white/[0.06] text-zinc-400 text-xs hover:bg-white/[0.03] transition-colors disabled:opacity-50"
                 onClick={() => setShowReview(false)}
+                disabled={tradeState.state === 'submitting'}
               >
                 Back
               </button>
               <button
-                className={`flex-1 h-9 rounded-lg text-white text-xs font-medium transition-all ${
+                className={`flex-1 h-9 rounded-lg text-white text-xs font-medium transition-all disabled:opacity-60 ${
                   side === 'long'
                     ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:brightness-110 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
                     : 'bg-gradient-to-r from-red-600 to-red-500 hover:brightness-110 shadow-[0_0_12px_rgba(239,68,68,0.2)]'
                 }`}
                 onClick={confirmSubmit}
+                disabled={tradeState.state === 'submitting'}
               >
-                Confirm {side === 'long' ? 'Long' : 'Short'}
+                {tradeState.state === 'submitting' ? (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    Confirming…
+                  </span>
+                ) : (
+                  `Confirm ${side === 'long' ? 'Long' : 'Short'}`
+                )}
               </button>
             </div>
           </div>

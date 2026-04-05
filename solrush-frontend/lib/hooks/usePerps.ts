@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { getConnection } from '@/lib/solana/connection';
 import { fetchPerpsMarketExists, fetchPerpsMarkets, fetchPerpsPositions, resolveSymbol } from '@/lib/perps/onchain';
@@ -17,6 +17,8 @@ interface UsePerpsResult {
   error?: string | null;
   warning?: string | null;
   hasMarkets: boolean;
+  /** Force-refresh markets and positions immediately */
+  refresh: () => void;
 }
 
 const ZERO_ORACLE = `0x${'00'.repeat(32)}`;
@@ -31,6 +33,8 @@ export function usePerps(): UsePerpsResult {
   const [idl, setIdl] = useState<Idl | null>(null);
   const [hasMarkets, setHasMarkets] = useState(false);
   const initialLoad = useRef(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const refresh = useCallback(() => setRefreshTrigger((n) => n + 1), []);
 
   useEffect(() => {
     let active = true;
@@ -205,7 +209,7 @@ export function usePerps(): UsePerpsResult {
       active = false;
       clearInterval(interval);
     };
-  }, [publicKey, idl]);
+  }, [publicKey, idl, refreshTrigger]);
 
   return useMemo(
     () => ({
@@ -215,7 +219,8 @@ export function usePerps(): UsePerpsResult {
       error,
       warning,
       hasMarkets,
+      refresh,
     }),
-    [markets, positions, loading, error, warning, hasMarkets]
+    [markets, positions, loading, error, warning, hasMarkets, refresh]
   );
 }

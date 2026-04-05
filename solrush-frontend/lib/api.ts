@@ -2,7 +2,7 @@
  * API utility for matching frontend Solana actions with the SolRush persistent database.
  */
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://localhost:8000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://127.0.0.1:8001';
 
 export interface TradeData {
   wallet_address: string;

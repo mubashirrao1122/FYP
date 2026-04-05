@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 
-const CHAT_API = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://localhost:8000';
+const CHAT_API = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://127.0.0.1:8001';
 
 type Trade = {
     id: string;

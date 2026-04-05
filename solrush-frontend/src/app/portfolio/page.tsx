@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useWallet } from '@solana/wallet-adapter-react';
+import useSWR from 'swr';
 import {
     TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
     MoreHorizontal, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
@@ -109,35 +110,14 @@ function pct(n: number): string {
     return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
 }
 
-const CHAT_API = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://localhost:8000';
+const CHAT_API = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://127.0.0.1:8001';
 
-/* ── Real data hook ─────────────────────────────────────────── */
-function usePortfolioData(wallet: string | null) {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const fetch_ = useCallback(async () => {
-        if (!wallet) return;
-        setLoading(true);
-        setError(null);
-        try {
-            const res = await fetch(`${CHAT_API}/api/portfolio/${wallet}`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const json = await res.json();
-            setData(json);
-        } catch (e: any) {
-            setError(`Backend offline or DB not running: ${e.message}`);
-            // Fall back to mock data so the UI still looks good
-            setData(null);
-        } finally {
-            setLoading(false);
-        }
-    }, [wallet]);
-
-    useEffect(() => { fetch_(); }, [fetch_]);
-    return { data, loading, error, refetch: fetch_ };
-}
+/* ── SWR fetcher ────────────────────────────────────────────── */
+const swrFetcher = async (url: string) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+};
 
 /* ── Animation Variants ────────────────────────────────────── */
 const containerVariants: Variants = {
@@ -194,10 +174,10 @@ function TokenIcon({ symbol, icon, size = 36 }: { symbol: string; icon?: string;
 /* ─────────────────────────────────────────────────────────────
    SECTION 1 — Overview Metrics
 ───────────────────────────────────────────────────────────── */
-function OverviewSection() {
-    const totalPortfolio = MOCK_HOLDINGS.reduce((s, h) => s + h.valueUSD, 0)
-        + MOCK_LP.reduce((s, l) => s + l.valueUSD, 0);
-    const totalPnL = MOCK_PERPS.reduce((s, p) => s + p.pnl, 0) + MOCK_LP.reduce((s, l) => s + l.feesEarned, 0);
+function OverviewSection({ holdings, lp, perps }: { holdings: TokenHolding[]; lp: LpPosition[]; perps: PerpPosition[] }) {
+    const totalPortfolio = holdings.reduce((s, h) => s + h.valueUSD, 0)
+        + lp.reduce((s, l) => s + l.valueUSD, 0);
+    const totalPnL = perps.reduce((s, p) => s + p.pnl, 0) + lp.reduce((s, l) => s + l.feesEarned, 0);
     const totalReturn = (totalPnL / totalPortfolio) * 100;
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -218,8 +198,8 @@ function OverviewSection() {
                 <div className="flex flex-col items-end gap-3">
                     <p className="text-[12px] text-[#6B7280]">As of {today}</p>
                     <div className="flex gap-2">
-                        <StatBadge label="Spot" value={fmtUSD(MOCK_HOLDINGS.reduce((s, h) => s + h.valueUSD, 0))} positive={true} />
-                        <StatBadge label="LP" value={fmtUSD(MOCK_LP.reduce((s, l) => s + l.valueUSD, 0))} positive={true} />
+                        <StatBadge label="Spot" value={fmtUSD(holdings.reduce((s, h) => s + h.valueUSD, 0))} positive={true} />
+                        <StatBadge label="LP" value={fmtUSD(lp.reduce((s, l) => s + l.valueUSD, 0))} positive={true} />
                     </div>
                 </div>
             </div>
@@ -227,10 +207,10 @@ function OverviewSection() {
             {/* Stats row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/[0.04] rounded-xl overflow-hidden">
                 {[
-                    { label: 'Open Positions', value: `${MOCK_PERPS.length}`, icon: <Activity className="w-4 h-4" />, accent: '#9945FF' },
-                    { label: 'LP Pools Active', value: `${MOCK_LP.length}`, icon: <Layers className="w-4 h-4" />, accent: '#14F195' },
-                    { label: 'Fees Earned', value: fmtUSD(MOCK_LP.reduce((s, l) => s + l.feesEarned, 0)), icon: <Zap className="w-4 h-4" />, accent: '#F59E0B' },
-                    { label: 'Unrealized PnL', value: fmtUSD(MOCK_PERPS.reduce((s, p) => s + p.pnl, 0)), icon: <BarChart3 className="w-4 h-4" />, accent: '#3B82F6' },
+                    { label: 'Open Positions', value: `${perps.length}`, icon: <Activity className="w-4 h-4" />, accent: '#9945FF' },
+                    { label: 'LP Pools Active', value: `${lp.length}`, icon: <Layers className="w-4 h-4" />, accent: '#14F195' },
+                    { label: 'Fees Earned', value: fmtUSD(lp.reduce((s, l) => s + l.feesEarned, 0)), icon: <Zap className="w-4 h-4" />, accent: '#F59E0B' },
+                    { label: 'Unrealized PnL', value: fmtUSD(perps.reduce((s, p) => s + p.pnl, 0)), icon: <BarChart3 className="w-4 h-4" />, accent: '#3B82F6' },
                 ].map((stat, i) => (
                     <div key={i} className="bg-[#0B1220]/80 p-4 flex flex-col gap-2 hover:bg-[#1E293B]/50 transition-colors">
                         <div className="flex items-center gap-2" style={{ color: stat.accent }}>
@@ -248,8 +228,8 @@ function OverviewSection() {
 /* ─────────────────────────────────────────────────────────────
    SECTION 2 — Holdings + Allocation (side-by-side)
 ───────────────────────────────────────────────────────────── */
-function HoldingsSection() {
-    const totalValue = MOCK_HOLDINGS.reduce((s, h) => s + h.valueUSD, 0);
+function HoldingsSection({ holdings, lp }: { holdings: TokenHolding[]; lp: LpPosition[] }) {
+    const totalValue = holdings.reduce((s, h) => s + h.valueUSD, 0);
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -266,7 +246,7 @@ function HoldingsSection() {
                 </div>
 
                 <div className="divide-y divide-white/[0.04]">
-                    {MOCK_HOLDINGS.map((h) => (
+                    {holdings.map((h) => (
                         <div key={h.symbol} className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.025] transition-colors group">
                             <div className="flex items-center gap-3">
                                 <TokenIcon symbol={h.symbol} icon={h.icon} size={40} />
@@ -302,7 +282,7 @@ function HoldingsSection() {
 
                 {/* Visual donut segments as stacked bar */}
                 <div className="relative w-full h-5 rounded-full overflow-hidden mb-6 flex">
-                    {MOCK_HOLDINGS.map((h, i) => (
+                    {holdings.map((h, i) => (
                         <motion.div
                             key={h.symbol}
                             initial={{ width: 0 }}
@@ -315,7 +295,7 @@ function HoldingsSection() {
                 </div>
 
                 <div className="space-y-3">
-                    {MOCK_HOLDINGS.map((h, i) => (
+                    {holdings.map((h, i) => (
                         <div key={h.symbol} className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ALLOCATION_COLORS[i] }} />
@@ -343,8 +323,8 @@ function HoldingsSection() {
                 {/* Value breakdown */}
                 <div className="mt-6 pt-5 border-t border-white/[0.06] space-y-2">
                     {[
-                        { label: 'Spot Holdings', val: fmtUSD(MOCK_HOLDINGS.reduce((s, h) => s + h.valueUSD, 0)), icon: <Wallet className="w-3.5 h-3.5 text-[#9945FF]" /> },
-                        { label: 'LP Positions', val: fmtUSD(MOCK_LP.reduce((s, l) => s + l.valueUSD, 0)), icon: <Layers className="w-3.5 h-3.5 text-[#14F195]" /> },
+                        { label: 'Spot Holdings', val: fmtUSD(holdings.reduce((s, h) => s + h.valueUSD, 0)), icon: <Wallet className="w-3.5 h-3.5 text-[#9945FF]" /> },
+                        { label: 'LP Positions', val: fmtUSD(lp.reduce((s, l) => s + l.valueUSD, 0)), icon: <Layers className="w-3.5 h-3.5 text-[#14F195]" /> },
                     ].map((row, i) => (
                         <div key={i} className="flex justify-between items-center text-[13px]">
                             <div className="flex items-center gap-2 text-[#6B7280]">
@@ -363,7 +343,7 @@ function HoldingsSection() {
 /* ─────────────────────────────────────────────────────────────
    SECTION 3 — Perpetual Positions
 ───────────────────────────────────────────────────────────── */
-function PerpsSection() {
+function PerpsSection({ perps }: { perps: PerpPosition[] }) {
     return (
         <GlassCard className="overflow-hidden">
             <div className="flex justify-between items-center px-6 py-5 border-b border-white/[0.06]">
@@ -372,7 +352,7 @@ function PerpsSection() {
                     <p className="text-[12px] text-[#6B7280] mt-0.5">Leveraged trading positions on SolRush Perps</p>
                 </div>
                 <span className="text-[11px] font-semibold text-[#9945FF] bg-[#9945FF]/10 border border-[#9945FF]/25 px-3 py-1.5 rounded-full">
-                    {MOCK_PERPS.length} Active
+                    {perps.length} Active
                 </span>
             </div>
 
@@ -386,7 +366,7 @@ function PerpsSection() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.04]">
-                        {MOCK_PERPS.map((p, i) => (
+                        {perps.map((p, i) => (
                             <tr key={i} className="hover:bg-white/[0.025] transition-colors">
                                 <td className="px-6 py-4">
                                     <div className="font-bold text-white text-[14px]">{p.market}</div>
@@ -431,7 +411,7 @@ function PerpsSection() {
 /* ─────────────────────────────────────────────────────────────
    SECTION 4 — LP Positions
 ───────────────────────────────────────────────────────────── */
-function LpSection() {
+function LpSection({ lp }: { lp: LpPosition[] }) {
     const tokenIcons: Record<string, string> = {
         SOL: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
         USDC: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png',
@@ -451,30 +431,30 @@ function LpSection() {
             </div>
 
             <div className="divide-y divide-white/[0.04]">
-                {MOCK_LP.map((lp, i) => (
+                {lp.map((lpItem, i) => (
                     <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-5 hover:bg-white/[0.025] transition-colors gap-4">
                         <div className="flex items-center gap-4">
                             <div className="flex -space-x-2">
-                                <TokenIcon symbol={lp.tokenA} icon={tokenIcons[lp.tokenA]} size={36} />
-                                <TokenIcon symbol={lp.tokenB} icon={tokenIcons[lp.tokenB]} size={36} />
+                                <TokenIcon symbol={lpItem.tokenA} icon={tokenIcons[lpItem.tokenA]} size={36} />
+                                <TokenIcon symbol={lpItem.tokenB} icon={tokenIcons[lpItem.tokenB]} size={36} />
                             </div>
                             <div>
-                                <div className="font-bold text-white text-[15px]">{lp.pair}</div>
+                                <div className="font-bold text-white text-[15px]">{lpItem.pair}</div>
                                 <div className="text-[12px] text-[#6B7280] mt-0.5">Liquidity Pool</div>
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-6 sm:gap-10">
                             <div>
                                 <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Value</div>
-                                <div className="font-bold text-white tabular-nums">{fmtUSD(lp.valueUSD)}</div>
+                                <div className="font-bold text-white tabular-nums">{fmtUSD(lpItem.valueUSD)}</div>
                             </div>
                             <div>
                                 <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Fees Earned</div>
-                                <div className="font-bold text-[#14F195] tabular-nums">+{fmtUSD(lp.feesEarned)}</div>
+                                <div className="font-bold text-[#14F195] tabular-nums">+{fmtUSD(lpItem.feesEarned)}</div>
                             </div>
                             <div>
                                 <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">APR</div>
-                                <div className="font-bold text-[#9945FF] tabular-nums">{lp.apr}%</div>
+                                <div className="font-bold text-[#9945FF] tabular-nums">{lpItem.apr}%</div>
                             </div>
                         </div>
                     </div>
@@ -487,7 +467,7 @@ function LpSection() {
 /* ─────────────────────────────────────────────────────────────
    SECTION 5 — Transaction History + Related News
 ───────────────────────────────────────────────────────────── */
-function ActivitySection() {
+function ActivitySection({ transactions }: { transactions: Transaction[] }) {
     const [newsPage, setNewsPage] = useState(0);
     const newsPerPage = 3;
     const visibleNews = MOCK_NEWS.slice(newsPage * newsPerPage, newsPage * newsPerPage + newsPerPage);
@@ -511,7 +491,7 @@ function ActivitySection() {
                 </div>
 
                 <div className="divide-y divide-white/[0.04]">
-                    {MOCK_TRANSACTIONS.map((tx, i) => (
+                    {transactions.map((tx, i) => (
                         <div key={i} className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.025] transition-colors">
                             <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border tracking-wider shrink-0 ${TYPE_STYLES[tx.type]}`}>
                                 {tx.type}
@@ -595,20 +575,63 @@ function ActivitySection() {
 export default function PortfolioPage() {
     const { publicKey } = useWallet();
     const walletStr = publicKey?.toString() ?? null;
-    const { data: apiData, loading: apiLoading, error: apiError, refetch } = usePortfolioData(walletStr);
 
-    // Derive real transactions from API or fall back to mocks if backend is offline
-    const realTrades: typeof MOCK_TRANSACTIONS = apiData?.recent_trades
-        ? apiData.recent_trades.map((t: any) => ({
-              type: t.type ?? 'SWAP',
-              description: t.description ?? `${t.token_in ?? ''} → ${t.token_out ?? ''}`,
-              amount: t.amount_in ? `${t.amount_in} ${t.token_in ?? ''}` : `$${t.value_usd ?? 0}`,
-              valueUSD: t.value_usd ?? 0,
-              time: t.created_at ? new Date(t.created_at).toLocaleString() : '—',
-              status: t.status ?? 'SUCCESS',
-              txHash: t.tx_hash ? `${String(t.tx_hash).slice(0, 4)}...${String(t.tx_hash).slice(-4)}` : '—',
-          }))
-        : MOCK_TRANSACTIONS;
+    const swrKey = walletStr ? `${CHAT_API}/api/portfolio/${walletStr}` : null;
+    const { data: apiData, error: swrError, isLoading: apiLoading, mutate: refetch } = useSWR(swrKey, swrFetcher, {
+        refreshInterval: 30_000,
+        revalidateOnFocus: false,
+        shouldRetryOnError: false,
+    });
+    const apiError = swrError ? `Backend offline or DB not running: ${swrError.message}` : null;
+
+    // ── Derive display data from API response, falling back to mocks ──
+    const holdings = useMemo<TokenHolding[]>(() => {
+        // The backend doesn't return token holdings (those come from on-chain).
+        // Keep mock for now; a future enhancement can merge on-chain balances.
+        return MOCK_HOLDINGS;
+    }, []);
+
+    const perps = useMemo<PerpPosition[]>(() => {
+        if (!apiData?.open_positions?.length) return MOCK_PERPS;
+        return apiData.open_positions.map((p: any) => ({
+            market: p.market ?? 'SOL/USD',
+            side: (p.side ?? 'LONG').toUpperCase() as 'LONG' | 'SHORT',
+            size: p.size_usd ?? 0,
+            entryPrice: p.entry_price ?? 0,
+            markPrice: p.entry_price ?? 0, // mark price not stored in DB; use entry as placeholder
+            pnl: p.realized_pnl ?? 0,
+            pnlPct: p.entry_price ? ((p.realized_pnl ?? 0) / (p.size_usd ?? 1)) * 100 : 0,
+            leverage: p.leverage ?? 1,
+            liquidationPrice: p.liquidation_price ?? 0,
+        }));
+    }, [apiData]);
+
+    const lpPositions = useMemo<LpPosition[]>(() => {
+        if (!apiData?.active_lp_positions?.length) return MOCK_LP;
+        return apiData.active_lp_positions.map((lp: any) => ({
+            pair: lp.pool_pair ?? '',
+            tokenA: lp.token_a ?? '',
+            tokenB: lp.token_b ?? '',
+            valueUSD: lp.value_usd ?? 0,
+            feesEarned: lp.fees_earned_usd ?? 0,
+            apr: lp.apr ?? 0,
+        }));
+    }, [apiData]);
+
+    const transactions = useMemo<Transaction[]>(() => {
+        if (!apiData?.recent_trades?.length) return MOCK_TRANSACTIONS;
+        return apiData.recent_trades.map((t: any) => ({
+            type: (t.type ?? 'SWAP') as Transaction['type'],
+            description: t.description ?? `${t.token_in ?? ''} → ${t.token_out ?? ''}`,
+            amount: t.amount_in ? `${t.amount_in} ${t.token_in ?? ''}` : `$${t.value_usd ?? 0}`,
+            valueUSD: t.value_usd ?? 0,
+            time: t.created_at ? new Date(t.created_at).toLocaleString() : '—',
+            status: (t.status ?? 'SUCCESS') as Transaction['status'],
+            txHash: t.tx_hash ? `${String(t.tx_hash).slice(0, 4)}...${String(t.tx_hash).slice(-4)}` : '—',
+        }));
+    }, [apiData]);
+
+    const isLive = !!apiData && !swrError;
 
     return (
         <div className="min-h-screen bg-[#0B1220] relative overflow-hidden">
@@ -640,18 +663,18 @@ export default function PortfolioPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        {apiData && (
+                        {isLive && (
                             <button
-                                onClick={refetch}
+                                onClick={() => refetch()}
                                 className="flex items-center gap-2 text-[12px] font-semibold text-[#14F195] border border-[#14F195]/25 px-3 py-1.5 rounded-xl hover:bg-[#14F195]/5 transition-all"
                             >
                                 <Activity className="w-3.5 h-3.5" /> Refresh
                             </button>
                         )}
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#14F195]/10 border border-[#14F195]/20">
-                            <div className="w-2 h-2 rounded-full bg-[#14F195] animate-pulse shadow-[0_0_8px_rgba(20,241,149,0.8)]" />
-                            <span className="text-[11px] text-[#14F195] font-bold tracking-wider uppercase">
-                                {apiData ? 'DB Live' : 'Mock Data'}
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${isLive ? 'bg-[#14F195]/10 border-[#14F195]/20' : 'bg-[#F59E0B]/10 border-[#F59E0B]/20'}`}>
+                            <div className={`w-2 h-2 rounded-full animate-pulse ${isLive ? 'bg-[#14F195] shadow-[0_0_8px_rgba(20,241,149,0.8)]' : 'bg-[#F59E0B] shadow-[0_0_8px_rgba(245,158,11,0.8)]'}`} />
+                            <span className={`text-[11px] font-bold tracking-wider uppercase ${isLive ? 'text-[#14F195]' : 'text-[#F59E0B]'}`}>
+                                {isLive ? 'DB Live' : apiLoading ? 'Connecting…' : 'Mock Data'}
                             </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280] border border-white/10 px-3 py-1.5 rounded-full">
@@ -702,11 +725,11 @@ export default function PortfolioPage() {
                         animate="visible"
                         className="space-y-6"
                     >
-                        <OverviewSection />
-                        <HoldingsSection />
-                        <PerpsSection />
-                        <LpSection />
-                        <ActivitySection />
+                        <OverviewSection holdings={holdings} lp={lpPositions} perps={perps} />
+                        <HoldingsSection holdings={holdings} lp={lpPositions} />
+                        <PerpsSection perps={perps} />
+                        <LpSection lp={lpPositions} />
+                        <ActivitySection transactions={transactions} />
                     </motion.div>
                 )}
             </main>

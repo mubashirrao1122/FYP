@@ -33,7 +33,7 @@ echo "--- Pre-flight: cleaning up old processes ---"
 pkill -f solana-test-validator || true
 pkill -f solana-faucet || true
 fuser -k 8899/tcp 2>/dev/null || true
-fuser -k 8000/tcp 2>/dev/null || true
+fuser -k 8001/tcp 2>/dev/null || true
 sleep 2
 
 echo "Removing old test-ledger directory..."
@@ -222,6 +222,7 @@ if [ -f "$CONFIG_FILE" ]; then
     upsert_env "NEXT_PUBLIC_RUSH_MINT"  "$RUSH_MINT"
     upsert_env "NEXT_PUBLIC_RPC_URL"    "$RPC_URL"
     upsert_env "NEXT_PUBLIC_NETWORK"    "localnet"
+    upsert_env "NEXT_PUBLIC_CHAT_API_URL" "http://127.0.0.1:8001"
 
     echo "✅ Mint addresses synced."
 else
@@ -232,7 +233,7 @@ echo ""
 echo "==========================================="
 echo "  SolRush is running!"
 echo "  Frontend:   http://localhost:3000"
-echo "  Chatbot:    http://localhost:8000"
+echo "  Chatbot:    http://localhost:8001"
 echo "  Validator:  http://127.0.0.1:8899"
 echo "  Database:   postgresql://localhost:5432/solrush"
 echo "==========================================="

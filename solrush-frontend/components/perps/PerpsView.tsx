@@ -23,6 +23,7 @@ interface PerpsViewProps {
   error?: string | null;
   warning?: string | null;
   hasMarkets?: boolean;
+  onPositionChange?: () => void;
 }
 
 export function PerpsView({
@@ -32,6 +33,7 @@ export function PerpsView({
   error,
   warning,
   hasMarkets = false,
+  onPositionChange,
 }: PerpsViewProps) {
   const { publicKey } = useWallet();
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
@@ -332,6 +334,7 @@ export function PerpsView({
             disabled={loading || markets.length === 0 || Boolean(warning) || !hasMarkets}
             emptyState={markets.length === 0 || !hasMarkets}
             error={combinedError}
+            onPositionChange={onPositionChange}
           />
         </div>
       </div>
