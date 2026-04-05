@@ -64,8 +64,10 @@ export const useRewardsService = () => {
             const rushAccount = await getAssociatedTokenAddress(rushMint, wallet.publicKey);
             const balance = await connection.getTokenAccountBalance(rushAccount);
             return parseFloat(balance.value.uiAmountString || '0');
-        } catch (err) {
-            console.error("Failed to fetch RUSH balance:", err);
+        } catch (err: any) {
+            if (err?.message && !err.message.includes('could not find account')) {
+                console.warn("Failed to fetch RUSH balance:", err.message);
+            }
             return 0;
         }
     }, [connection, wallet.publicKey]);

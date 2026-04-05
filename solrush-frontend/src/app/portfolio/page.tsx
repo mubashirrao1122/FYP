@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
@@ -107,6 +107,36 @@ function fmtUSD(n: number): string {
 
 function pct(n: number): string {
     return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
+}
+
+const CHAT_API = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://localhost:8000';
+
+/* ── Real data hook ─────────────────────────────────────────── */
+function usePortfolioData(wallet: string | null) {
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetch_ = useCallback(async () => {
+        if (!wallet) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await fetch(`${CHAT_API}/api/portfolio/${wallet}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            setData(json);
+        } catch (e: any) {
+            setError(`Backend offline or DB not running: ${e.message}`);
+            // Fall back to mock data so the UI still looks good
+            setData(null);
+        } finally {
+            setLoading(false);
+        }
+    }, [wallet]);
+
+    useEffect(() => { fetch_(); }, [fetch_]);
+    return { data, loading, error, refetch: fetch_ };
 }
 
 /* ── Animation Variants ────────────────────────────────────── */
@@ -564,6 +594,21 @@ function ActivitySection() {
    ═══════════════════════════════════════════════════════ */
 export default function PortfolioPage() {
     const { publicKey } = useWallet();
+    const walletStr = publicKey?.toString() ?? null;
+    const { data: apiData, loading: apiLoading, error: apiError, refetch } = usePortfolioData(walletStr);
+
+    // Derive real transactions from API or fall back to mocks if backend is offline
+    const realTrades: typeof MOCK_TRANSACTIONS = apiData?.recent_trades
+        ? apiData.recent_trades.map((t: any) => ({
+              type: t.type ?? 'SWAP',
+              description: t.description ?? `${t.token_in ?? ''} → ${t.token_out ?? ''}`,
+              amount: t.amount_in ? `${t.amount_in} ${t.token_in ?? ''}` : `$${t.value_usd ?? 0}`,
+              valueUSD: t.value_usd ?? 0,
+              time: t.created_at ? new Date(t.created_at).toLocaleString() : '—',
+              status: t.status ?? 'SUCCESS',
+              txHash: t.tx_hash ? `${String(t.tx_hash).slice(0, 4)}...${String(t.tx_hash).slice(-4)}` : '—',
+          }))
+        : MOCK_TRANSACTIONS;
 
     return (
         <div className="min-h-screen bg-[#0B1220] relative overflow-hidden">
@@ -595,9 +640,19 @@ export default function PortfolioPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
+                        {apiData && (
+                            <button
+                                onClick={refetch}
+                                className="flex items-center gap-2 text-[12px] font-semibold text-[#14F195] border border-[#14F195]/25 px-3 py-1.5 rounded-xl hover:bg-[#14F195]/5 transition-all"
+                            >
+                                <Activity className="w-3.5 h-3.5" /> Refresh
+                            </button>
+                        )}
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#14F195]/10 border border-[#14F195]/20">
                             <div className="w-2 h-2 rounded-full bg-[#14F195] animate-pulse shadow-[0_0_8px_rgba(20,241,149,0.8)]" />
-                            <span className="text-[11px] text-[#14F195] font-bold tracking-wider uppercase">Live Data</span>
+                            <span className="text-[11px] text-[#14F195] font-bold tracking-wider uppercase">
+                                {apiData ? 'DB Live' : 'Mock Data'}
+                            </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280] border border-white/10 px-3 py-1.5 rounded-full">
                             <Shield className="w-3.5 h-3.5" />
@@ -605,6 +660,13 @@ export default function PortfolioPage() {
                         </div>
                     </div>
                 </motion.div>
+
+                {/* API error banner (non-blocking — still shows mock data) */}
+                {apiError && publicKey && (
+                    <div className="mb-4 px-4 py-3 rounded-xl border border-[#F59E0B]/25 bg-[#F59E0B]/5 text-[#F59E0B] text-[12px] flex items-center gap-2">
+                        <span className="font-bold">⚠ DB Warning:</span> {apiError} — showing demo data.
+                    </div>
+                )}
 
                 {/* Not connected */}
                 {!publicKey ? (

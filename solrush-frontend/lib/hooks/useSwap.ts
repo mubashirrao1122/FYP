@@ -7,6 +7,7 @@ import { PublicKey } from '@solana/web3.js';
 import { getProgram, getReadOnlyProgram, toBN, fromBN } from '../anchor/setup';
 import { findPoolAddress } from '../anchor/pda';
 import { getTokenMint, TOKEN_DECIMALS } from '../constants';
+import { recordTrade } from '@/lib/api';
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
 export interface SwapQuote {
@@ -55,7 +56,11 @@ export function useSwap() {
 
       const [poolAddress] = findPoolAddress(inputMint, outputMint);
 
-      const poolAccount = await (program.account as any).liquidityPool.fetch(poolAddress);
+      const poolAccount = await (program.account as any).liquidityPool.fetchNullable(poolAddress);
+      if (!poolAccount) {
+        // Silently return null instead of throwing, so the UI can gracefully show "Pool not found"
+        return null;
+      }
 
       // Get the pool's stored mint order
       const poolTokenAMint = poolAccount.tokenAMint as PublicKey;
@@ -178,7 +183,10 @@ export function useSwap() {
       const [poolAddress] = findPoolAddress(inputMint, outputMint);
 
       // Fetch pool to get vault addresses and actual mint order
-      const poolAccount = await (program.account as any).liquidityPool.fetch(poolAddress);
+      const poolAccount = await (program.account as any).liquidityPool.fetchNullable(poolAddress);
+      if (!poolAccount) {
+        throw new Error(`Liquidity pool for ${params.inputToken}-${params.outputToken} has not been initialized on localnet.`);
+      }
 
       const tokenAVault = poolAccount.tokenAVault as PublicKey;
       const tokenBVault = poolAccount.tokenBVault as PublicKey;
@@ -231,6 +239,22 @@ export function useSwap() {
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
+
+      // ── Sync with PostgreSQL ──────────────────────────────────
+      try {
+        await recordTrade({
+          wallet_address: wallet.publicKey.toBase58(),
+          type: 'SWAP',
+          token_in: params.inputToken,
+          token_out: params.outputToken,
+          amount_in: params.inputAmount,
+          amount_out: params.minOutputAmount, // We use min output as a placeholder for actual
+          tx_hash: tx,
+          description: `Swapped ${params.inputAmount} ${params.inputToken} for ${params.outputToken}`,
+        });
+      } catch (syncErr) {
+        console.error('Failed to sync swap to DB:', syncErr);
+      }
 
       setTxSignature(tx);
       console.log("Swap successful! TX:", tx);

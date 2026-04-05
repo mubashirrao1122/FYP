@@ -1,4 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
+import { mintTo } from "@solana/spl-token";
 import { Program, AnchorProvider, Wallet, BN } from "@coral-xyz/anchor";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import {
@@ -10,15 +11,15 @@ import type { SolrushDex } from "../target/types/solrush_dex";
 import idl from "../target/idl/solrush_dex.json";
 import * as fs from "fs";
 
-const PROGRAM_ID = new PublicKey("FZ25GUwrX9W5PxBe5Ep8fR1F3HzoSeGH61YvW8sBA8J1");
+const PROGRAM_ID = new PublicKey("7AeCL1kAuxjB9ktLdtoRFUW6KfquYwDNs8r291w6h9mC");
 
 // Token mints from localnet
 const TOKENS: Record<string, PublicKey> = {
-    SOL: new PublicKey("3vMqwHGJz235mid7qDi3wBvY2Sa5gKequm3twF1Q2Sm1"),
-    USDC: new PublicKey("4cvUrvooQFEKf4JBDfWL7HbckG7a8ddnsZ8nmDUMkCgi"),
-    USDT: new PublicKey("8rmNvwfZvu6Ys6DpxXpH7pxdfzcmFVzK7NN3YrBb5UB"),
-    WETH: new PublicKey("3bGyQHL2MYJpncPZbW1kXufrdrTf3nA1TRUpnRcAjFFb"),
-    RUSH: new PublicKey("2Bj61yXFCVaAP6STf91uLMd4p2fR3ziDW4dD5c2AGt8X"),
+    SOL: new PublicKey("6EkjjUgCf7srJumcgaGcrVSGJZLySxa6GJQngiydTRn9"),
+    USDC: new PublicKey("7yQ5HazBXopzJ5AEcEvGEwABF2tjsqQ46wE2CKwqvCyE"),
+    USDT: new PublicKey("5294sJnqtpBqbuLfd1g7Za5Z8cWoNKZwheXQC6VPFyPF"),
+    WETH: new PublicKey("D9pTWEJujgpkRYuEJGfSPpNzaUpX5pc5epKxGRFvFHD7"),
+    RUSH: new PublicKey("HJhRress95eLta1t22XH5byQBfFif7WKzz8B4AFQL2c4"),
 };
 
 const TOKEN_DECIMALS: Record<string, number> = {
@@ -30,13 +31,8 @@ const TOKEN_DECIMALS: Record<string, number> = {
 };
 
 function findPoolAddress(tokenAMint: PublicKey, tokenBMint: PublicKey): [PublicKey, number] {
-    // Sort mints
-    const [mintA, mintB] = tokenAMint.toBuffer().compare(tokenBMint.toBuffer()) < 0
-        ? [tokenAMint, tokenBMint]
-        : [tokenBMint, tokenAMint];
-
     return PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), mintA.toBuffer(), mintB.toBuffer()],
+        [Buffer.from("pool"), tokenAMint.toBuffer(), tokenBMint.toBuffer()],
         PROGRAM_ID
     );
 }
@@ -73,10 +69,10 @@ async function main() {
     console.log("Payer:", payer.publicKey.toBase58());
 
     // Add liquidity to SOL/USDC pool
-    await addLiquidityToPool(program, connection, payer, "SOL", "USDC", 100, 10000);
+    await addLiquidityToPool(program, connection, payer, "SOL", "USDC", 5, 1500);
     
     // Add liquidity to SOL/USDT pool
-    await addLiquidityToPool(program, connection, payer, "SOL", "USDT", 100, 10000);
+    await addLiquidityToPool(program, connection, payer, "SOL", "USDT", 5, 1500);
     
     console.log("\n=== Done! ===");
 }
@@ -95,15 +91,16 @@ async function addLiquidityToPool(
     const mintA = TOKENS[tokenASymbol];
     const mintB = TOKENS[tokenBSymbol];
 
-    // Sort mints - pools store them in sorted order
-    const aFirst = mintA.toBuffer().compare(mintB.toBuffer()) < 0;
-    const [sortedMintA, sortedMintB] = aFirst ? [mintA, mintB] : [mintB, mintA];
-    const [sortedAmountA, sortedAmountB] = aFirst ? [amountA, amountB] : [amountB, amountA];
-    const [sortedSymbolA, sortedSymbolB] = aFirst ? [tokenASymbol, tokenBSymbol] : [tokenBSymbol, tokenASymbol];
+    console.log(`Input: ${tokenASymbol}/${tokenBSymbol}`);
 
-    console.log(`Sorted order: ${sortedSymbolA}/${sortedSymbolB}`);
+    let mint1 = mintA;
+    let mint2 = mintB;
+    if (mintA.toBase58() > mintB.toBase58()) {
+        mint1 = mintB;
+        mint2 = mintA;
+    }
 
-    const [poolPda] = findPoolAddress(sortedMintA, sortedMintB);
+    const [poolPda] = findPoolAddress(mint1, mint2);
     const [lpMintPda] = findLpMintAddress(poolPda);
     const [positionPda] = findPositionAddress(poolPda, payer.publicKey);
 
@@ -138,33 +135,66 @@ async function addLiquidityToPool(
     console.log("  Token B:", userTokenB.toBase58());
     console.log("  LP Token:", userLpToken.address.toBase58());
 
-    // Check user balances
-    try {
-        const balanceA = await connection.getTokenAccountBalance(userTokenA);
-        console.log(`  Balance A: ${balanceA.value.uiAmountString}`);
-    } catch (e) {
-        console.log("  Balance A: No token account");
-    }
-    
-    try {
-        const balanceB = await connection.getTokenAccountBalance(userTokenB);
-        console.log(`  Balance B: ${balanceB.value.uiAmountString}`);
-    } catch (e) {
-        console.log("  Balance B: No token account");
-    }
-
-    // Calculate amounts based on pool's actual mint order
+    // Determine final amounts with extra buffer
+    const EXTRA_MULTIPLIER = 2; // double the requested amounts for extra liquidity
+    const finalAmountA = amountA * EXTRA_MULTIPLIER;
+    const finalAmountB = amountB * EXTRA_MULTIPLIER;
     const decimalsA = getDecimals(poolAccount.tokenAMint);
     const decimalsB = getDecimals(poolAccount.tokenBMint);
+
+    // Check user balances and mint if needed
+    try {
+        let balanceA = 0;
+        try {
+            const accA = await connection.getTokenAccountBalance(userTokenA);
+            balanceA = parseFloat(accA.value.uiAmountString || "0");
+        } catch (e) {
+            console.log("  Balance A: No token account, will mint");
+        }
+        
+        if (balanceA < finalAmountA) {
+            console.log(`Minting ${finalAmountA} tokens to A`);
+            await mintTo(
+                connection,
+                payer,
+                poolAccount.tokenAMint,
+                userTokenA,
+                finalAmountA * Math.pow(10, decimalsA),
+                [],
+                undefined
+            );
+        } else {
+            console.log(`  Balance A: ${balanceA}`);
+        }
+    } catch (e) {
+        console.error("  Error Minting A:", e);
+    }
     
-    // Determine the amounts based on pool's mint order
-    let finalAmountA: number, finalAmountB: number;
-    if (poolAccount.tokenAMint.equals(mintA)) {
-        finalAmountA = amountA;
-        finalAmountB = amountB;
-    } else {
-        finalAmountA = amountB;
-        finalAmountB = amountA;
+    try {
+        let balanceB = 0;
+        try {
+            const accB = await connection.getTokenAccountBalance(userTokenB);
+            balanceB = parseFloat(accB.value.uiAmountString || "0");
+        } catch (e) {
+            console.log("  Balance B: No token account, will mint");
+        }
+
+        if (balanceB < finalAmountB) {
+            console.log(`Minting ${finalAmountB} tokens to B`);
+            await mintTo(
+                connection,
+                payer,
+                poolAccount.tokenBMint,
+                userTokenB,
+                finalAmountB * Math.pow(10, decimalsB),
+                [],
+                undefined
+            );
+        } else {
+            console.log(`  Balance B: ${balanceB}`);
+        }
+    } catch (e) {
+        console.error("  Error Minting B:", e);
     }
     
     const amountABN = new BN(Math.floor(finalAmountA * Math.pow(10, decimalsA)));

@@ -600,14 +600,18 @@ pub fn close_position(ctx: Context<ClosePosition>, amount_base: u64) -> Result<(
             .ok_or(error!(CustomError::CalculationOverflow))? as u64
     };
 
-    // Total return = released collateral + pnl_delta (clamped to 0 min)
+    // Total return = released collateral + pnl_delta
+    // FIX: Do NOT floor to 0. If return is negative, the position is underwater
+    // and has generated bad debt. Require the system to reject this via liquidation instead.
     let mut return_i128 = i128::from(collateral_release);
     return_i128 = return_i128
         .checked_add(result.pnl_delta)
         .ok_or(error!(CustomError::CalculationOverflow))?;
-    if return_i128 < 0 {
-        return_i128 = 0;
-    }
+
+    // CRITICAL: Prevent bad debt — user cannot voluntarily create a shortfall.
+    // Underwater positions must be processed through the liquidation path.
+    require!(return_i128 >= 0, CustomError::PositionUnderwater);
+
     let collateral_return = u64::try_from(return_i128)
         .map_err(|_| error!(CustomError::CalculationOverflow))?;
 

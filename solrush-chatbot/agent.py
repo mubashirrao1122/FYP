@@ -7,6 +7,7 @@ from tools.price_tools import get_token_price, get_price_history
 from tools.analysis_tools import analyze_token
 from tools.portfolio_tools import suggest_portfolio
 from tools.platform_help_tools import get_solrush_platform_help
+from tools.db_tools import get_user_portfolio_from_db, get_user_trade_history
 
 SYSTEM_PROMPT = """You are SolRush AI — an expert cryptocurrency investment advisor built into the SolRush decentralized exchange on Solana.
 
@@ -16,6 +17,7 @@ Your capabilities:
 3. **Price history**: Get and analyze historical price data with charts
 4. **Portfolio advice**: Suggest diversified allocations based on risk tolerance and current market signals
 5. **Platform guidance**: Teach users exactly how to use the SolRush platform features (swaps, perpetuals, liquidity, portfolio).
+6. **Personal trade history**: Query the user's actual trade history and portfolio directly from the SolRush database — including swaps, perp positions, LP fees, and realized PnL.
 
 Personality:
 - Professional but approachable — like a knowledgeable trading desk colleague
@@ -32,6 +34,9 @@ Response formatting:
 - When asked about price history/charts, call get_price_history tool
 - When asked about portfolio allocation, call suggest_portfolio tool
 - When asked how to use SolRush (e.g., swapping, wallets, perpetuals, liquidity), call the get_solrush_platform_help tool
+- When a user asks about THEIR trades, history, positions, gains, losses, or activity on SolRush, ALWAYS call get_user_portfolio_from_db with their wallet address
+- When a user asks to see their recent trades specifically, call get_user_trade_history
+- If the user hasn't provided their wallet address, ask them to connect their wallet or provide their address
 - If a question is not about crypto/investing or SolRush, politely redirect to your area of expertise
 - Keep responses concise but informative — aim for quality over quantity
 
@@ -61,6 +66,8 @@ def create_agent():
         analyze_token,
         suggest_portfolio,
         get_solrush_platform_help,
+        get_user_portfolio_from_db,
+        get_user_trade_history,
     ]
 
     agent = create_react_agent(

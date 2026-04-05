@@ -86,4 +86,6 @@ pub enum CustomError {
     CloseAmountExceedsPosition,
     #[msg("Initial margin violation — insufficient equity to increase position")]
     InsufficientMargin,
+    #[msg("Position is underwater — close amount would generate unrecoverable bad debt")]
+    PositionUnderwater,
 }

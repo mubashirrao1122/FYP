@@ -5,17 +5,21 @@ Provides SSE streaming endpoint for the LangGraph agent.
 
 import json
 import asyncio
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from agent import create_agent
+from db.database import engine, get_db
+from db.models import Base
+from db import crud
 
 load_dotenv()
 
@@ -25,8 +29,17 @@ agent = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize agent on startup."""
+    """Initialize agent and DB tables on startup."""
     global agent
+    # Create DB tables if they don't exist
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("Database tables ready")
+    except Exception as e:
+        print(f"DB init warning (is PostgreSQL running?): {e}")
+
+    # Init AI agent
     try:
         agent = create_agent()
         print("SolRush AI Agent initialized successfully")
@@ -54,11 +67,49 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []
+    wallet_address: Optional[str] = None  # forward wallet to AI for portfolio queries
 
 
 class ChatResponse(BaseModel):
     response: str
     tool_calls: list[dict] = []
+
+
+# ─────────────────────────────────────────────────────────────
+# Pydantic models for trade/portfolio endpoints
+# ─────────────────────────────────────────────────────────────
+
+class TradeRequest(BaseModel):
+    wallet_address: str
+    type: str                  # SWAP | PERP_OPEN | PERP_CLOSE | LP_ADD | LP_REMOVE | REWARD
+    token_in: Optional[str] = None
+    token_out: Optional[str] = None
+    amount_in: Optional[float] = None
+    amount_out: Optional[float] = None
+    price_usd: Optional[float] = None
+    value_usd: Optional[float] = None
+    fee_usd: Optional[float] = 0.0
+    tx_hash: Optional[str] = None
+    description: Optional[str] = None
+
+
+class PositionRequest(BaseModel):
+    wallet_address: str
+    market: str                # e.g. "SOL/USD"
+    side: str                  # LONG | SHORT
+    size_usd: float
+    collateral_usd: float
+    entry_price: float
+    leverage: float = 1.0
+    liquidation_price: Optional[float] = None
+    tx_hash: Optional[str] = None
+
+
+class ClosePositionRequest(BaseModel):
+    exit_price: float
+    tx_hash: Optional[str] = None
+    wallet_address: Optional[str] = None
+    market: Optional[str] = None
 
 
 def _convert_history(history: list[dict]) -> list:
@@ -210,3 +261,96 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+# ═══════════════════════════════════════════════════════════════
+# TRADE & PORTFOLIO REST API ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+@app.post("/api/trades", status_code=201)
+async def create_trade(req: TradeRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Record a completed trade (swap, perp open/close, LP add/remove, reward).
+    Called by the frontend after a successful on-chain transaction.
+    """
+    try:
+        trade = await crud.record_trade(db, req.wallet_address, req.model_dump())
+        return {"success": True, "trade_id": trade.id, "message": "Trade recorded"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to record trade: {str(e)}")
+
+
+@app.get("/api/history/{wallet}")
+async def get_trade_history(wallet: str, limit: int = 50, db: AsyncSession = Depends(get_db)):
+    """
+    Get paginated trade history for a wallet.
+    Used by the History page in the frontend.
+    """
+    try:
+        trades = await crud.get_trade_history(db, wallet, limit=min(limit, 100))
+        return {
+            "wallet": wallet,
+            "trades": [crud._trade_to_dict(t) for t in trades],
+            "count": len(trades),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch history: {str(e)}")
+
+
+@app.post("/api/positions", status_code=201)
+async def open_position(req: PositionRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Record a newly opened perpetual position.
+    Called by the frontend after a successful perp open transaction.
+    """
+    try:
+        pos = await crud.open_position(db, req.wallet_address, req.model_dump())
+        return {"success": True, "position_id": pos.id, "message": "Position opened"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to open position: {str(e)}")
+
+
+@app.put("/api/positions/{position_id}/close")
+async def close_position(
+    position_id: str,
+    req: ClosePositionRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Close an existing perpetual position and calculate realized PnL.
+    """
+    try:
+        pos = await crud.close_position(
+            db, 
+            position_id, 
+            req.exit_price, 
+            req.tx_hash,
+            wallet=req.wallet_address,
+            market=req.market
+        )
+        if not pos:
+            raise HTTPException(status_code=404, detail="Position not found or already closed")
+        return {
+            "success": True,
+            "position_id": pos.id,
+            "realized_pnl": pos.realized_pnl,
+            "message": f"Position closed with PnL: ${pos.realized_pnl:+.2f}",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to close position: {str(e)}")
+
+
+@app.get("/api/portfolio/{wallet}")
+async def get_portfolio(wallet: str, db: AsyncSession = Depends(get_db)):
+    """
+    Full portfolio summary for a wallet.
+    Used by the Portfolio page and the AI chatbot tool.
+    Includes: trade stats, realized PnL, open positions, LP positions, recent trades.
+    """
+    try:
+        summary = await crud.get_portfolio_summary(db, wallet)
+        return summary
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch portfolio: {str(e)}")

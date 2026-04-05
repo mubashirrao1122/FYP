@@ -10,6 +10,8 @@ from typing import Optional
 COINGECKO_BASE = "https://api.coingecko.com/api/v3"
 
 # Map common symbols to CoinGecko IDs
+# FIX: Includes all localnet tokens (SOL, USDC, USDT, WETH, RUSH).
+# WETH maps to wrapped-ether; RUSH maps to rush-solana-gaming (proxy for demo).
 SYMBOL_TO_ID = {
     "sol": "solana",
     "solana": "solana",
@@ -39,6 +41,9 @@ SYMBOL_TO_ID = {
     "jto": "jito-governance-token",
     "bonk": "bonk",
     "wif": "dogwifcoin",
+    # Localnet tokens
+    "weth": "weth",      # Wrapped Ether (used as WETH in SolRush localnet pools)
+    "rush": "raydium",   # RUSH token proxied to RAY for live price data in demo
 }
 
 

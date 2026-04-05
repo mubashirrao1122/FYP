@@ -17,15 +17,25 @@ interface AppWalletProviderProps {
 }
 
 export const AppWalletProvider: FC<AppWalletProviderProps> = ({ children }) => {
-    // Determine network based on environment
+    // FIX: For localnet, skip the WalletAdapterNetwork enum entirely.
+    // Passing WalletAdapterNetwork.Devnet causes wallets (Phantom, Solflare) to
+    // auto-route RPC calls to remote devnet nodes, defeating the local validator.
+    // Instead, rely solely on the explicit RPC URL from the environment.
     const network = NETWORK === 'mainnet'
         ? WalletAdapterNetwork.Mainnet
-        : WalletAdapterNetwork.Devnet;
+        : NETWORK === 'localnet'
+            ? ('localnet' as any)   // bypass the enum; wallet-adapter won't auto-route
+            : WalletAdapterNetwork.Devnet;
 
-    // Use centralized RPC endpoint with fallback
+    // The ConnectionProvider uses this URL. For localnet this MUST be 127.0.0.1:8899.
+    // NEXT_PUBLIC_RPC_URL is now injected by start.sh from localnet-config.json.
     const endpoint = useMemo(() => {
         if (process.env.NEXT_PUBLIC_RPC_URL) {
             return process.env.NEXT_PUBLIC_RPC_URL;
+        }
+        // Safe fallback: always prefer localnet if NETWORK says so
+        if (NETWORK === 'localnet') {
+            return 'http://127.0.0.1:8899';
         }
         return 'https://api.devnet.solana.com';
     }, []);

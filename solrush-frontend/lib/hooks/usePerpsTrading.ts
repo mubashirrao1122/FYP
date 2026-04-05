@@ -5,11 +5,8 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 import { getProgram } from '@/lib/anchor/setup';
-import {
-  findPerpsGlobalAddress,
-  findPerpsUserAddress,
-  findPerpsPositionAddress,
-} from '@/lib/anchor/pda';
+import { findPerpsGlobalAddress, findPerpsUserAddress, findPerpsPositionAddress } from '@/lib/anchor/pda';
+import { recordTrade, recordPosition, closePositionSync } from '@/lib/api';
 
 /** On-chain PRICE_SCALE factor (1 USD = 1_000_000 in fixed-point) */
 const PRICE_SCALE = 1_000_000;
@@ -133,6 +130,38 @@ export function usePerpsTrading(): UsePerpsTrading {
           'confirmed',
         );
 
+        // ── Sync with PostgreSQL ──────────────────────────────────
+        try {
+          const marketSymbol = marketKey.toBase58().startsWith('So111') ? 'SOL/USD' : 'BTC/USD'; // Simplified for FYP
+          const markPrice = Math.round(size * PRICE_SCALE) / PRICE_SCALE; // Fallback to entry size logic if needed
+          
+          await recordPosition({
+            wallet_address: publicKey.toBase58(),
+            market: marketSymbol,
+            side: side.toUpperCase(),
+            size_usd: size * leverage, // Notional size
+            collateral_usd: size,      // Initial margin
+            entry_price: markPrice,
+            leverage: leverage,
+            tx_hash: sig,
+          });
+
+          await recordTrade({
+            wallet_address: publicKey.toBase58(),
+            type: 'PERP_OPEN',
+            token_in: 'USDC',
+            token_out: marketSymbol,
+            amount_in: size,
+            amount_out: size * leverage,
+            price_usd: markPrice,
+            value_usd: size * leverage,
+            tx_hash: sig,
+            description: `Opened ${side} ${leverage}x on ${marketSymbol}`,
+          });
+        } catch (syncErr) {
+          console.error('Failed to sync open position to DB:', syncErr);
+        }
+
         setTxSignature(sig);
         setStatus('success');
         return sig;
@@ -198,6 +227,26 @@ export function usePerpsTrading(): UsePerpsTrading {
           { signature: sig, blockhash, lastValidBlockHeight },
           'confirmed',
         );
+
+        // ── Sync with PostgreSQL ──────────────────────────────────
+        try {
+          const marketSymbol = marketKey.toBase58().startsWith('So111') ? 'SOL/USD' : 'BTC/USD';
+          
+          // We use "latest" and pass wallet/market as the backend handles the lookup
+          await closePositionSync("latest", 0, sig, publicKey.toBase58(), marketSymbol);
+
+          await recordTrade({
+            wallet_address: publicKey.toBase58(),
+            type: 'PERP_CLOSE',
+            token_in: marketSymbol,
+            token_out: 'USDC',
+            value_usd: amountBase, // Close size
+            tx_hash: sig,
+            description: `Closed position on ${marketSymbol}`,
+          });
+        } catch (syncErr) {
+          console.error('Failed to sync close position to DB:', syncErr);
+        }
 
         setTxSignature(sig);
         setStatus('success');

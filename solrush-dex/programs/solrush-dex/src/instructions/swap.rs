@@ -310,16 +310,24 @@ pub fn market_sell(
 }
 #[derive(Accounts)]
 pub struct Swap<'info> {
-    #[account(mut)]
-    pub pool: Account<'info, LiquidityPool>,
+    // FIX: Added PDA seed constraint to prevent fake pool account injection.
     #[account(
         mut,
-        token::authority = user
+        seeds = [b"pool", pool.token_a_mint.as_ref(), pool.token_b_mint.as_ref()],
+        bump = pool.bump
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+    // FIX: Added token::mint validation to prevent cross-token mint exploits.
+    #[account(
+        mut,
+        token::authority = user,
+        token::mint = pool_vault_in.mint
     )]
     pub user_token_in: Account<'info, TokenAccount>,
     #[account(
         mut,
-        token::authority = user
+        token::authority = user,
+        token::mint = pool_vault_out.mint
     )]
     pub user_token_out: Account<'info, TokenAccount>,
     #[account(
@@ -339,7 +347,12 @@ pub struct Swap<'info> {
 }
 #[derive(Accounts)]
 pub struct MarketBuy<'info> {
-    #[account(mut)]
+    // FIX: Added PDA seed constraint.
+    #[account(
+        mut,
+        seeds = [b"pool", pool.token_a_mint.as_ref(), pool.token_b_mint.as_ref()],
+        bump = pool.bump
+    )]
     pub pool: Account<'info, LiquidityPool>,
     #[account(
         mut,
@@ -369,7 +382,12 @@ pub struct MarketBuy<'info> {
 }
 #[derive(Accounts)]
 pub struct MarketSell<'info> {
-    #[account(mut)]
+    // FIX: Added PDA seed constraint.
+    #[account(
+        mut,
+        seeds = [b"pool", pool.token_a_mint.as_ref(), pool.token_b_mint.as_ref()],
+        bump = pool.bump
+    )]
     pub pool: Account<'info, LiquidityPool>,
     #[account(
         mut,

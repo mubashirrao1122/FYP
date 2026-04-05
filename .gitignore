@@ -43,3 +43,6 @@ target/
 **/*.rs.bk
 __pycache__/
 *.pyc
+test-ledger/
+project_context.txt
+solrush-chatbot/test_*.py

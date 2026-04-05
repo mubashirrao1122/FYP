@@ -8,7 +8,9 @@ from tools.price_tools import get_token_price
 from tools.analysis_tools import analyze_token
 
 
-PORTFOLIO_TOKENS = ["SOL", "BTC", "ETH", "AVAX", "LINK"]
+# FIX: Restricted to tokens deployed on the local Solana validator (setup-localnet.ts).
+# Recommending BTC/ETH/AVAX/LINK would hallucinate — those mints don't exist on localnet.
+PORTFOLIO_TOKENS = ["SOL", "USDC", "USDT", "WETH", "RUSH"]
 
 
 @tool
@@ -47,16 +49,20 @@ def suggest_portfolio(amount: float, risk_tolerance: str = "medium") -> dict:
     if not analyses:
         return {"error": "Could not fetch market data. Please try again later."}
 
-    # Base allocation templates by risk level
+    # Base allocation templates by risk level.
+    # FIX: Only use tokens available on the SolRush localnet deployment.
+    # Conservative: stablecoin-heavy (USDC/USDT) for capital preservation.
+    # Medium: balanced SOL exposure with stablecoin anchor.
+    # Aggressive: maximum SOL + WETH + RUSH upside potential.
     base_allocations = {
         "conservative": {
-            "BTC": 40, "ETH": 30, "SOL": 15, "LINK": 10, "AVAX": 5,
+            "USDC": 40, "USDT": 30, "SOL": 20, "WETH": 8, "RUSH": 2,
         },
         "medium": {
-            "BTC": 30, "ETH": 25, "SOL": 25, "LINK": 10, "AVAX": 10,
+            "SOL": 35, "USDC": 20, "USDT": 15, "WETH": 20, "RUSH": 10,
         },
         "aggressive": {
-            "BTC": 15, "ETH": 20, "SOL": 35, "LINK": 15, "AVAX": 15,
+            "SOL": 40, "RUSH": 25, "WETH": 25, "USDC": 7, "USDT": 3,
         },
     }
 
@@ -116,11 +122,11 @@ def suggest_portfolio(amount: float, risk_tolerance: str = "medium") -> dict:
 
     # Risk assessment
     if risk_tolerance == "conservative":
-        risk_note = "This portfolio emphasizes large-cap stability (BTC/ETH heavy). Lower upside potential but better downside protection."
+        risk_note = "This portfolio emphasizes stablecoin holdings (USDC/USDT heavy) for capital preservation, with a small SOL and WETH position for upside."
     elif risk_tolerance == "aggressive":
-        risk_note = "This portfolio tilts toward higher-beta assets (SOL/ALTs heavy). Higher upside potential but more volatile."
+        risk_note = "This portfolio tilts toward high-beta Solana ecosystem assets (SOL/RUSH/WETH heavy). Higher upside potential but significantly more volatile."
     else:
-        risk_note = "This is a balanced portfolio mixing large-cap stability with mid-cap growth potential."
+        risk_note = "This is a balanced portfolio mixing SOL liquidity with stablecoin anchor tokens and moderate WETH/RUSH exposure."
 
     return {
         "total_investment": amount,
