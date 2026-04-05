@@ -1,8 +1,3 @@
-"""
-LangGraph ReAct agent for the SolRush AI chatbot.
-Uses Google Gemini as the LLM with tool-calling.
-"""
-
 import os
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
@@ -11,6 +6,7 @@ from langchain_core.messages import SystemMessage
 from tools.price_tools import get_token_price, get_price_history
 from tools.analysis_tools import analyze_token
 from tools.portfolio_tools import suggest_portfolio
+from tools.platform_help_tools import get_solrush_platform_help
 
 SYSTEM_PROMPT = """You are SolRush AI — an expert cryptocurrency investment advisor built into the SolRush decentralized exchange on Solana.
 
@@ -19,6 +15,7 @@ Your capabilities:
 2. **Technical analysis**: Calculate RSI, SMA, EMA, support/resistance, and generate BUY/SELL/HOLD signals
 3. **Price history**: Get and analyze historical price data with charts
 4. **Portfolio advice**: Suggest diversified allocations based on risk tolerance and current market signals
+5. **Platform guidance**: Teach users exactly how to use the SolRush platform features (swaps, perpetuals, liquidity, portfolio).
 
 Personality:
 - Professional but approachable — like a knowledgeable trading desk colleague
@@ -34,7 +31,8 @@ Response formatting:
 - When asked for analysis, ALWAYS call the analyze_token tool to get data-driven insights
 - When asked about price history/charts, call get_price_history tool
 - When asked about portfolio allocation, call suggest_portfolio tool
-- If a question is not about crypto/investing, politely redirect to your area of expertise
+- When asked how to use SolRush (e.g., swapping, wallets, perpetuals, liquidity), call the get_solrush_platform_help tool
+- If a question is not about crypto/investing or SolRush, politely redirect to your area of expertise
 - Keep responses concise but informative — aim for quality over quantity
 
 Important:
@@ -51,7 +49,7 @@ def create_agent():
         raise ValueError("GOOGLE_API_KEY environment variable is not set")
 
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         google_api_key=api_key,
         temperature=0.3,
         max_output_tokens=2048,
@@ -62,6 +60,7 @@ def create_agent():
         get_price_history,
         analyze_token,
         suggest_portfolio,
+        get_solrush_platform_help,
     ]
 
     agent = create_react_agent(

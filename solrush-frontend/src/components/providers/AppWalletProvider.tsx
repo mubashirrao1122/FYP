@@ -3,7 +3,7 @@
 import { FC, ReactNode, useMemo, useCallback } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
+
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { WalletError } from '@solana/wallet-adapter-base';
 import { RPC_ENDPOINT, NETWORK } from '@/lib/solana/constants';
@@ -36,11 +36,13 @@ export const AppWalletProvider: FC<AppWalletProviderProps> = ({ children }) => {
         !new URLSearchParams(window.location.search).has('wallet');
 
     // Initialize wallets
+    // We return an empty array here because modern Phantom and Solflare wallets natively implement the Solana Wallet Standard.
+    // passing explicit adapters like `new PhantomWalletAdapter()` conflicts with auto-detected standard wallets, breaking connection!
     const wallets = useMemo(() => {
         if (enableMockWallet) {
             return [new MockWalletAdapter() as any];
         }
-        return [new PhantomWalletAdapter(), new SolflareWalletAdapter()];
+        return []; 
     }, [enableMockWallet]);
 
     // Error handler for wallet errors

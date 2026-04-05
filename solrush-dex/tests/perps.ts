@@ -230,7 +230,7 @@ describe("perps v1", () => {
     }
   });
 
-  it("fails withdrawing while position open", async () => {
+  it("allows withdrawing free margin while position open", async () => {
     await program.methods
       .openPerpsPosition({ long: {} }, new anchor.BN(10), 5, { market: {} })
       .accounts({
@@ -244,23 +244,19 @@ describe("perps v1", () => {
       })
       .rpc();
 
-    try {
-      await program.methods
-        .withdrawPerpsCollateral(new anchor.BN(100))
-        .accounts({
-          owner: admin.publicKey,
-          global: globalPda,
-          user: userPda,
-          market: marketPda,
-          userQuoteAta,
-          collateralVault: collateralVault.publicKey,
-          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        })
-        .rpc();
-      expect.fail("Expected maintenance margin failure");
-    } catch (error: any) {
-      expect(error.toString()).to.include("Maintenance margin violation");
-    }
+    // Now allows withdrawing free margin even if position is open
+    await program.methods
+      .withdrawPerpsCollateral(new anchor.BN(100))
+      .accounts({
+        owner: admin.publicKey,
+        global: globalPda,
+        user: userPda,
+        market: marketPda,
+        userQuoteAta,
+        collateralVault: collateralVault.publicKey,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+      })
+      .rpc();
 
     await program.methods
       .closePerpsPosition(new anchor.BN(10))
