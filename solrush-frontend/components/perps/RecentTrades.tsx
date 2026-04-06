@@ -38,7 +38,7 @@ export const RecentTrades: FC<RecentTradesProps> = ({ currentPrice, trades }) =>
                         <div className="flex-1 text-right text-[#E5E7EB]">
                             {trade.size.toFixed(4)}
                         </div>
-                        <div className="flex-1 text-right text-[#9CA3AF]">
+                        <div className="flex-1 text-right text-[#9CA3AF]" suppressHydrationWarning>
                             {format(trade.time, 'HH:mm:ss')}
                         </div>
                     </div>

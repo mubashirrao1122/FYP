@@ -54,17 +54,19 @@ export function PerpsView({
 
   const handleClosePosition = useCallback(async (position: PositionView) => {
     const pct = closePercents[position.id] ?? 100;
-    const amountBase = Math.round(position.size * (pct / 100));
+    // position.size is human-readable (e.g. 1.0 SOL); convert to PRICE_SCALE for on-chain
+    const amountBase = Math.round(Math.abs(position.size) * (pct / 100) * 1_000_000);
     if (amountBase <= 0) return;
     setClosingPositionId(position.id);
     try {
       await onChainClose({ marketPubkey: position.marketId, amountBase });
+      onPositionChange?.();
     } catch (err) {
       console.error('Failed to close position:', err);
     } finally {
       setClosingPositionId(null);
     }
-  }, [onChainClose, closePercents]);
+  }, [onChainClose, closePercents, onPositionChange]);
 
   // Mock Data Generation
   const currentPrice = usePythPrice(selectedMarketId ? markets.find(m => m.id === selectedMarketId)?.oraclePriceId : null).price?.price || 0;
@@ -252,7 +254,9 @@ export function PerpsView({
                       <tbody className="divide-y divide-border/10">
                         {positions.map((position) => (
                           <tr key={position.id} className="hover:bg-muted/20 hover:shadow-[inset_0_0_30px_rgba(6,182,212,0.03)] transition-all duration-200">
-                            <td className="px-4 py-2 font-medium text-foreground">{position.marketId}</td>
+                            <td className="px-4 py-2 font-medium text-foreground">
+                              {markets.find(m => m.id === position.marketId)?.symbol ?? position.marketId.slice(0, 8) + '…'}
+                            </td>
                             <td className={`px-4 py-2 font-medium ${position.side === 'long' ? 'text-neon-green' : 'text-destructive'}`}>
                               {position.side.toUpperCase()} {position.leverage}x
                             </td>
@@ -283,7 +287,7 @@ export function PerpsView({
                                   ))}
                                 </div>
                                 <button
-                                  className="text-[10px] bg-muted/30 hover:bg-muted/50 text-foreground px-2 py-1 rounded border border-border/30 disabled:opacity-50 transition-colors"
+                                  className="text-[10px] bg-destructive/20 hover:bg-destructive/40 text-destructive px-2 py-1 rounded border border-destructive/30 disabled:opacity-50 transition-colors font-medium"
                                   onClick={() => handleClosePosition(position)}
                                   disabled={closingPositionId === position.id}
                                 >

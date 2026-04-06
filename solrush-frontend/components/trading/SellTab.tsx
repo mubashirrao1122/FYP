@@ -99,10 +99,12 @@ export function SellTab({ slippageTolerance, onTokenChange }: SellTabProps) {
             setSellAmount('');
             setSellEstimatedAmount('');
         } catch (error: any) {
-            toast({
-                title: 'Sale Failed',
-                description: error.message || 'Transaction failed.',
-            });
+            const msg = error?.message || '';
+            if (msg.includes('User rejected') || msg.includes('user rejected')) {
+                toast({ title: 'Transaction Cancelled', description: 'You rejected the transaction.' });
+            } else {
+                toast({ title: 'Sale Failed', description: msg || 'Transaction failed.' });
+            }
         }
     };
 

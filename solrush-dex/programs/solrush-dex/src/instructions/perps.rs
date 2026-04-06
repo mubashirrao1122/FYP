@@ -419,9 +419,14 @@ pub fn open_position(
     let old_collateral = position.collateral_u64;
     let additional_collateral = target_collateral.saturating_sub(old_collateral);
 
+    // Convert from PRICE_SCALE² (internal math) to atomic quote units (USDC ledger)
+    let additional_collateral_atomic = additional_collateral
+        .checked_div(PRICE_SCALE as u64)
+        .ok_or(error!(CustomError::CalculationOverflow))?;
+
     let user = &mut ctx.accounts.user;
     require!(
-        user.collateral_quote_u64 >= additional_collateral,
+        user.collateral_quote_u64 >= additional_collateral_atomic,
         CustomError::InsufficientCollateral
     );
 
@@ -440,12 +445,13 @@ pub fn open_position(
 
     user.collateral_quote_u64 = user
         .collateral_quote_u64
-        .checked_sub(additional_collateral)
+        .checked_sub(additional_collateral_atomic)
         .ok_or(error!(CustomError::CalculationOverflow))?;
 
     // If a partial close occurred (pnl_delta != 0), credit realized PnL to user
+    // Convert from PRICE_SCALE² to atomic quote units
     if result.pnl_delta > 0 {
-        let pnl_credit = u64::try_from(result.pnl_delta)
+        let pnl_credit = u64::try_from(result.pnl_delta / PRICE_SCALE)
             .map_err(|_| error!(CustomError::CalculationOverflow))?;
         user.collateral_quote_u64 = user
             .collateral_quote_u64
@@ -612,7 +618,8 @@ pub fn close_position(ctx: Context<ClosePosition>, amount_base: u64) -> Result<(
     // Underwater positions must be processed through the liquidation path.
     require!(return_i128 >= 0, CustomError::PositionUnderwater);
 
-    let collateral_return = u64::try_from(return_i128)
+    // Convert from PRICE_SCALE² (internal math) to atomic quote units (USDC ledger)
+    let collateral_return = u64::try_from(return_i128 / PRICE_SCALE)
         .map_err(|_| error!(CustomError::CalculationOverflow))?;
 
     let user = &mut ctx.accounts.user;
@@ -1060,13 +1067,15 @@ pub fn liquidate_position(ctx: Context<LiquidatePosition>) -> Result<()> {
     ).unwrap_or(0);
 
     // ── Compute equity after trade to determine bad debt ──
-    // Effective collateral after the partial close
+    // Effective collateral after the partial close (PRICE_SCALE² → atomic)
     let mut remaining_collateral_i128 = i128::from(position.collateral_u64);
     remaining_collateral_i128 = remaining_collateral_i128
         .checked_add(result.pnl_delta)
         .ok_or(error!(CustomError::CalculationOverflow))?;
+    // Convert from PRICE_SCALE² to atomic quote units before deducting atomic fees
+    remaining_collateral_i128 = remaining_collateral_i128 / perps_math::PRICE_SCALE;
 
-    // Deduct fees from remaining collateral
+    // Deduct fees (already in atomic units) from remaining collateral
     remaining_collateral_i128 = remaining_collateral_i128
         .checked_sub(liq_fee as i128)
         .ok_or(error!(CustomError::CalculationOverflow))?;

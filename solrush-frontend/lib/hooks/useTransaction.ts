@@ -37,7 +37,8 @@ export function useTransaction() {
      */
     const saveToHistory = useCallback((tx: TransactionHistory) => {
         try {
-            const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const history = Array.isArray(parsed) ? parsed : [];
             history.unshift(tx);
             // Keep last 50 transactions
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 50)));

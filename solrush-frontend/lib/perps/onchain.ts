@@ -184,9 +184,9 @@ export const fetchPerpsPositions = async (
             owner: account.owner.toBase58(),
             market: account.market.toBase58(),
             side: account.side === 0 ? 'long' : 'short',
-            size: bnToNumber(account.basePositionI64 as unknown as BN),
-            entryPrice: bnToNumber(account.entryPriceI64 as unknown as BN),
-            collateral: bnToNumber(account.collateralU64 as unknown as BN),
+            size: bnToNumber(account.basePositionI64 as unknown as BN) / PRICE_SCALE,
+            entryPrice: bnToNumber(account.entryPriceI64 as unknown as BN) / PRICE_SCALE,
+            collateral: bnToNumber(account.collateralU64 as unknown as BN) / PRICE_SCALE,
             leverage: account.leverageU16,
           };
           positionCache.set(key.toBase58(), { data: parsed, ts: Date.now() });
