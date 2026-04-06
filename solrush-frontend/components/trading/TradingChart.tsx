@@ -51,6 +51,8 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
     const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
     const [retryTrigger, setRetryTrigger] = useState(0); // New state to trigger re-fetch
 
+    const tvWidgetContainerRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         setIsMounted(true);
         if (typeof document !== 'undefined') {
@@ -135,8 +137,7 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
                 setIsLoading(true);
                 setError(null);
 
-                // On localnet, external price APIs have no data for our mints.
-                // Show a static price placeholder instead of spinning forever.
+                // On localnet, use TradingView widget instead of GeckoTerminal API
                 if (IS_LOCALNET) {
                     setCurrentPrice(null);
                     setPriceChange24h(null);
@@ -223,6 +224,45 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
         };
     }, [isMounted, isDarkMode, inputToken, outputToken, timeframe, retryTrigger]); // Added retryTrigger to dependencies
 
+    // TradingView Advanced Real-Time Chart Widget for localnet
+    useEffect(() => {
+        if (!isMounted || !IS_LOCALNET || !tvWidgetContainerRef.current) return;
+
+        const container = tvWidgetContainerRef.current;
+        container.innerHTML = '';
+
+        const script = document.createElement('script');
+        script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+        script.type = 'text/javascript';
+        script.async = true;
+
+        const tvSymbol = `BINANCE:${inputToken}${outputToken === 'USDC' ? 'USDT' : outputToken}`;
+        const intervalMap: Record<string, string> = { '15m': '15', '1h': '60', '4h': '240', '1d': 'D' };
+
+        script.innerHTML = JSON.stringify({
+            autosize: true,
+            symbol: tvSymbol,
+            interval: intervalMap[timeframe] || '60',
+            timezone: 'Etc/UTC',
+            theme: 'dark',
+            style: '1',
+            locale: 'en',
+            backgroundColor: '#0B0E11',
+            gridColor: 'rgba(255, 255, 255, 0.06)',
+            allow_symbol_change: true,
+            save_image: false,
+            calendar: false,
+            hide_volume: false,
+            support_host: 'https://www.tradingview.com',
+        });
+
+        container.appendChild(script);
+
+        return () => {
+            container.innerHTML = '';
+        };
+    }, [isMounted, inputToken, outputToken, timeframe]);
+
     if (!isMounted) return null;
 
     return (
@@ -277,24 +317,16 @@ export function TradingChart({ tokenPair, inputToken = 'SOL', outputToken = 'USD
             </div>
 
             {/* Chart Area */}
-            <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-[#E2E8F0] dark:border-white/10 bg-[#F1F5F9] dark:bg-[#161C2D] transition-colors duration-200">
-                <div ref={chartContainerRef} className="w-full h-full" />
+            <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-[#E2E8F0] dark:border-white/10 bg-[#F1F5F9] dark:bg-[#0B0E11] transition-colors duration-200">
+                {IS_LOCALNET ? (
+                    <div ref={tvWidgetContainerRef} className="tradingview-widget-container w-full h-full" />
+                ) : (
+                    <div ref={chartContainerRef} className="w-full h-full" />
+                )}
 
                 {isLoading && !IS_LOCALNET && (
                     <div className="absolute inset-0 flex items-center justify-center bg-[#F1F5F9]/70 dark:bg-[#0B0E14]/70 backdrop-blur-sm z-10">
                         <Loader2 className="h-8 w-8 text-[#3B82F6] animate-spin" />
-                    </div>
-                )}
-
-                {IS_LOCALNET && !isLoading && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-                        <p className="text-[#475569] dark:text-[#9CA3AF] text-sm mb-1">Localnet Mode</p>
-                        <p className="text-[#0F172A] dark:text-[#E5E7EB] text-lg font-semibold">
-                            Chart data unavailable on localnet
-                        </p>
-                        <p className="text-[#6B7280] dark:text-[#6B7280] text-xs mt-2">
-                            Swap prices are calculated from on-chain pool reserves
-                        </p>
                     </div>
                 )}
 
