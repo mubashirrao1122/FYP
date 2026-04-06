@@ -51,7 +51,7 @@ export function HealthStatCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/[0.06] bg-[#0F172A]/80 backdrop-blur-md p-5 relative overflow-hidden group",
+        "glass-card rounded-2xl p-5 relative overflow-hidden group",
         className,
       )}
     >
@@ -65,16 +65,16 @@ export function HealthStatCard({
       <div className="relative flex items-center gap-3 mb-4">
         {icon && (
           <div
-            className="w-9 h-9 rounded-xl border border-white/[0.06] flex items-center justify-center shrink-0"
+            className="w-9 h-9 rounded-xl border border-border/20 flex items-center justify-center shrink-0"
             style={{ backgroundColor: `${accent}12`, color: accent }}
           >
             {icon}
           </div>
         )}
         <div>
-          <h3 className="text-sm font-bold text-white tracking-tight">{title}</h3>
+          <h3 className="text-sm font-bold text-foreground tracking-tight">{title}</h3>
           {description && (
-            <p className="text-[11px] text-[#4B5563] mt-0.5">{description}</p>
+            <p className="text-[11px] text-foreground/40 mt-0.5">{description}</p>
           )}
         </div>
       </div>
@@ -92,10 +92,10 @@ export function HealthStatCard({
               </div>
             )}
             <div>
-              <div className="text-[15px] font-bold text-white tabular-nums">
+              <div className="text-[15px] font-bold text-foreground font-data">
                 {stat.value}
               </div>
-              <div className="text-[10px] text-[#4B5563] uppercase tracking-wider font-medium">
+              <div className="text-[10px] text-foreground/40 uppercase tracking-wider font-medium">
                 {stat.label}
               </div>
             </div>
@@ -133,10 +133,10 @@ export function HealthStatCard({
                 </TooltipTrigger>
                 <TooltipContent
                   side="top"
-                  className="bg-[#141E2E] border border-white/[0.08] text-white text-[11px] px-2.5 py-1.5 rounded-lg shadow-xl"
+                  className="bg-card border border-border/30 text-foreground text-[11px] px-2.5 py-1.5 rounded-lg shadow-xl"
                 >
-                  <span className="font-semibold text-white">{bar.label}</span>
-                  <span className="text-[#6B7280] ml-1.5">
+                  <span className="font-semibold text-foreground">{bar.label}</span>
+                  <span className="text-muted-foreground ml-1.5">
                     {bar.tooltip || `${bar.value.toFixed(0)}%`}
                   </span>
                 </TooltipContent>
@@ -154,7 +154,7 @@ export function HealthStatCard({
               className="w-1.5 h-1.5 rounded-full shrink-0"
               style={{ backgroundColor: accent, opacity: 0.35 + (bar.value / Math.max(...graphData.map(b => b.value), 1)) * 0.65 }}
             />
-            <span className="text-[10px] text-[#4B5563] font-medium">
+            <span className="text-[10px] text-foreground/40 font-medium">
               {bar.label}
             </span>
           </div>

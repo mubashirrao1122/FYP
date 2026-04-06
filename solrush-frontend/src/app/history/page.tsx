@@ -116,60 +116,49 @@ export default function HistoryPage() {
     }, [typeVolumes, totalVolume]);
 
     return (
-        <div className="min-h-screen bg-[#0B1220] relative overflow-hidden">
-            {/* Ambient glows */}
-            <div className="fixed top-0 left-[-10%] w-[40%] h-[50%] rounded-full bg-[#9945FF]/5 blur-[140px] pointer-events-none" />
-            <div className="fixed bottom-0 right-[-10%] w-[35%] h-[45%] rounded-full bg-[#14F195]/5 blur-[140px] pointer-events-none" />
-
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-200 selection:bg-neon-cyan/20">
             <Navbar />
 
-            <main className="relative z-10 max-w-5xl mx-auto px-5 pt-24 pb-16">
-                {/* Header */}
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#9945FF] to-[#14F195] flex items-center justify-center shadow-lg">
-                                <Clock className="w-4 h-4 text-white" />
-                            </div>
-                            <span className="text-[12px] font-semibold text-[#9945FF] uppercase tracking-widest">Activity</span>
-                        </div>
-                        <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">Transaction History</h1>
-                        <p className="text-[#6B7280] text-sm mt-1.5">
-                            All your swaps, perpetual trades, LP actions, and rewards on SolRush
-                        </p>
-                    </div>
-
+            <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
+                {/* Header — swap-style centered */}
+                <div className="text-center space-y-2 mb-8">
+                    <h1 className="text-4xl sm:text-5xl font-semibold text-foreground tracking-tight">
+                        Transaction History
+                    </h1>
+                    <p className="text-foreground/60 text-base sm:text-lg">
+                        All your swaps, perpetual trades, LP actions, and rewards on SolRush.
+                    </p>
                     {publicKey && (
                         <button
                             onClick={() => fetchHistory(publicKey.toString())}
-                            className="flex items-center gap-2 text-[12px] font-semibold text-[#14F195] border border-[#14F195]/25 hover:border-[#14F195]/50 px-4 py-2 rounded-xl transition-all hover:bg-[#14F195]/5"
+                            className="inline-flex items-center gap-2 text-sm font-semibold text-neon-cyan border border-neon-cyan/25 hover:border-neon-cyan/50 px-4 py-2 rounded-xl transition-all hover:bg-neon-cyan/5 mt-2"
                         >
                             <RefreshCw className="w-3.5 h-3.5" /> Refresh
                         </button>
                     )}
-                </motion.div>
+                </div>
 
                 {/* Not connected */}
                 {!publicKey ? (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.97 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="rounded-2xl border border-white/8 bg-[#0F172A]/70 backdrop-blur-md p-16 text-center"
+                        className="glass-card rounded-2xl p-16 text-center max-w-lg mx-auto"
                     >
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#9945FF] to-[#14F195] flex items-center justify-center mx-auto mb-5 shadow-2xl">
+                        <div className="w-16 h-16 rounded-2xl solana-gradient flex items-center justify-center mx-auto mb-5">
                             <Wallet className="w-8 h-8 text-white" />
                         </div>
-                        <h2 className="text-xl font-bold text-white mb-2">Connect Your Wallet</h2>
-                        <p className="text-[#6B7280] max-w-sm mx-auto text-sm leading-relaxed">
+                        <h2 className="text-xl font-bold text-foreground mb-2">Connect Your Wallet</h2>
+                        <p className="text-muted-foreground max-w-sm mx-auto text-sm leading-relaxed">
                             Connect your Solana wallet to view your complete transaction history on SolRush.
                         </p>
                     </motion.div>
                 ) : loading ? (
                     <div className="flex items-center justify-center py-20">
-                        <div className="w-8 h-8 border-2 border-[#9945FF] border-t-transparent rounded-full animate-spin" />
+                        <div className="w-8 h-8 border-2 border-neon-cyan border-t-transparent rounded-full animate-spin" />
                     </div>
                 ) : error ? (
-                    <div className="rounded-2xl border border-[#F87171]/20 bg-[#F87171]/5 p-6 text-[#F87171] text-sm">{error}</div>
+                    <div className="glass-card rounded-2xl border-destructive/20 p-6 text-destructive text-sm">{error}</div>
                 ) : (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                         {/* Stat cards */}
@@ -178,7 +167,7 @@ export default function HistoryPage() {
                                 title="Trade Activity"
                                 description="Breakdown by trade type"
                                 icon={<Activity className="w-4 h-4" />}
-                                accent="#9945FF"
+                                accent="var(--color-neon-cyan)"
                                 stats={[
                                     { label: 'Total Trades', value: trades.length, icon: <BarChart3 className="w-3.5 h-3.5" /> },
                                     { label: 'Swaps', value: typeCounts['SWAP'] || 0, icon: <ArrowLeftRight className="w-3.5 h-3.5" /> },
@@ -191,7 +180,7 @@ export default function HistoryPage() {
                                 title="Volume & Fees"
                                 description="Financial breakdown"
                                 icon={<DollarSign className="w-4 h-4" />}
-                                accent="#14F195"
+                                accent="var(--color-neon-green)"
                                 stats={[
                                     { label: 'Total Volume', value: fmtUSD(totalVolume), icon: <DollarSign className="w-3.5 h-3.5" /> },
                                     { label: 'Fees Paid', value: fmtUSD(totalFees), icon: <Receipt className="w-3.5 h-3.5" /> },
@@ -212,8 +201,8 @@ export default function HistoryPage() {
                                         onClick={() => setFilter(type)}
                                         className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
                                             filter === type
-                                                ? 'bg-[#9945FF] border-[#9945FF] text-white shadow-[0_0_12px_rgba(153,69,255,0.4)]'
-                                                : 'border-white/10 text-[#6B7280] hover:text-white hover:border-white/20'
+                                                ? 'bg-neon-cyan border-neon-cyan text-white shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                                                : 'border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60'
                                         }`}
                                     >
                                         {cfg?.label || 'All'}
@@ -224,12 +213,12 @@ export default function HistoryPage() {
 
                         {/* Trades table */}
                         {filtered.length === 0 ? (
-                            <div className="rounded-2xl border border-white/8 bg-[#0F172A]/70 p-12 text-center text-[#6B7280]">
+                            <div className="glass-card rounded-2xl p-12 text-center text-muted-foreground">
                                 No trades found. Make your first trade on SolRush!
                             </div>
                         ) : (
-                            <div className="rounded-2xl border border-white/8 bg-[#0F172A]/70 backdrop-blur-md overflow-hidden">
-                                <div className="divide-y divide-white/[0.04]">
+                            <div className="glass-card rounded-2xl overflow-hidden">
+                                <div className="divide-y divide-border/10">
                                     <AnimatePresence>
                                         {filtered.map((trade, i) => {
                                             const cfg = TYPE_CONFIG[trade.type] || TYPE_CONFIG.SWAP;
@@ -239,25 +228,25 @@ export default function HistoryPage() {
                                                     initial={{ opacity: 0, y: 8 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     transition={{ delay: i * 0.03 }}
-                                                    className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.025] transition-colors"
+                                                    className="flex items-center gap-4 px-6 py-4 hover:bg-muted/20 transition-colors"
                                                 >
-                                                    {/* Type badge — monochrome with subtle left accent */}
-                                                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-white/[0.06] bg-white/[0.03] text-[#9CA3AF] tracking-wider shrink-0">
-                                                        <span className="text-[#9945FF]/70">{cfg.icon}</span>
+                                                    {/* Type badge */}
+                                                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border border-border/20 bg-muted/30 text-foreground/60 tracking-wider shrink-0">
+                                                        <span className="text-neon-cyan/70">{cfg.icon}</span>
                                                         {cfg.label}
                                                     </span>
 
                                                     {/* Description */}
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="font-semibold text-[13px] text-[#D1D5DB] truncate">
+                                                        <div className="font-semibold text-[13px] text-foreground/80 truncate">
                                                             {trade.description || `${trade.token_in || ''} → ${trade.token_out || ''}`}
                                                         </div>
                                                         <div className="flex items-center gap-2 mt-0.5">
-                                                            <span className="text-[11px] text-[#6B7280]">{timeAgo(trade.created_at)}</span>
+                                                            <span className="text-[11px] text-muted-foreground">{timeAgo(trade.created_at)}</span>
                                                             {trade.tx_hash && (
                                                                 <>
-                                                                    <span className="text-[11px] text-[#374151]">·</span>
-                                                                    <span className="text-[11px] font-mono text-[#4B5563]">{trade.tx_hash.slice(0, 8)}...{trade.tx_hash.slice(-4)}</span>
+                                                                    <span className="text-[11px] text-foreground/20">·</span>
+                                                                    <span className="text-[11px] font-mono text-foreground/40">{trade.tx_hash.slice(0, 8)}...{trade.tx_hash.slice(-4)}</span>
                                                                 </>
                                                             )}
                                                         </div>
@@ -266,20 +255,20 @@ export default function HistoryPage() {
                                                     {/* Amount info */}
                                                     <div className="text-right shrink-0">
                                                         {trade.value_usd != null && (
-                                                            <div className="text-[13px] font-bold text-white tabular-nums">{fmtUSD(trade.value_usd)}</div>
+                                                            <div className="text-[13px] font-bold text-foreground font-data">{fmtUSD(trade.value_usd)}</div>
                                                         )}
                                                         {trade.fee_usd != null && trade.fee_usd > 0 && (
-                                                            <div className="text-[11px] text-[#6B7280]">Fee: {fmtUSD(trade.fee_usd)}</div>
+                                                            <div className="text-[11px] text-muted-foreground">Fee: {fmtUSD(trade.fee_usd)}</div>
                                                         )}
                                                     </div>
 
-                                                    {/* Status badge — subdued */}
+                                                    {/* Status badge */}
                                                     <div className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold border ${
                                                         trade.status === 'SUCCESS'
-                                                            ? 'text-[#14F195]/80 border-[#14F195]/15 bg-[#14F195]/[0.04]'
+                                                            ? 'text-neon-green/80 border-neon-green/15 bg-neon-green/[0.04]'
                                                             : trade.status === 'PENDING'
-                                                            ? 'text-[#6B7280] border-white/[0.06] bg-white/[0.02]'
-                                                            : 'text-[#F87171]/70 border-[#F87171]/15 bg-[#F87171]/[0.04]'
+                                                            ? 'text-muted-foreground border-border/20 bg-muted/20'
+                                                            : 'text-destructive/70 border-destructive/15 bg-destructive/[0.04]'
                                                     }`}>
                                                         {trade.status}
                                                     </div>
@@ -289,7 +278,7 @@ export default function HistoryPage() {
                                                         <a
                                                             href={`https://explorer.solana.com/tx/${trade.tx_hash}?cluster=custom&customUrl=http://localhost:8899`}
                                                             target="_blank" rel="noopener noreferrer"
-                                                            className="shrink-0 text-[#4B5563] hover:text-[#9CA3AF] transition-colors"
+                                                            className="shrink-0 text-foreground/30 hover:text-foreground/60 transition-colors"
                                                         >
                                                             <ExternalLink className="w-3.5 h-3.5" />
                                                         </a>

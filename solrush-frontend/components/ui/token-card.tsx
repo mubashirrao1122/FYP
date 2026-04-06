@@ -63,9 +63,8 @@ const TokenCard = React.forwardRef<HTMLDivElement, TokenCardProps>(
         whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
         className={cn(
           "flex items-center justify-between w-full p-4",
-          "rounded-xl border border-white/8 bg-[#0F172A]/80 backdrop-blur-md",
-          "shadow-sm transition-shadow hover:shadow-lg hover:shadow-[#9945FF]/5",
-          "hover:border-white/15",
+          "glass-card rounded-xl",
+          "shadow-sm transition-shadow hover:shadow-lg hover:shadow-neon-cyan/5",
           className,
         )}
       >
@@ -75,37 +74,37 @@ const TokenCard = React.forwardRef<HTMLDivElement, TokenCardProps>(
             <img
               src={logoSrc}
               alt={`${ticker} logo`}
-              className="h-10 w-10 rounded-full border border-white/10 shadow-md shrink-0"
+              className="h-10 w-10 rounded-full border border-border/20 shadow-md shrink-0"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
               }}
             />
           ) : (
-            <div className="h-10 w-10 rounded-full bg-[#1E293B] border border-white/10 flex items-center justify-center text-[11px] font-bold text-white/60 shrink-0">
+            <div className="h-10 w-10 rounded-full bg-muted border border-border/20 flex items-center justify-center text-[11px] font-bold text-foreground/60 shrink-0">
               {ticker.slice(0, 2)}
             </div>
           )}
           <div className="min-w-0">
-            <p className="font-bold text-[15px] text-white truncate">{ticker}</p>
-            <p className="text-[12px] text-[#6B7280] truncate">{name}</p>
+            <p className="font-bold text-[15px] text-foreground truncate">{ticker}</p>
+            <p className="text-[12px] text-muted-foreground truncate">{name}</p>
           </div>
         </div>
 
         {/* Center: Price + Allocation */}
         <div className="text-right hidden sm:block">
-          <p className="font-semibold text-[15px] text-white tabular-nums">
+          <p className="font-semibold text-[15px] text-foreground font-data">
             {formattedPrice}
           </p>
           <div className="flex items-center justify-end gap-1">
             {isPositive ? (
-              <ArrowUpRight className="h-3.5 w-3.5 text-[#14F195]" />
+              <ArrowUpRight className="h-3.5 w-3.5 text-neon-green" />
             ) : (
-              <ArrowDownRight className="h-3.5 w-3.5 text-[#F87171]" />
+              <ArrowDownRight className="h-3.5 w-3.5 text-destructive" />
             )}
             <span
               className={cn(
                 "text-[12px] font-semibold",
-                isPositive ? "text-[#14F195]" : "text-[#F87171]",
+                isPositive ? "text-neon-green" : "text-destructive",
               )}
             >
               {formattedAllocation}
@@ -116,10 +115,10 @@ const TokenCard = React.forwardRef<HTMLDivElement, TokenCardProps>(
         {/* Right: Value + Trade */}
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="font-bold text-[15px] text-white tabular-nums">
+            <p className="font-bold text-[15px] text-foreground font-data">
               {formattedValue}
             </p>
-            <p className="text-[11px] text-[#6B7280] tabular-nums">
+            <p className="text-[11px] text-muted-foreground font-data">
               {balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
               {ticker}
             </p>
@@ -130,7 +129,7 @@ const TokenCard = React.forwardRef<HTMLDivElement, TokenCardProps>(
               size="sm"
               onClick={() => onTrade(ticker)}
               aria-label={`Trade ${ticker}`}
-              className="bg-[#9945FF]/15 text-[#9945FF] border border-[#9945FF]/25 hover:bg-[#9945FF]/25 hover:text-white font-bold text-[11px] tracking-wider"
+              className="bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/25 hover:bg-neon-cyan/25 hover:text-foreground font-bold text-[11px] tracking-wider"
             >
               Trade
             </Button>

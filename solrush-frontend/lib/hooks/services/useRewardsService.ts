@@ -152,8 +152,11 @@ export const useRewardsService = () => {
             const periodRewards = rewardsPerSecond * timeElapsed;
             const userRewards = (periodRewards * userShare) / PRECISION;
 
+            const result = userRewards / 1_000_000;
+            console.log(`[Rewards] pool=${poolAddress.toBase58().slice(0,8)}… lp=${lpTokens}/${totalLpSupply} elapsed=${timeElapsed}s rps=${rewardsPerSecond} pending=${result.toFixed(6)}`);
+
             // Convert from base units (6 decimals) to display
-            return userRewards / 1_000_000;
+            return result;
         } catch (err) {
             console.error("Failed to calculate rewards:", err);
             return 0;
@@ -189,6 +192,15 @@ export const useRewardsService = () => {
             // Fetch RushConfig once for reward rate
             const [rushConfigPda] = findRushConfigAddress();
             const rushConfig = await (program.account as any).rushConfig.fetchNullable(rushConfigPda);
+
+            if (!rushConfig) {
+                console.warn('RushConfig PDA not found — rewards system may not be initialized. Run init-rewards.ts');
+            } else if (rushConfig.isPaused) {
+                console.warn('RUSH rewards are currently paused');
+            } else {
+                const rps = Number((rushConfig.rewardsPerSecond as BN).toString());
+                console.log(`[Rewards] rewardsPerSecond=${rps}, APY=${Number((rushConfig.apyNumerator as BN).toString())}%`);
+            }
 
             // Dynamically fetch all user's liquidity positions using memcmp filter
             const positions = await (program.account as any).userLiquidityPosition.all([
